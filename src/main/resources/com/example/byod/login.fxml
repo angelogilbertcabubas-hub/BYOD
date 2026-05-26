@@ -23,7 +23,7 @@
                  preserveRatio="false">
 
          <image>
-            <Image url="@../../../images/pup.png"/>
+            <Image url="@../../../images/pup.png" />
          </image>
 
       </ImageView>
@@ -41,7 +41,7 @@
                        preserveRatio="true">
 
                <image>
-                  <Image url="@../../../images/pup_logo.png"/>
+                  <Image url="@../../../images/pup_logo.png" />
                </image>
 
             </ImageView>
@@ -107,18 +107,16 @@
 
          <children>
 
-            <!-- CARD LOGO -->
             <ImageView fitHeight="140.0"
                        fitWidth="140.0"
                        preserveRatio="true">
 
                <image>
-                  <Image url="@../../../images/byod_logo.png"/>
+                  <Image url="@../../../images/byod_logo.png" />
                </image>
 
             </ImageView>
 
-            <!-- TITLE -->
             <Label text="BYOD"
                    textFill="#6B0F0F">
 

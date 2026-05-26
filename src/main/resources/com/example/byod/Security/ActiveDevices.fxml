@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.image.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="controller.Security.ActiveDevicesController"
+            prefWidth="1024" prefHeight="768"
+            style="-fx-background-color: #1a0808;">
+
+    <!-- ═══════════════ LEFT SIDEBAR ═══════════════ -->
+    <left>
+        <VBox prefWidth="195" spacing="0"
+              style="-fx-background-color: #7B0D0D; -fx-padding: 20 12 16 12;">
+
+            <VBox alignment="CENTER" spacing="6" style="-fx-padding: 10 0 18 0;">
+                <ImageView fitWidth="70" fitHeight="70" preserveRatio="true">
+                    <image><Image url="@../../../../images/shield-logo.png"/></image>
+                </ImageView>
+                <Label text="BYOD"
+                       style="-fx-font-size: 17px; -fx-font-weight: bold; -fx-text-fill: #c49a1a;"/>
+                <Label text="REGISTRATION &amp; MONITORING SYSTEM"
+                       wrapText="true" alignment="CENTER"
+                       style="-fx-font-size: 8.5px; -fx-text-fill: #cccccc;
+                              -fx-text-alignment: CENTER; -fx-alignment: CENTER;"/>
+            </VBox>
+
+            <Separator style="-fx-background-color: #9b2020; -fx-opacity: 0.5;"/>
+
+            <VBox spacing="2" style="-fx-padding: 14 0 0 0;">
+                <Label text="NAVIGATION"
+                       style="-fx-font-size: 8.5px; -fx-text-fill: #aaaaaa;
+                              -fx-padding: 0 0 6 6; -fx-font-weight: bold;"/>
+
+                <Button text="  📊   Dashboard" maxWidth="Infinity"
+                        onAction="#goToDashboard"
+                        style="-fx-background-color: transparent; -fx-text-fill: #dddddd;
+                               -fx-alignment: CENTER-LEFT; -fx-padding: 10 14;
+                               -fx-background-radius: 7; -fx-cursor: hand; -fx-font-size: 12px;"/>
+
+                <Button text="  🔄   Check-In / Check-Out" maxWidth="Infinity"
+                        onAction="#goToCheckInOut"
+                        style="-fx-background-color: transparent; -fx-text-fill: #dddddd;
+                               -fx-alignment: CENTER-LEFT; -fx-padding: 10 14;
+                               -fx-background-radius: 7; -fx-cursor: hand; -fx-font-size: 12px;"/>
+
+                <Button text="  📋   Monitoring Logs" maxWidth="Infinity"
+                        onAction="#goToMonitoringLogs"
+                        style="-fx-background-color: transparent; -fx-text-fill: #dddddd;
+                               -fx-alignment: CENTER-LEFT; -fx-padding: 10 14;
+                               -fx-background-radius: 7; -fx-cursor: hand; -fx-font-size: 12px;"/>
+
+                <!-- ACTIVE -->
+                <Button text="  🖥   Active Devices" maxWidth="Infinity"
+                        style="-fx-background-color: #c49a1a; -fx-text-fill: white;
+                               -fx-font-weight: bold; -fx-alignment: CENTER-LEFT;
+                               -fx-padding: 10 14; -fx-background-radius: 7;
+                               -fx-cursor: hand; -fx-font-size: 12.5px;"/>
+
+                <Button text="  📄   Reports" maxWidth="Infinity"
+                        onAction="#goToReports"
+                        style="-fx-background-color: transparent; -fx-text-fill: #dddddd;
+                               -fx-alignment: CENTER-LEFT; -fx-padding: 10 14;
+                               -fx-background-radius: 7; -fx-cursor: hand; -fx-font-size: 12px;"/>
+            </VBox>
+
+            <Region VBox.vgrow="ALWAYS"/>
+            <Separator style="-fx-background-color: #9b2020; -fx-opacity: 0.4;"/>
+
+            <Button text="  ↩   Logout" maxWidth="Infinity" onAction="#handleLogout"
+                    style="-fx-background-color: transparent; -fx-text-fill: #dddddd;
+                           -fx-alignment: CENTER-LEFT; -fx-padding: 10 14;
+                           -fx-background-radius: 7; -fx-cursor: hand; -fx-font-size: 12px;"/>
+        </VBox>
+    </left>
+
+    <!-- ═══════════════ CENTER ═══════════════ -->
+    <center>
+        <VBox style="-fx-background-color: #e8e4dc;">
+
+            <!-- ── HEADER ── -->
+            <HBox alignment="CENTER_LEFT" spacing="12"
+                  style="-fx-background-color: white;
+                         -fx-padding: 16 24;
+                         -fx-border-color: transparent transparent #eeeeee transparent;
+                         -fx-border-width: 0 0 1 0;">
+                <VBox spacing="3" HBox.hgrow="ALWAYS">
+                    <Label text="Active Devices"
+                           style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #1a1a1a;"/>
+                    <Label text="View all devices that are currently inside the campus"
+                           style="-fx-font-size: 11.5px; -fx-text-fill: #888888;"/>
+                </VBox>
+
+                <!-- Bell with badge -->
+                <StackPane>
+                    <Label text="🔔" style="-fx-font-size: 20px; -fx-cursor: hand;"/>
+                    <Label text="2" StackPane.alignment="TOP_RIGHT"
+                           style="-fx-background-color: #e53935; -fx-text-fill: white;
+                                  -fx-font-size: 8px; -fx-font-weight: bold;
+                                  -fx-background-radius: 50; -fx-padding: 1 4;
+                                  -fx-translate-x: 4; -fx-translate-y: -4;"/>
+                </StackPane>
+
+                <!-- Avatar -->
+                <StackPane style="-fx-background-color: #7B0D0D; -fx-background-radius: 50;
+                                  -fx-min-width: 40; -fx-min-height: 40;
+                                  -fx-max-width: 40; -fx-max-height: 40;">
+                    <Label text="AD" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px;"/>
+                </StackPane>
+
+                <VBox spacing="1">
+                    <Label text="Security Guard"
+                           style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #1a1a1a;"/>
+                    <Label text="Security Personnel"
+                           style="-fx-font-size: 11px; -fx-text-fill: #888888;"/>
+                </VBox>
+            </HBox>
+
+            <!-- ── BODY ── -->
+            <VBox VBox.vgrow="ALWAYS"
+                  spacing="14"
+                  style="-fx-padding: 20 20 20 20; -fx-background-color: #e8e4dc;">
+
+                <!-- ── SEARCH CARD ── -->
+                <VBox spacing="12"
+                      style="-fx-background-color: white; -fx-background-radius: 12;
+                             -fx-padding: 18 20;
+                             -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 8, 0, 0, 2);">
+
+                    <Label text="Active Devices (Currently Inside Campus)"
+                           style="-fx-font-size: 14.5px; -fx-font-weight: bold; -fx-text-fill: #1a1a1a;"/>
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <HBox HBox.hgrow="ALWAYS" alignment="CENTER_LEFT" spacing="8"
+                              style="-fx-background-color: #faf5eb;
+                                     -fx-background-radius: 8;
+                                     -fx-border-color: #e8dfc8;
+                                     -fx-border-radius: 8;
+                                     -fx-border-width: 1.2;
+                                     -fx-padding: 11 16;">
+                            <Label text="🔍" style="-fx-font-size: 13px; -fx-text-fill: #aaaaaa;"/>
+                            <TextField fx:id="txtSearch"
+                                       promptText="Search by Name / ID / Device..."
+                                       HBox.hgrow="ALWAYS"
+                                       onKeyReleased="#handleSearch"
+                                       style="-fx-background-color: transparent;
+                                              -fx-border-color: transparent;
+                                              -fx-font-size: 13px;
+                                              -fx-text-fill: #333333;
+                                              -fx-prompt-text-fill: #aaaaaa;"/>
+                        </HBox>
+                        <Button text="⚙  Filter" onAction="#handleFilter"
+                                style="-fx-background-color: white; -fx-text-fill: #555555;
+                                       -fx-font-size: 13px; -fx-background-radius: 8;
+                                       -fx-border-color: #cccccc; -fx-border-radius: 8;
+                                       -fx-border-width: 1.3; -fx-padding: 11 18; -fx-cursor: hand;"/>
+                    </HBox>
+                </VBox>
+
+                <!-- ── TABLE CARD ── -->
+                <VBox spacing="0"
+                      style="-fx-background-color: white; -fx-background-radius: 12;
+                             -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.07), 8, 0, 0, 2);">
+
+                    <!-- Table Header -->
+                    <HBox style="-fx-padding: 13 20;
+                                 -fx-border-color: transparent transparent #eeeeee transparent;
+                                 -fx-border-width: 0 0 1 0;">
+                        <Label text="STUDENT NAME" prefWidth="185"
+                               style="-fx-font-size: 10.5px; -fx-font-weight: bold; -fx-text-fill: #888888;"/>
+                        <Label text="STUDENT ID"   prefWidth="115"
+                               style="-fx-font-size: 10.5px; -fx-font-weight: bold; -fx-text-fill: #888888;"/>
+                        <Label text="DEVICE"       prefWidth="150"
+                               style="-fx-font-size: 10.5px; -fx-font-weight: bold; -fx-text-fill: #888888;"/>
+                        <Label text="ACCESS CODE"  prefWidth="120"
+                               style="-fx-font-size: 10.5px; -fx-font-weight: bold; -fx-text-fill: #888888;"/>
+                        <Label text="TIME IN"      prefWidth="100"
+                               style="-fx-font-size: 10.5px; -fx-font-weight: bold; -fx-text-fill: #888888;"/>
+                        <Label text="LOCATION"
+                               style="-fx-font-size: 10.5px; -fx-font-weight: bold; -fx-text-fill: #888888;"/>
+                    </HBox>
+
+                    <!-- Row 1 — JD -->
+                    <HBox alignment="CENTER_LEFT"
+                          style="-fx-padding: 13 20;
+                                 -fx-border-color: transparent transparent #f5f5f5 transparent;
+                                 -fx-border-width: 0 0 1 0;">
+                        <!-- Avatar + Name -->
+                        <HBox spacing="10" alignment="CENTER_LEFT" prefWidth="185">
+                            <StackPane style="-fx-background-color: #1565c0;
+                                              -fx-background-radius: 50;
+                                              -fx-min-width: 34; -fx-min-height: 34;
+                                              -fx-max-width: 34; -fx-max-height: 34;">
+                                <Label text="JD" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;"/>
+                            </StackPane>
+                            <Label text="Juan Dela Cruz"
+                                   style="-fx-font-size: 13px; -fx-text-fill: #1a1a1a; -fx-font-weight: bold;"/>
+                        </HBox>
+                        <Label text="2025-0001" prefWidth="115"
+                               style="-fx-font-size: 13px; -fx-text-fill: #7B0D0D; -fx-font-weight: bold;"/>
+                        <Label text="Lenovo Ideapad 5" prefWidth="150"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="AC2026003" prefWidth="120"
+                               style="-fx-font-size: 12px; -fx-text-fill: #888888;"/>
+                        <Label text="09:00 AM" prefWidth="100"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="Main Gate"
+                               style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32;
+                                      -fx-font-size: 11.5px; -fx-background-radius: 5; -fx-padding: 4 12;"/>
+                    </HBox>
+
+                    <!-- Row 2 — MS -->
+                    <HBox alignment="CENTER_LEFT"
+                          style="-fx-padding: 13 20;
+                                 -fx-border-color: transparent transparent #f5f5f5 transparent;
+                                 -fx-border-width: 0 0 1 0;">
+                        <HBox spacing="10" alignment="CENTER_LEFT" prefWidth="185">
+                            <StackPane style="-fx-background-color: #6a1b9a;
+                                              -fx-background-radius: 50;
+                                              -fx-min-width: 34; -fx-min-height: 34;
+                                              -fx-max-width: 34; -fx-max-height: 34;">
+                                <Label text="MS" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;"/>
+                            </StackPane>
+                            <Label text="Maria Santos"
+                                   style="-fx-font-size: 13px; -fx-text-fill: #1a1a1a; -fx-font-weight: bold;"/>
+                        </HBox>
+                        <Label text="2025-0002" prefWidth="115"
+                               style="-fx-font-size: 13px; -fx-text-fill: #7B0D0D; -fx-font-weight: bold;"/>
+                        <Label text="HP Pavilion 15" prefWidth="150"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="AC2026003" prefWidth="120"
+                               style="-fx-font-size: 12px; -fx-text-fill: #888888;"/>
+                        <Label text="09:45 AM" prefWidth="100"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="Main Gate"
+                               style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32;
+                                      -fx-font-size: 11.5px; -fx-background-radius: 5; -fx-padding: 4 12;"/>
+                    </HBox>
+
+                    <!-- Row 3 — KG (highlighted with border) -->
+                    <HBox alignment="CENTER_LEFT"
+                          style="-fx-padding: 13 20;
+                                 -fx-background-color: #fffdf5;
+                                 -fx-border-color: #c49a1a;
+                                 -fx-border-width: 1.5;
+                                 -fx-border-radius: 0;">
+                        <HBox spacing="10" alignment="CENTER_LEFT" prefWidth="185">
+                            <StackPane style="-fx-background-color: #c49a1a;
+                                              -fx-background-radius: 50;
+                                              -fx-min-width: 34; -fx-min-height: 34;
+                                              -fx-max-width: 34; -fx-max-height: 34;">
+                                <Label text="KG" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;"/>
+                            </StackPane>
+                            <Label text="Kyle Garcia"
+                                   style="-fx-font-size: 13px; -fx-text-fill: #1a1a1a; -fx-font-weight: bold;"/>
+                        </HBox>
+                        <Label text="2025-0003" prefWidth="115"
+                               style="-fx-font-size: 13px; -fx-text-fill: #7B0D0D; -fx-font-weight: bold;"/>
+                        <Label text="Acer Aspire 5" prefWidth="150"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="AC2026003" prefWidth="120"
+                               style="-fx-font-size: 12px; -fx-text-fill: #888888;"/>
+                        <Label text="09:00 AM" prefWidth="100"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="Main Gate"
+                               style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32;
+                                      -fx-font-size: 11.5px; -fx-background-radius: 5; -fx-padding: 4 12;"/>
+                    </HBox>
+
+                    <!-- Row 4 — AL -->
+                    <HBox alignment="CENTER_LEFT"
+                          style="-fx-padding: 13 20;
+                                 -fx-border-color: transparent transparent #f5f5f5 transparent;
+                                 -fx-border-width: 0 0 1 0;">
+                        <HBox spacing="10" alignment="CENTER_LEFT" prefWidth="185">
+                            <StackPane style="-fx-background-color: #2e7d32;
+                                              -fx-background-radius: 50;
+                                              -fx-min-width: 34; -fx-min-height: 34;
+                                              -fx-max-width: 34; -fx-max-height: 34;">
+                                <Label text="AL" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;"/>
+                            </StackPane>
+                            <Label text="Angela Lopez"
+                                   style="-fx-font-size: 13px; -fx-text-fill: #1a1a1a; -fx-font-weight: bold;"/>
+                        </HBox>
+                        <Label text="2025-0004" prefWidth="115"
+                               style="-fx-font-size: 13px; -fx-text-fill: #7B0D0D; -fx-font-weight: bold;"/>
+                        <Label text="MacBook Air M2" prefWidth="150"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="AC2026003" prefWidth="120"
+                               style="-fx-font-size: 12px; -fx-text-fill: #888888;"/>
+                        <Label text="09:00 AM" prefWidth="100"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="Main Gate"
+                               style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32;
+                                      -fx-font-size: 11.5px; -fx-background-radius: 5; -fx-padding: 4 12;"/>
+                    </HBox>
+
+                    <!-- Row 5 — MV -->
+                    <HBox alignment="CENTER_LEFT"
+                          style="-fx-padding: 13 20;">
+                        <HBox spacing="10" alignment="CENTER_LEFT" prefWidth="185">
+                            <StackPane style="-fx-background-color: #00838f;
+                                              -fx-background-radius: 50;
+                                              -fx-min-width: 34; -fx-min-height: 34;
+                                              -fx-max-width: 34; -fx-max-height: 34;">
+                                <Label text="MV" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px;"/>
+                            </StackPane>
+                            <Label text="Mark Villanueva"
+                                   style="-fx-font-size: 13px; -fx-text-fill: #1a1a1a; -fx-font-weight: bold;"/>
+                        </HBox>
+                        <Label text="2025-0005" prefWidth="115"
+                               style="-fx-font-size: 13px; -fx-text-fill: #7B0D0D; -fx-font-weight: bold;"/>
+                        <Label text="Dell Inspiron 14" prefWidth="150"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="AC2026003" prefWidth="120"
+                               style="-fx-font-size: 12px; -fx-text-fill: #888888;"/>
+                        <Label text="09:45 AM" prefWidth="100"
+                               style="-fx-font-size: 13px; -fx-text-fill: #444444;"/>
+                        <Label text="Main Gate"
+                               style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32;
+                                      -fx-font-size: 11.5px; -fx-background-radius: 5; -fx-padding: 4 12;"/>
+                    </HBox>
+
+                    <!-- ── PAGINATION FOOTER ── -->
+                    <HBox alignment="CENTER_LEFT" spacing="8"
+                          style="-fx-padding: 14 20;
+                                 -fx-border-color: #eeeeee transparent transparent transparent;
+                                 -fx-border-width: 1 0 0 0;">
+                        <Label text="Showing "  style="-fx-font-size: 12.5px; -fx-text-fill: #888888;"/>
+                        <Label text="1 to 5"    style="-fx-font-size: 12.5px; -fx-text-fill: #1a1a1a; -fx-font-weight: bold;"/>
+                        <Label text=" of "      style="-fx-font-size: 12.5px; -fx-text-fill: #888888;"/>
+                        <Label text="12"        style="-fx-font-size: 12.5px; -fx-text-fill: #1a1a1a; -fx-font-weight: bold;"/>
+                        <Label text=" active devices" style="-fx-font-size: 12.5px; -fx-text-fill: #888888;"/>
+
+                        <Region HBox.hgrow="ALWAYS"/>
+
+                        <Button text="‹" onAction="#handlePrevPage"
+                                style="-fx-background-color: white; -fx-text-fill: #555555;
+                                       -fx-font-size: 14px; -fx-background-radius: 6;
+                                       -fx-border-color: #dddddd; -fx-border-radius: 6;
+                                       -fx-border-width: 1.2; -fx-padding: 4 10; -fx-cursor: hand;"/>
+                        <Button fx:id="btnPage1" text="1" onAction="#handlePage1"
+                                style="-fx-background-color: #7B0D0D; -fx-text-fill: white;
+                                       -fx-font-weight: bold; -fx-font-size: 13px;
+                                       -fx-background-radius: 6; -fx-padding: 4 10; -fx-cursor: hand;"/>
+                        <Button fx:id="btnPage2" text="2" onAction="#handlePage2"
+                                style="-fx-background-color: white; -fx-text-fill: #555555;
+                                       -fx-font-size: 13px; -fx-background-radius: 6;
+                                       -fx-border-color: #dddddd; -fx-border-radius: 6;
+                                       -fx-border-width: 1.2; -fx-padding: 4 10; -fx-cursor: hand;"/>
+                        <Button fx:id="btnPage3" text="3" onAction="#handlePage3"
+                                style="-fx-background-color: white; -fx-text-fill: #555555;
+                                       -fx-font-size: 13px; -fx-background-radius: 6;
+                                       -fx-border-color: #dddddd; -fx-border-radius: 6;
+                                       -fx-border-width: 1.2; -fx-padding: 4 10; -fx-cursor: hand;"/>
+                        <Button text="›" onAction="#handleNextPage"
+                                style="-fx-background-color: white; -fx-text-fill: #555555;
+                                       -fx-font-size: 14px; -fx-background-radius: 6;
+                                       -fx-border-color: #dddddd; -fx-border-radius: 6;
+                                       -fx-border-width: 1.2; -fx-padding: 4 10; -fx-cursor: hand;"/>
+                    </HBox>
+
+                </VBox>
+            </VBox>
+        </VBox>
+    </center>
+
+</BorderPane>

@@ -1,44 +1,76 @@
 package controller;
 
 import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import java.net.URL;
 
 public class LoginController {
 
-    public TextField usernameField;
-    public PasswordField passwordField;
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
 
+    @FXML
     public void handleLogin(ActionEvent event) {
-
         String username = usernameField.getText();
         String password = passwordField.getText();
 
-        if(username.equals("admin") && password.equals("admin")) {
+        String fxmlPath = null;
+        String windowTitle = null;
 
+        // Note the exact string matching for case-sensitive directories
+        if ("Admin".equals(username) && "Admin123".equals(password)) {
+            fxmlPath = "resources/com.example.byod/Admin/dashboard.fxml";
+            windowTitle = "Admin Dashboard";
+        } else if ("Security".equals(username) && "Security123".equals(password)) {
+            fxmlPath = "resources/com.example.byod/Security/SecurityDashboard.fxml";
+            windowTitle = "Security Dashboard";
+        }
+
+        if (fxmlPath != null) {
             try {
+                URL dashboardUrl = getClass().getResource(fxmlPath);
 
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/byod/dashboard.fxml"));
+                if (dashboardUrl == null) {
+                    showErrorAlert("Navigation Error",
+                            "Cannot find the FXML file at: " + fxmlPath +
+                                    "\n\nTroubleshooting Tip: Check if the folder in your resources directory uses dots or slashes.");
+                    return;
+                }
+
+                FXMLLoader loader = new FXMLLoader(dashboardUrl);
                 Parent root = loader.load();
 
-                Stage stage = (Stage) usernameField
-                        .getScene()
-                        .getWindow();
+                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
 
                 stage.setScene(new Scene(root));
-                stage.setTitle("Dashboard");
+                stage.setTitle(windowTitle);
+                stage.centerOnScreen(); // Keeps the new dashboard nicely positioned
                 stage.show();
 
             } catch (Exception e) {
+                System.err.println("CRITICAL: Failed to load the view pane.");
                 e.printStackTrace();
+                showErrorAlert("UI Load Failure", "An error occurred while building the view: " + e.getMessage());
             }
-
         } else {
-            System.out.println("Invalid Login");
+            System.out.println("Invalid Login Credentials Entered.");
+            showErrorAlert("Access Denied", "The username or password you entered is incorrect.");
         }
+    }
+
+    private void showErrorAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

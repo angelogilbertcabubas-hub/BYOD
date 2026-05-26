@@ -4,16 +4,20 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import java.net.URL;
 
 public class BYODApplication extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
 
-        FXMLLoader loader = new FXMLLoader(
-                BYODApplication.class.getResource("login.fxml")
-        );
+        URL fxmlLocation = getClass().getResource("/com/example/byod/login.fxml");
 
+        if (fxmlLocation == null) {
+            throw new RuntimeException("Critical Error: login.fxml layout could not be found in the resource path!");
+        }
+
+        FXMLLoader loader = new FXMLLoader(fxmlLocation);
         Scene scene = new Scene(loader.load());
 
         stage.setTitle("BYOD System");
@@ -24,6 +28,6 @@ public class BYODApplication extends Application {
     }
 
     public static void main(String[] args) {
-        launch();
+        launch(args); // Pass arguments properly to the underlying native toolkit
     }
 }

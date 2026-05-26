@@ -1,0 +1,59 @@
+/* Custom Styled TextFields */
+.search-textfield {
+    -fx-background-color: #F8F6F0;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E2DDD5;
+    -fx-border-radius: 8px;
+    -fx-padding: 0 10px 0 12px;
+    -fx-text-fill: #333333;
+}
+.search-textfield:focused {
+    -fx-border-color: #D3A123;
+}
+
+/* Action Control Buttons Styling */
+.filter-btn {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #444444;
+    -fx-border-color: #DCDCDC;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 0 16px 0 16px;
+    -fx-cursor: hand;
+}
+.filter-btn:hover {
+    -fx-background-color: #F5F5F5;
+}
+
+.add-action-btn {
+    -fx-background-color: #58111A;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6px;
+    -fx-padding: 8px 14px 8px 14px;
+    -fx-cursor: hand;
+}
+.add-action-btn:hover {
+    -fx-background-color: #721C27;
+}
+
+/* Pagination Control Layouts */
+.pagination-inactive {
+    -fx-background-color: transparent;
+    -fx-text-fill: #666666;
+    -fx-cursor: hand;
+}
+.pagination-active {
+    -fx-background-color: #58111A;
+    -fx-text-fill: #FFFFFF;
+    -fx-background-radius: 4px;
+    -fx-font-weight: bold;
+}
+.pagination-arrow {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #888888;
+    -fx-border-color: #E0E0E0;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+}
