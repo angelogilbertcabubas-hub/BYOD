@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefWidth="400.0" spacing="15.0" style="-fx-background-color: white; -fx-padding: 30;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.AddStudentController">
+    <children>
+        <Label text="Register New Student" textFill="#500A0E">
+            <font><Font name="System Bold" size="18.0" /></font>
+        </Label>
+
+        <VBox spacing="5.0">
+            <Label text="Student ID" textFill="#777777"><font><Font size="11.0" /></font></Label>
+            <TextField fx:id="txtStudentId" promptText="e.g., 2024-0001" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        </VBox>
+
+        <VBox spacing="5.0">
+            <Label text="Full Name" textFill="#777777"><font><Font size="11.0" /></font></Label>
+            <TextField fx:id="txtFullName" promptText="e.g., Jane Doe" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        </VBox>
+
+        <HBox spacing="10.0">
+            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                <Label text="Course" textFill="#777777"><font><Font size="11.0" /></font></Label>
+                <TextField fx:id="txtCourse" promptText="e.g., BSIT" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+            </VBox>
+            <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                <Label text="Mobile" textFill="#777777"><font><Font size="11.0" /></font></Label>
+                <TextField fx:id="txtMobile" promptText="09XX-XXX-XXXX" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+            </VBox>
+        </HBox>
+
+        <VBox spacing="5.0">
+            <Label text="Email Address" textFill="#777777"><font><Font size="11.0" /></font></Label>
+            <TextField fx:id="txtEmail" promptText="student@iskolar.edu" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        </VBox>
+
+        <Region prefHeight="10.0" />
+
+        <HBox alignment="CENTER_RIGHT" spacing="10.0">
+            <Button mnemonicParsing="false" onAction="#handleCancel" style="-fx-background-color: #F4F4F4; -fx-text-fill: #555555; -fx-cursor: hand; -fx-padding: 8 20;" text="Cancel" />
+            <Button mnemonicParsing="false" onAction="#handleSave" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8 20;" text="Save Student" />
+        </HBox>
+    </children>
+</VBox>

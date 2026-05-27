@@ -1,27 +1,36 @@
 package controller.Admin;
 
-import javafx.collections.FXCollections;
+import com.example.byod.model.LogEntry;
+import utils.DataStore;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.control.cell.PropertyValueFactory;
 
-public class Monitoring_LogsController {
+public class Monitoring_LogsController extends BaseAdminController {
 
     @FXML private TextField searchBarField;
     @FXML private Label statusSummaryLabel;
-    @FXML private TableView<Object> monitoringLogsTableView;
+    @FXML private TableView<LogEntry> monitoringLogsTableView;
+
+    @FXML private TableColumn<LogEntry, String> colLogID;
+    @FXML private TableColumn<LogEntry, String> colLogName;
+    @FXML private TableColumn<LogEntry, String> colLogDevice;
+    @FXML private TableColumn<LogEntry, String> colLogCode;
+    @FXML private TableColumn<LogEntry, String> colLogType;
+    @FXML private TableColumn<LogEntry, String> colLogTimestamp;
 
     @FXML
     public void initialize() {
-        monitoringLogsTableView.setItems(FXCollections.observableArrayList());
-        statusSummaryLabel.setText("Showing 0 to 0 of 0 audit streams logged");
-    }
+        colLogID.setCellValueFactory(new PropertyValueFactory<>("logId"));
+        colLogName.setCellValueFactory(new PropertyValueFactory<>("studentName"));
+        colLogDevice.setCellValueFactory(new PropertyValueFactory<>("deviceModel"));
+        colLogCode.setCellValueFactory(new PropertyValueFactory<>("accessToken"));
+        colLogType.setCellValueFactory(new PropertyValueFactory<>("operation"));
+        colLogTimestamp.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
 
-    @FXML private void handleDashboard(MouseEvent event) { System.out.println("Navigating to Dashboard..."); }
-    @FXML private void handleStudents(MouseEvent event) { System.out.println("Navigating to Students..."); }
-    @FXML private void handleDevices(MouseEvent event) { System.out.println("Navigating to Devices..."); }
-    @FXML private void handleActiveDevices(MouseEvent event) { System.out.println("Navigating to Active Devices..."); }
-    @FXML private void handleReports(MouseEvent event) { System.out.println("Navigating to Reports..."); }
-    @FXML private void handleUserManagement(MouseEvent event) { System.out.println("Navigating to Users..."); }
-    @FXML private void handleLogout(MouseEvent event) { System.out.println("Logging out..."); }
+        monitoringLogsTableView.setItems(DataStore.getInstance().getMonitoringLogsList());
+
+        int count = DataStore.getInstance().getMonitoringLogsList().size();
+        statusSummaryLabel.setText("Showing 1 to " + count + " of " + count + " streams data logged");
+    }
 }

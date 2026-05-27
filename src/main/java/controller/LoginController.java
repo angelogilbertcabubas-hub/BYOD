@@ -25,12 +25,12 @@ public class LoginController {
         String fxmlPath = null;
         String windowTitle = null;
 
-        // Note the exact string matching for case-sensitive directories
+        // Role-based authentication logic
         if ("Admin".equals(username) && "Admin123".equals(password)) {
-            fxmlPath = "resources/com.example.byod/Admin/dashboard.fxml";
+            fxmlPath = "/com/example/byod/Admin/dashboard.fxml";
             windowTitle = "Admin Dashboard";
         } else if ("Security".equals(username) && "Security123".equals(password)) {
-            fxmlPath = "resources/com.example.byod/Security/SecurityDashboard.fxml";
+            fxmlPath = "/com/example/byod/Security/SecurityDashboard.fxml";
             windowTitle = "Security Dashboard";
         }
 
@@ -41,7 +41,7 @@ public class LoginController {
                 if (dashboardUrl == null) {
                     showErrorAlert("Navigation Error",
                             "Cannot find the FXML file at: " + fxmlPath +
-                                    "\n\nTroubleshooting Tip: Check if the folder in your resources directory uses dots or slashes.");
+                                    "\n\nTroubleshooting Tip: Verify the exact folder name spelling in the resources directory.");
                     return;
                 }
 
@@ -52,7 +52,7 @@ public class LoginController {
 
                 stage.setScene(new Scene(root));
                 stage.setTitle(windowTitle);
-                stage.centerOnScreen(); // Keeps the new dashboard nicely positioned
+                stage.centerOnScreen();
                 stage.show();
 
             } catch (Exception e) {

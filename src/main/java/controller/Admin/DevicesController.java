@@ -1,29 +1,68 @@
 package controller.Admin;
 
-import javafx.collections.FXCollections;
+import com.example.byod.model.Device;
+import utils.DataStore;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.event.ActionEvent;
 
-public class DevicesController {
+public class DevicesController extends BaseAdminController {
 
     @FXML private TextField searchBarField;
     @FXML private Label statusSummaryLabel;
-    @FXML private TableView<Object> devicesTableView;
+    @FXML private TableView<Device> devicesTableView;
+
+    @FXML private TableColumn<Device, String> colOwner;
+    @FXML private TableColumn<Device, String> colDeviceType;
+    @FXML private TableColumn<Device, String> colModel;
+    @FXML private TableColumn<Device, String> colMAC;
+    @FXML private TableColumn<Device, String> colToken;
 
     @FXML
     public void initialize() {
-        devicesTableView.setItems(FXCollections.observableArrayList());
-        statusSummaryLabel.setText("Showing 0 to 0 of 0 hardware entries");
+        colOwner.setCellValueFactory(new PropertyValueFactory<>("ownerName"));
+        colDeviceType.setCellValueFactory(new PropertyValueFactory<>("deviceType"));
+        colModel.setCellValueFactory(new PropertyValueFactory<>("model"));
+        colMAC.setCellValueFactory(new PropertyValueFactory<>("macAddress"));
+        colToken.setCellValueFactory(new PropertyValueFactory<>("token"));
+
+        devicesTableView.setItems(DataStore.getInstance().getDevicesList());
+
+        updateCountLabel();
     }
 
-    @FXML private void handleRegisterDevice(ActionEvent event) { System.out.println("Opening Asset Allocation Registration Wizard Tool..."); }
-    @FXML private void handleDashboard(MouseEvent event) { System.out.println("Navigating to Dashboard..."); }
-    @FXML private void handleStudents(MouseEvent event) { System.out.println("Navigating to Students..."); }
-    @FXML private void handleMonitoringLogs(MouseEvent event) { System.out.println("Navigating to Logs..."); }
-    @FXML private void handleActiveDevices(MouseEvent event) { System.out.println("Navigating to Active Devices..."); }
-    @FXML private void handleReports(MouseEvent event) { System.out.println("Navigating to Reports..."); }
-    @FXML private void handleUserManagement(MouseEvent event) { System.out.println("Navigating to Users..."); }
-    @FXML private void handleLogout(MouseEvent event) { System.out.println("Logging out..."); }
+    @FXML
+    private void handleRegisterDevice(ActionEvent event) {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/byod/Admin/AddDeviceModal.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            AddDeviceController dialogController = loader.getController();
+
+            javafx.stage.Stage dialogStage = new javafx.stage.Stage();
+            dialogStage.setTitle("Register Student Hardware Asset Configuration");
+
+            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialogStage.initOwner(((javafx.scene.Node) event.getSource()).getScene().getWindow());
+            dialogStage.setScene(new javafx.scene.Scene(root));
+
+            dialogStage.showAndWait();
+
+            Device createdDevice = dialogController.getNewDevice();
+            if (createdDevice != null) {
+                DataStore.getInstance().getDevicesList().add(createdDevice);
+                updateCountLabel();
+            }
+
+        } catch (java.io.IOException e) {
+            System.err.println("CRITICAL FAULT: Unable to compile asset registry pop-up sub-context views.");
+            e.printStackTrace();
+        }
+    }
+
+    private void updateCountLabel() {
+        int count = DataStore.getInstance().getDevicesList().size();
+        statusSummaryLabel.setText("Showing 1 to " + count + " of " + count + " hardware entries");
+    }
 }

@@ -1,116 +1,90 @@
 package controller.Admin;
 
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
+import com.example.byod.model.SystemUser;
+import utils.DataStore;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.MouseEvent;
-import javafx.stage.Stage;
 
-import java.io.IOException;
-import java.net.URL;
+public class User_ManagementController extends BaseAdminController {
 
-public class User_ManagementController {
-
-    // Table view components matched to fx:id fields
-    @FXML private TableView<User> userManagementTableView;
-    @FXML private TableColumn<User, String> colUserIdenticon;
-    @FXML private TableColumn<User, String> colUserFullName;
-    @FXML private TableColumn<User, String> colUserPrivilegeBadge;
-    @FXML private TableColumn<User, String> colUserStateBadge;
-    @FXML private TableColumn<User, String> colUserActionControls;
+    @FXML private TableView<SystemUser> userManagementTableView;
+    @FXML private TableColumn<SystemUser, String> colUserIdenticon;
+    @FXML private TableColumn<SystemUser, String> colUserFullName;
+    @FXML private TableColumn<SystemUser, String> colUserPrivilegeBadge;
+    @FXML private TableColumn<SystemUser, String> colUserStateBadge;
+    @FXML private TableColumn<SystemUser, String> colUserActionControls;
     @FXML private Label entriesSummaryCountLabel;
-
-    // Local data structure list
-    private final ObservableList<User> systemUsersList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
-        // Set up cell value properties mapping fields to data models
         colUserIdenticon.setCellValueFactory(new PropertyValueFactory<>("username"));
         colUserFullName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         colUserPrivilegeBadge.setCellValueFactory(new PropertyValueFactory<>("role"));
         colUserStateBadge.setCellValueFactory(new PropertyValueFactory<>("status"));
-        colUserActionControls.setCellValueFactory(new PropertyValueFactory<>("actionPlaceholder"));
 
-        // Populate mock table data records
-        loadMockSystemUserData();
+        colUserActionControls.setCellFactory(param -> new TableCell<SystemUser, String>() {
+            private final Button btnEdit = new Button("Edit");
+            private final Button btnDelete = new Button("Delete");
+            private final javafx.scene.layout.HBox pane = new javafx.scene.layout.HBox(10, btnEdit, btnDelete);
 
-        // Bind raw dataset array to the visual layout table structure
-        userManagementTableView.setItems(systemUsersList);
+            {
+                btnEdit.setStyle("-fx-background-color: #500A0E; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 5 10;");
+                btnDelete.setStyle("-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 5 10;");
 
-        // Update total counter summary label matching mock length
-        entriesSummaryCountLabel.setText("Showing 1 to " + systemUsersList.size() + " of " + systemUsersList.size() + " users");
+                btnEdit.setOnAction(event -> {
+                    SystemUser user = getTableView().getItems().get(getIndex());
+                    System.out.println("Editing user: " + user.getUsername());
+                });
+
+                btnDelete.setOnAction(event -> {
+                    SystemUser user = getTableView().getItems().get(getIndex());
+                    DataStore.getInstance().getUsersList().remove(user);
+                    updateCountLabel(); // Refresh the counter
+                });
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : pane);
+            }
+        });
+
+        userManagementTableView.setItems(DataStore.getInstance().getUsersList());
+        updateCountLabel();
     }
 
-    private void loadMockSystemUserData() {
-        systemUsersList.add(new User("admin_cayenne", "Princess Cayenne M. Rañeses", "Administrator", "Active"));
-        systemUsersList.add(new User("dan_sosa", "Dan Henry Sosa", "Administrator", "Active"));
-        systemUsersList.add(new User("guard_kyle", "Kyle Garcia", "Security Guard", "Active"));
-        systemUsersList.add(new User("maria_s", "Maria Santos", "Security Guard", "Inactive"));
+    private void updateCountLabel() {
+        int count = DataStore.getInstance().getUsersList().size();
+        entriesSummaryCountLabel.setText("Showing 1 to " + count + " of " + count + " users");
     }
 
-    // Top Right Configuration Button Trigger
     @FXML
     void handleLabelAddUser(ActionEvent event) {
-        System.out.println("Add User button clicked! Open modal pane here.");
-    }
-
-    // --- SIDEBAR SCENE SWITCHING UTILITY WRAPPERS ---
-    private void navigateToView(MouseEvent event, String fxmlResourcePath, String targetWindowTitle) {
         try {
-            URL targetLayoutUrl = getClass().getResource(fxmlResourcePath);
-            if (targetLayoutUrl == null) {
-                System.err.println("Navigation Configuration Error: Layout location path missing -> " + fxmlResourcePath);
-                return;
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/byod/Admin/AddUserModal.fxml"));
+            javafx.scene.Parent root = loader.load();
+            AddUserController dialogController = loader.getController();
+
+            javafx.stage.Stage dialogStage = new javafx.stage.Stage();
+            dialogStage.setTitle("Provision New System User");
+            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialogStage.initOwner(((javafx.scene.Node) event.getSource()).getScene().getWindow());
+            dialogStage.setScene(new javafx.scene.Scene(root));
+
+            dialogStage.showAndWait();
+
+            SystemUser createdUser = dialogController.getNewUser();
+            if (createdUser != null) {
+                DataStore.getInstance().getUsersList().add(createdUser);
+                updateCountLabel();
             }
-            Parent targetRootNode = FXMLLoader.load(targetLayoutUrl);
-            Stage windowFrameStage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            windowFrameStage.setTitle(targetWindowTitle);
-            windowFrameStage.setScene(new Scene(targetRootNode));
-            windowFrameStage.show();
-        } catch (IOException ex) {
-            System.err.println("Critical failure loading view engine stage layout definition mapping targets.");
-            ex.printStackTrace();
+
+        } catch (java.io.IOException e) {
+            System.err.println("CRITICAL FAULT: Unable to load Add User Modal.");
+            e.printStackTrace();
         }
-    }
-
-    @FXML void handleDashboard(MouseEvent event) { navigateToView(event, "/com.example.byod/Admin/dashboard.fxml", "Admin Dashboard"); }
-    @FXML void handleStudents(MouseEvent event) { navigateToView(event, "/com.example.byod/Admin/Students.fxml", "Student Records Directory"); }
-    @FXML void handleDevices(MouseEvent event) { navigateToView(event, "/com.example.byod/Admin/Devices.fxml", "Device Asset Inventories"); }
-    @FXML void handleMonitoringLogs(MouseEvent event) { navigateToView(event, "/com.example.byod/Admin/Monitoring_Logs.fxml", "System Monitoring Logs Dashboard"); }
-    @FXML void handleActiveDevices(MouseEvent event) { navigateToView(event, "/com.example.byod/Admin/Active_Devices.fxml", "Active On-Premises Devices"); }
-    @FXML void handleReports(MouseEvent event) { navigateToView(event, "/com.example.byod/Admin/Reports.fxml", "System Insight Reports"); }
-    @FXML void handleLogout(MouseEvent event) { navigateToView(event, "/com.example.byod/login.fxml", "BYOD System Login Access Screen"); }
-
-    // --- INNER CLASS REPRESENTATION MODEL STRUCT ---
-    public static class User {
-        private final String username;
-        private final String fullName;
-        private final String role;
-        private final String status;
-        private final String actionPlaceholder;
-
-        public User(String username, String fullName, String role, String status) {
-            this.username = username;
-            this.fullName = fullName;
-            this.role = role;
-            this.status = status;
-            this.actionPlaceholder = "Edit / Delete";
-        }
-
-        public String getUsername() { return username; }
-        public String getFullName() { return fullName; }
-        public String getRole() { return role; }
-        public String getStatus() { return status; }
-        public String getActionPlaceholder() { return actionPlaceholder; }
     }
 }

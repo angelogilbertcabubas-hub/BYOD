@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefWidth="400.0" spacing="15.0" style="-fx-background-color: white; -fx-padding: 30;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.AddDeviceController">
+    <children>
+        <Label text="Register New Hardware Asset" textFill="#500A0E">
+            <font><Font name="System Bold" size="18.0" /></font>
+        </Label>
+
+        <VBox spacing="5.0">
+            <Label text="Owner Full Name" textFill="#777777"><font><Font size="11.0" /></font></Label>
+            <TextField fx:id="txtOwnerName" promptText="e.g., Ravin James Masarap" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        </VBox>
+
+        <VBox spacing="5.0">
+            <Label text="Device Type" textFill="#777777"><font><Font size="11.0" /></font></Label>
+            <TextField fx:id="txtDeviceType" promptText="e.g., Laptop, Smartphone, Tablet" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        </VBox>
+
+        <VBox spacing="5.0">
+            <Label text="Brand &amp; Model Description" textFill="#777777"><font><Font size="11.0" /></font></Label>
+            <TextField fx:id="txtModel" promptText="e.g., Asus ROG Zephyrus G14" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        </VBox>
+
+        <VBox spacing="5.0">
+            <Label text="Physical MAC Address" textFill="#777777"><font><Font size="11.0" /></font></Label>
+            <TextField fx:id="txtMacAddress" promptText="e.g., 00:1B:44:11:3A:B7" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        </VBox>
+
+        <Region prefHeight="10.0" />
+
+        <HBox alignment="CENTER_RIGHT" spacing="10.0">
+            <Button mnemonicParsing="false" onAction="#handleCancel" style="-fx-background-color: #F4F4F4; -fx-text-fill: #555555; -fx-cursor: hand; -fx-padding: 8 20;" text="Cancel" />
+            <Button mnemonicParsing="false" onAction="#handleSave" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8 20;" text="Register Asset" />
+        </HBox>
+    </children>
+</VBox>

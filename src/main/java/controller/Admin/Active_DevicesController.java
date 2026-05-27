@@ -1,40 +1,36 @@
 package controller.Admin;
 
-import javafx.collections.FXCollections;
+import com.example.byod.model.LogEntry;
+import utils.DataStore;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Button;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 
-public class Active_DevicesController {
+public class Active_DevicesController extends BaseAdminController {
 
     @FXML private TextField searchBarField;
-    @FXML private Button filterBtn;
     @FXML private Label statusSummaryLabel;
+    @FXML private TableView<LogEntry> activeDevicesTableView;
 
-    @FXML private TableView<Object> activeDevicesTableView;
-    @FXML private TableColumn<Object, String> colStudentName;
-    @FXML private TableColumn<Object, String> colStudentID;
-    @FXML private TableColumn<Object, String> colDevice;
-    @FXML private TableColumn<Object, String> colAccessCode;
-    @FXML private TableColumn<Object, String> colTimeIn;
-    @FXML private TableColumn<Object, String> colLocation;
+    @FXML private TableColumn<LogEntry, String> colStudentName;
+    @FXML private TableColumn<LogEntry, String> colStudentID;
+    @FXML private TableColumn<LogEntry, String> colDevice;
+    @FXML private TableColumn<LogEntry, String> colAccessCode;
+    @FXML private TableColumn<LogEntry, String> colTimeIn;
+    @FXML private TableColumn<LogEntry, String> colLocation;
 
     @FXML
     public void initialize() {
-        activeDevicesTableView.setItems(FXCollections.observableArrayList());
-        statusSummaryLabel.setText("Showing 0 to 0 of 0 active devices inside perimeter bounds");
-    }
+        colStudentName.setCellValueFactory(new PropertyValueFactory<>("studentName"));
+        colStudentID.setCellValueFactory(new PropertyValueFactory<>("studentId"));
+        colDevice.setCellValueFactory(new PropertyValueFactory<>("deviceModel"));
+        colAccessCode.setCellValueFactory(new PropertyValueFactory<>("accessToken"));
+        colTimeIn.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
+        colLocation.setCellValueFactory(new PropertyValueFactory<>("location"));
 
-    @FXML private void handleDashboard(MouseEvent event) { System.out.println("Navigating to Dashboard..."); }
-    @FXML private void handleStudents(MouseEvent event) { System.out.println("Navigating to Students..."); }
-    @FXML private void handleDevices(MouseEvent event) { System.out.println("Navigating to Devices..."); }
-    @FXML private void handleMonitoringLogs(MouseEvent event) { System.out.println("Navigating to Logs..."); }
-    @FXML private void handleActiveDevices(MouseEvent event) { /* Currently Here */ }
-    @FXML private void handleReports(MouseEvent event) { System.out.println("Navigating to Reports..."); }
-    @FXML private void handleUserManagement(MouseEvent event) { System.out.println("Navigating to Users..."); }
-    @FXML private void handleLogout(MouseEvent event) { System.out.println("Logging out..."); }
+        activeDevicesTableView.setItems(DataStore.getInstance().getActiveDevicesList());
+
+        int count = DataStore.getInstance().getActiveDevicesList().size();
+        statusSummaryLabel.setText("Showing 1 to " + count + " of " + count + " active devices inside perimeter bounds");
+    }
 }
