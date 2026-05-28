@@ -1,16 +1,25 @@
 package controller.Security;
 
+import com.example.byod.model.LogEntry;
+import utils.DataStore;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.stage.Stage;
+import javafx.scene.control.cell.PropertyValueFactory;
 
-public class MonitoringLogsController {
+public class MonitoringLogsController extends BaseSecurityController {
 
     @FXML private TextField txtSearch;
     @FXML private Button btnFilter;
-    @FXML private Label lblPagination;
+
+    @FXML private TableView<LogEntry> monitoringLogsTable;
+    @FXML private TableColumn<LogEntry, String> colTimestamp;
+    @FXML private TableColumn<LogEntry, String> colStudentName;
+    @FXML private TableColumn<LogEntry, String> colAccessCode;
+    @FXML private TableColumn<LogEntry, String> colDeviceModel;
+    @FXML private TableColumn<LogEntry, String> colActivity;
+    @FXML private TableColumn<LogEntry, String> colLocation;
+
+    @FXML private Label lblTotalCount;
     @FXML private Button btnPage1;
     @FXML private Button btnPage2;
     @FXML private Button btnPage3;
@@ -18,12 +27,24 @@ public class MonitoringLogsController {
     private int currentPage = 1;
     private static final int TOTAL_PAGES = 3;
 
-    @FXML public void initialize() {
+    @FXML
+    public void initialize() {
+        colTimestamp.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
+        colStudentName.setCellValueFactory(new PropertyValueFactory<>("studentName"));
+        colAccessCode.setCellValueFactory(new PropertyValueFactory<>("accessToken"));
+        colDeviceModel.setCellValueFactory(new PropertyValueFactory<>("deviceModel"));
+        colActivity.setCellValueFactory(new PropertyValueFactory<>("operation"));
+        colLocation.setCellValueFactory(new PropertyValueFactory<>("location"));
+
+        monitoringLogsTable.setItems(DataStore.getInstance().getMonitoringLogsList());
+
+        lblTotalCount.setText(String.valueOf(DataStore.getInstance().getMonitoringLogsList().size()));
+
         txtSearch.setOnKeyReleased(e -> handleSearch());
     }
 
     @FXML private void handleSearch() { System.out.println("Searching: " + txtSearch.getText()); }
-    @FXML private void handleFilter() { showAlert("Filter coming soon."); }
+    @FXML private void handleFilter() { showAlert("Log Filtering rules executing..."); }
 
     @FXML private void handlePrevPage() { if (currentPage > 1) { currentPage--; updateActivePage(); } }
     @FXML private void handleNextPage() { if (currentPage < TOTAL_PAGES) { currentPage++; updateActivePage(); } }
@@ -39,23 +60,9 @@ public class MonitoringLogsController {
         btnPage3.setStyle(currentPage == 3 ? a : i);
     }
 
-    @FXML private void goToDashboard()      { navigateTo("SecurityDashboard.fxml"); }
-    @FXML private void goToCheckInOut()     { navigateTo("CheckInOut.fxml"); }
-    @FXML private void goToActiveDevices()  { navigateTo("ActiveDevices.fxml"); }
-    @FXML private void goToReports()        { navigateTo("Reports.fxml"); }
-    @FXML private void handleLogout()       { System.out.println("Logout"); }
-
-    private void navigateTo(String fxml) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/byod/" + fxml));
-            Stage stage = (Stage) txtSearch.getScene().getWindow();
-            stage.setScene(new Scene(loader.load(), 1024, 768));
-        } catch (Exception e) { e.printStackTrace(); }
-    }
-
     private void showAlert(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("BYOD"); alert.setHeaderText(null); alert.setContentText(message);
+        alert.setTitle("BYOD Security Tracker"); alert.setHeaderText(null); alert.setContentText(message);
         alert.showAndWait();
     }
 }

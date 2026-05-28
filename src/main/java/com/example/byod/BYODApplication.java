@@ -28,6 +28,6 @@ public class BYODApplication extends Application {
     }
 
     public static void main(String[] args) {
-        launch(args); // Pass arguments properly to the underlying native toolkit
+        launch(args);
     }
 }

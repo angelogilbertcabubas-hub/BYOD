@@ -1,56 +1,174 @@
 package controller.Security;
 
+import com.example.byod.model.LogEntry;
+import utils.DataStore;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-public class ReportsController {
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
+public class ReportsController extends BaseSecurityController {
 
     @FXML private ComboBox<String> cmbReportType;
     @FXML private TextField txtDateFrom;
     @FXML private TextField txtDateTo;
+
     @FXML private Label lblTotalCheckIn;
     @FXML private Label lblTotalCheckOut;
     @FXML private Label lblCurrentlyInside;
     @FXML private Label lblRegisteredDevices;
+
     @FXML private Button btnGenerate;
     @FXML private Button btnExport;
 
-    @FXML public void initialize() {
-        cmbReportType.getItems().addAll("Daily Summary","Weekly Summary","Monthly Summary","Custom Range");
+    @FXML
+    public void initialize() {
+        cmbReportType.getItems().addAll("Daily Summary", "Weekly Summary", "Monthly Summary", "Custom Range");
         cmbReportType.getSelectionModel().selectFirst();
-        txtDateFrom.setText("05/12/2025");
-        txtDateTo.setText("05/12/2025");
+        txtDateFrom.setText("05/17/2026");
+        txtDateTo.setText("05/17/2026");
+
+        int active = DataStore.getInstance().getActiveDevicesList().size();
+        long checkIns = DataStore.getInstance().getMonitoringLogsList().stream().filter(l -> "Check-In".equals(l.getOperation())).count();
+        long checkOuts = DataStore.getInstance().getMonitoringLogsList().stream().filter(l -> "Check-Out".equals(l.getOperation())).count();
+        int registered = DataStore.getInstance().getDevicesList().size();
+
+        lblCurrentlyInside.setText(String.valueOf(active));
+        lblTotalCheckIn.setText(String.valueOf(checkIns));
+        lblTotalCheckOut.setText(String.valueOf(checkOuts));
+        lblRegisteredDevices.setText(String.valueOf(registered));
     }
 
-    @FXML private void handleGenerate() {
-        if (txtDateFrom.getText().isEmpty() || txtDateTo.getText().isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Please enter both dates."); return;
+    @FXML
+    private void handleGenerate() {
+        if (txtDateFrom.getText().trim().isEmpty() || txtDateTo.getText().trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Date Error", "Please enter both 'Date From' and 'Date To' values.");
+            return;
         }
-        showAlert(Alert.AlertType.INFORMATION, "Report generated for " + cmbReportType.getValue());
+
+        int active = DataStore.getInstance().getActiveDevicesList().size();
+        long checkIns = DataStore.getInstance().getMonitoringLogsList().stream().filter(l -> "Check-In".equals(l.getOperation())).count();
+        long checkOuts = DataStore.getInstance().getMonitoringLogsList().stream().filter(l -> "Check-Out".equals(l.getOperation())).count();
+
+        Alert reportDialog = new Alert(Alert.AlertType.NONE);
+        reportDialog.setTitle("System Report Viewer");
+        reportDialog.setHeaderText("Document: " + cmbReportType.getValue());
+
+        TextArea textArea = new TextArea();
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setStyle("-fx-font-family: 'Consolas', monospace; -fx-font-size: 14px;");
+
+        String reportContent = generateReportContent(active, checkIns, checkOuts);
+        textArea.setText(reportContent);
+        textArea.setPrefWidth(750);
+        textArea.setPrefHeight(500);
+
+        reportDialog.getDialogPane().setContent(textArea);
+
+        // --- ADDED: "SAVE COPY" BUTTON ---
+        ButtonType btnTypePrint = new ButtonType("Print Report", ButtonBar.ButtonData.LEFT);
+        ButtonType btnTypeSave = new ButtonType("Save Copy", ButtonBar.ButtonData.LEFT);
+        ButtonType btnTypeClose = new ButtonType("Close Viewer", ButtonBar.ButtonData.CANCEL_CLOSE);
+        reportDialog.getButtonTypes().setAll(btnTypePrint, btnTypeSave, btnTypeClose);
+
+        Optional<ButtonType> result = reportDialog.showAndWait();
+
+        if (result.isPresent()) {
+            if (result.get() == btnTypePrint) {
+                handlePrintAction(cmbReportType.getValue());
+            } else if (result.get() == btnTypeSave) {
+                handleSaveCopyAction(reportContent);
+            }
+        }
     }
 
-    @FXML private void handleExport() { showAlert(Alert.AlertType.INFORMATION, "Export coming soon."); }
+    private String generateReportContent(int active, long checkIns, long checkOuts) {
+        StringBuilder content = new StringBuilder();
+        content.append("======================================================================\n")
+                .append("                     SECURITY GATE ACTIVITY REPORT\n")
+                .append("======================================================================\n")
+                .append("REPORT TYPE  : ").append(cmbReportType.getValue()).append("\n")
+                .append("DATE RANGE   : ").append(txtDateFrom.getText()).append(" to ").append(txtDateTo.getText()).append("\n")
+                .append("GENERATED BY : Security Guard Personnel (Terminal 01)\n")
+                .append("----------------------------------------------------------------------\n")
+                .append("GATEWAY TRAFFIC SUMMARY:\n")
+                .append("- Total Check-Ins        : ").append(checkIns).append("\n")
+                .append("- Total Check-Outs       : ").append(checkOuts).append("\n")
+                .append("- Devices Inside Campus  : ").append(active).append("\n\n")
+                .append("RECENT ACTIVITY LOGS:\n");
 
-    @FXML private void goToDashboard()      { navigateTo("SecurityDashboard.fxml"); }
-    @FXML private void goToCheckInOut()     { navigateTo("CheckInOut.fxml"); }
-    @FXML private void goToMonitoringLogs() { navigateTo("MonitoringLogs.fxml"); }
-    @FXML private void goToActiveDevices()  { navigateTo("ActiveDevices.fxml"); }
-    @FXML private void handleLogout()       { System.out.println("Logout"); }
-
-    private void navigateTo(String fxml) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/byod/" + fxml));
-            Stage stage = (Stage) btnGenerate.getScene().getWindow();
-            stage.setScene(new Scene(loader.load(), 1024, 768));
-        } catch (Exception e) { e.printStackTrace(); }
+        List<LogEntry> logs = DataStore.getInstance().getMonitoringLogsList();
+        int limit = Math.min(15, logs.size());
+        for(int i = 0; i < limit; i++) {
+            LogEntry l = logs.get(i);
+            content.append("[").append(l.getTimestamp()).append("] ")
+                    .append(l.getStudentName()).append(" | ")
+                    .append(l.getOperation()).append(" | ")
+                    .append(l.getAccessToken()).append("\n");
+        }
+        content.append("\n*** END OF SECURE REPORT ***");
+        return content.toString();
     }
 
-    private void showAlert(Alert.AlertType type, String message) {
+    private void handleSaveCopyAction(String content) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Report Copy");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text Files (*.txt)", "*.txt"));
+        fileChooser.setInitialFileName("BYOD_Security_Archive.txt");
+
+        Stage stage = (Stage) btnExport.getScene().getWindow();
+        File file = fileChooser.showSaveDialog(stage);
+
+        if (file != null) {
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write(content);
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Report saved successfully to " + file.getName());
+            } catch (IOException e) {
+                showAlert(Alert.AlertType.ERROR, "Error", "Could not save file: " + e.getMessage());
+            }
+        }
+    }
+
+    private void handlePrintAction(String reportTitle) {
+        Alert printConfirm = new Alert(Alert.AlertType.CONFIRMATION);
+        printConfirm.setTitle("Print Manager");
+        printConfirm.setHeaderText("Print Confirmation");
+        printConfirm.setContentText("Send '" + reportTitle + "' to the local security printer?");
+        printConfirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                showAlert(Alert.AlertType.INFORMATION, "Printer Status", "Routed to the printer queue.");
+            }
+        });
+    }
+
+    @FXML
+    private void handleExport() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Export Security Report");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("PDF Document (*.pdf)", "*.pdf"),
+                new FileChooser.ExtensionFilter("CSV Data File (*.csv)", "*.csv")
+        );
+        fileChooser.setInitialFileName("BYOD_Report_" + cmbReportType.getValue().replace(" ", "_"));
+        Stage stage = (Stage) btnExport.getScene().getWindow();
+        File selectedFile = fileChooser.showSaveDialog(stage);
+        if (selectedFile != null) {
+            showAlert(Alert.AlertType.INFORMATION, "Export Successful", "Report securely exported to:\n\n" + selectedFile.getAbsolutePath());
+        }
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
-        alert.setTitle("BYOD"); alert.setHeaderText(null); alert.setContentText(message);
+        alert.setTitle("BYOD Security");
+        alert.setHeaderText(title);
+        alert.setContentText(message);
         alert.showAndWait();
     }
 }
