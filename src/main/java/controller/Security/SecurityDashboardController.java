@@ -45,18 +45,18 @@ public class SecurityDashboardController extends BaseSecurityController {
         showAlert(Alert.AlertType.INFORMATION, "Verification Status", "Searching registry for: " + query + "\n\nRedirecting to Gate Check-In...");
 
         // Automatically routes the guard to the Check-In terminal after verifying
-        goToCheckInOut(event);
+        goToCheckInOut();
     }
 
     // --- QUICK ACTION DASHBOARD BUTTONS ---
     @FXML
     private void handleQuickCheckIn(ActionEvent event) {
-        goToCheckInOut(event); // Inherited seamlessly from BaseSecurityController
+        goToCheckInOut();
     }
 
     @FXML
     private void handleQuickCheckOut(ActionEvent event) {
-        goToCheckInOut(event); // Inherited seamlessly from BaseSecurityController
+        goToCheckInOut();
     }
 
     @FXML

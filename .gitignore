@@ -2,7 +2,6 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-.kotlin
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
@@ -12,15 +11,6 @@ target/
 *.iws
 *.iml
 *.ipr
-
-### Eclipse ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
 
 ### NetBeans ###
 /nbproject/private/
@@ -35,5 +25,5 @@ build/
 ### VS Code ###
 .vscode/
 
-### Mac OS ###
-.DS_Store
+### Security ###
+.env

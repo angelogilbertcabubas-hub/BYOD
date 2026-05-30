@@ -1,8 +1,10 @@
 package controller;
 
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -10,7 +12,13 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import utils.DatabaseHelper;
+import utils.DataStore;
+
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class LoginController {
 
@@ -22,47 +30,128 @@ public class LoginController {
         String username = usernameField.getText();
         String password = passwordField.getText();
 
-        String fxmlPath = null;
-        String windowTitle = null;
-
-        // Role-based authentication logic
-        if ("Admin".equals(username) && "Admin123".equals(password)) {
-            fxmlPath = "/com/example/byod/Admin/dashboard.fxml";
-            windowTitle = "Admin Dashboard";
-        } else if ("Security".equals(username) && "Security123".equals(password)) {
-            fxmlPath = "/com/example/byod/Security/SecurityDashboard.fxml";
-            windowTitle = "Security Dashboard";
+        if (username.isEmpty() || password.isEmpty()) {
+            showErrorAlert("Login Failed", "Please enter both username and password.");
+            return;
         }
 
-        if (fxmlPath != null) {
+        // 1. Get the current scene and change the mouse cursor to a loading spinner
+        Scene currentScene = ((Node) event.getSource()).getScene();
+        currentScene.setCursor(Cursor.WAIT);
+
+        // 2. Create a Background Thread to handle the heavy network lifting
+        Thread networkWorker = new Thread(() -> {
             try {
-                URL dashboardUrl = getClass().getResource(fxmlPath);
+                // This goes to the cloud (Takes time, but won't freeze the UI anymore!)
+                String role = authenticateUser(username, password);
 
-                if (dashboardUrl == null) {
-                    showErrorAlert("Navigation Error",
-                            "Cannot find the FXML file at: " + fxmlPath +
-                                    "\n\nTroubleshooting Tip: Verify the exact folder name spelling in the resources directory.");
-                    return;
+                if (role != null) {
+                    // Pre-load the heavy tables (Students & Devices) from the cloud NOW
+                    // so the dashboard opens instantly when we switch screens.
+                    DataStore.getInstance();
+
+                    // 3. The background worker is done! Use Platform.runLater to tell the UI Thread to switch screens safely.
+                    Platform.runLater(() -> {
+                        String fxmlPath = null;
+                        String windowTitle = null;
+
+                        if (role.equals("admin")) {
+                            fxmlPath = "/com/example/byod/Admin/dashboard.fxml";
+                            windowTitle = "Admin Dashboard";
+                        } else if (role.equals("security")) {
+                            fxmlPath = "/com/example/byod/Security/SecurityDashboard.fxml";
+                            windowTitle = "Security Dashboard";
+                        } else {
+                            currentScene.setCursor(Cursor.DEFAULT);
+                            showErrorAlert("Access Error", "Your account role is not recognized by the system.");
+                            return;
+                        }
+
+                        loadDashboard(event, fxmlPath, windowTitle);
+                    });
+
+                } else {
+                    // Login failed. Tell the UI Thread to show an error and reset the mouse cursor.
+                    Platform.runLater(() -> {
+                        currentScene.setCursor(Cursor.DEFAULT);
+                        System.out.println("Invalid Login Credentials Entered.");
+                        showErrorAlert("Access Denied", "The username or password you entered is incorrect.");
+                    });
                 }
-
-                FXMLLoader loader = new FXMLLoader(dashboardUrl);
-                Parent root = loader.load();
-
-                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-
-                stage.setScene(new Scene(root));
-                stage.setTitle(windowTitle);
-                stage.centerOnScreen();
-                stage.show();
-
             } catch (Exception e) {
-                System.err.println("CRITICAL: Failed to load the view pane.");
-                e.printStackTrace();
-                showErrorAlert("UI Load Failure", "An error occurred while building the view: " + e.getMessage());
+                // If the internet drops or Supabase is down
+                Platform.runLater(() -> {
+                    currentScene.setCursor(Cursor.DEFAULT);
+                    System.err.println("Critical network error during login.");
+                    e.printStackTrace();
+                    showErrorAlert("Connection Error", "Could not connect to the cloud database. Check your internet connection.");
+                });
             }
-        } else {
-            System.out.println("Invalid Login Credentials Entered.");
-            showErrorAlert("Access Denied", "The username or password you entered is incorrect.");
+        });
+
+        // Set as a daemon so the thread dies if the user completely closes the app while it's loading
+        networkWorker.setDaemon(true);
+        // Start the worker!
+        networkWorker.start();
+    }
+
+    /**
+     * Connects to Supabase and verifies the username and password.
+     * Returns the user's role ("admin" or "security") if successful, or null if failed.
+     */
+    private String authenticateUser(String username, String password) {
+        String query = "SELECT role FROM users WHERE username = ? AND password_hash = ?";
+
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("role");
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Database error during login verification!");
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    /**
+     * A helper method to handle the JavaFX window transition.
+     */
+    private void loadDashboard(ActionEvent event, String fxmlPath, String windowTitle) {
+        try {
+            URL dashboardUrl = getClass().getResource(fxmlPath);
+
+            if (dashboardUrl == null) {
+                // Failsafe: Reset cursor if FXML is missing
+                ((Node) event.getSource()).getScene().setCursor(Cursor.DEFAULT);
+                showErrorAlert("Navigation Error",
+                        "Cannot find the FXML file at: " + fxmlPath +
+                                "\n\nTroubleshooting Tip: Verify the exact folder name spelling in the resources directory.");
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(dashboardUrl);
+            Parent root = loader.load();
+
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+
+            stage.setScene(new Scene(root));
+            stage.setTitle(windowTitle);
+            stage.centerOnScreen();
+            stage.show();
+
+        } catch (Exception e) {
+            ((Node) event.getSource()).getScene().setCursor(Cursor.DEFAULT);
+            System.err.println("CRITICAL: Failed to load the view pane.");
+            e.printStackTrace();
+            showErrorAlert("UI Load Failure", "An error occurred while building the view: " + e.getMessage());
         }
     }
 

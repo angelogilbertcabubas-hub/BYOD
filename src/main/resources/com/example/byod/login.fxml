@@ -7,10 +7,10 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="768.0" prefWidth="1366.0" style="-fx-background-color: #5C1515;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.LoginController">
+<StackPane fx:id="rootPane" prefHeight="768.0" prefWidth="1366.0" style="-fx-background-color: #5C1515;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.LoginController">
    <children>
 
-      <ImageView fitHeight="768.0" fitWidth="1366.0" opacity="0.38" pickOnBounds="true" preserveRatio="false" StackPane.alignment="CENTER">
+      <ImageView fitHeight="${rootPane.height}" fitWidth="${rootPane.width}" opacity="0.38" pickOnBounds="true" preserveRatio="false" StackPane.alignment="CENTER">
          <image>
             <Image url="@../../../images/pup.png" />
          </image>
@@ -75,6 +75,7 @@
                      <padding>
                         <Insets bottom="30.0" left="35.0" right="35.0" top="35.0" />
                      </padding>
+
                      <children>
 
                         <ImageView fitHeight="110.0" fitWidth="110.0" preserveRatio="true">

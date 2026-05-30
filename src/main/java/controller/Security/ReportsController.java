@@ -72,7 +72,6 @@ public class ReportsController extends BaseSecurityController {
 
         reportDialog.getDialogPane().setContent(textArea);
 
-        // --- ADDED: "SAVE COPY" BUTTON ---
         ButtonType btnTypePrint = new ButtonType("Print Report", ButtonBar.ButtonData.LEFT);
         ButtonType btnTypeSave = new ButtonType("Save Copy", ButtonBar.ButtonData.LEFT);
         ButtonType btnTypeClose = new ButtonType("Close Viewer", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -156,9 +155,14 @@ public class ReportsController extends BaseSecurityController {
                 new FileChooser.ExtensionFilter("PDF Document (*.pdf)", "*.pdf"),
                 new FileChooser.ExtensionFilter("CSV Data File (*.csv)", "*.csv")
         );
-        fileChooser.setInitialFileName("BYOD_Report_" + cmbReportType.getValue().replace(" ", "_"));
+
+        // Fixed: Using single quotes (' ') to prevent compiler errors
+        String suggestedName = "BYOD_Report_" + cmbReportType.getValue().replace(' ', '_');
+        fileChooser.setInitialFileName(suggestedName);
+
         Stage stage = (Stage) btnExport.getScene().getWindow();
         File selectedFile = fileChooser.showSaveDialog(stage);
+
         if (selectedFile != null) {
             showAlert(Alert.AlertType.INFORMATION, "Export Successful", "Report securely exported to:\n\n" + selectedFile.getAbsolutePath());
         }
