@@ -1,40 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.geometry.Insets?>
+
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.*?>
 
-<VBox prefWidth="400.0" spacing="15.0" style="-fx-background-color: white; -fx-padding: 30;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.AddDeviceController">
+<VBox prefWidth="520.0" spacing="20.0" style="-fx-background-color: #E5E1E2; -fx-padding: 25;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.AddDeviceController">
     <children>
-        <Label text="Register New Hardware Asset" textFill="#500A0E">
-            <font><Font name="System Bold" size="18.0" /></font>
-        </Label>
-
-        <VBox spacing="5.0">
-            <Label text="Owner Full Name" textFill="#777777"><font><Font size="11.0" /></font></Label>
-            <TextField fx:id="txtOwnerName" promptText="e.g., Ravin James Masarap" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        <!-- Header Banner Section -->
+        <VBox spacing="4.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 15;">
+            <children>
+                <Label text="Register New Hardware Asset" textFill="#500A0E">
+                    <font><Font name="System Bold" size="16.0" /></font>
+                </Label>
+            </children>
         </VBox>
 
-        <VBox spacing="5.0">
-            <Label text="Device Type" textFill="#777777"><font><Font size="11.0" /></font></Label>
-            <TextField fx:id="txtDeviceType" promptText="e.g., Laptop, Smartphone, Tablet" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
+        <!-- Form Registration Core -->
+        <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20;" VBox.vgrow="ALWAYS">
+            <children>
+                <!-- Owner Name Input Block -->
+                <VBox spacing="4.0">
+                    <children>
+                        <Label text="OWNER FULL NAME *" textFill="#555555">
+                            <font><Font name="System Bold" size="10.0" /></font>
+                        </Label>
+                        <TextField fx:id="txtOwnerName" prefHeight="35.0" promptText="e.g., Ravin James Masarap" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                    </children>
+                </VBox>
+
+                <!-- Brand & Model Input Block -->
+                <VBox spacing="4.0">
+                    <children>
+                        <Label text="BRAND &amp; MODEL DESCRIPTION *" textFill="#555555">
+                            <font><Font name="System Bold" size="10.0" /></font>
+                        </Label>
+                        <TextField fx:id="txtModel" prefHeight="35.0" promptText="e.g., Asus ROG Zephyrus G14" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                    </children>
+                </VBox>
+
+                <!-- Hardware Specifications Asymmetric Grid Layout -->
+                <GridPane hgap="15.0">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="180.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="105.0" minWidth="10.0" prefWidth="33.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="194.0" minWidth="10.0" prefWidth="194.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="55.0" vgrow="SOMETIMES" />
+                    </rowConstraints>
+                    <children>
+                        <!-- Device Type Field (Left Column) -->
+                        <VBox spacing="4.0" GridPane.columnIndex="0">
+                            <children>
+                                <Label text="DEVICE TYPE *" textFill="#555555">
+                                    <font><Font name="System Bold" size="10.0" /></font>
+                                </Label>
+                                <TextField fx:id="txtDeviceType" prefHeight="35.0" promptText="e.g., Laptop, Smartphone" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                            </children>
+                        </VBox>
+
+                        <!-- Physical MAC Address Field (Right Column) -->
+                        <VBox prefHeight="55.0" prefWidth="159.0" spacing="4.0" GridPane.columnIndex="2">
+                            <children>
+                                <Label text="PHYSICAL MAC ADDRESS *" textFill="#555555">
+                                    <font><Font name="System Bold" size="10.0" /></font>
+                                </Label>
+                                <TextField fx:id="txtMacAddress" prefHeight="35.0" promptText="e.g., 00:1B:44:11:3A:B7" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                            </children>
+                        </VBox>
+                    </children>
+                </GridPane>
+            </children>
         </VBox>
 
-        <VBox spacing="5.0">
-            <Label text="Brand &amp; Model Description" textFill="#777777"><font><Font size="11.0" /></font></Label>
-            <TextField fx:id="txtModel" promptText="e.g., Asus ROG Zephyrus G14" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
-        </VBox>
-
-        <VBox spacing="5.0">
-            <Label text="Physical MAC Address" textFill="#777777"><font><Font size="11.0" /></font></Label>
-            <TextField fx:id="txtMacAddress" promptText="e.g., 00:1B:44:11:3A:B7" style="-fx-padding: 8; -fx-background-radius: 4; -fx-border-color: #E2E2E2; -fx-border-radius: 4;" />
-        </VBox>
-
-        <Region prefHeight="10.0" />
-
-        <HBox alignment="CENTER_RIGHT" spacing="10.0">
-            <Button mnemonicParsing="false" onAction="#handleCancel" style="-fx-background-color: #F4F4F4; -fx-text-fill: #555555; -fx-cursor: hand; -fx-padding: 8 20;" text="Cancel" />
-            <Button mnemonicParsing="false" onAction="#handleSave" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 8 20;" text="Register Asset" />
+        <!-- Footer Operational Triggers Section -->
+        <HBox alignment="CENTER_RIGHT" spacing="15.0">
+            <children>
+                <Button mnemonicParsing="false" onAction="#handleCancel" prefHeight="35.0" prefWidth="90.0" style="-fx-background-color: white; -fx-text-fill: #444444; -fx-background-radius: 6; -fx-font-weight: bold; -fx-cursor: hand;" text="CANCEL" />
+                <Button mnemonicParsing="false" onAction="#handleSave" prefHeight="35.0" prefWidth="140.0" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-background-radius: 6; -fx-font-weight: bold; -fx-cursor: hand;" text="REGISTER DEVICE" />
+            </children>
         </HBox>
     </children>
 </VBox>

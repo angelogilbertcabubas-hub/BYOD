@@ -65,9 +65,9 @@
     <center>
         <VBox prefHeight="768.0" prefWidth="804.0" style="-fx-background-color: #F4F0F0; -fx-background-radius: 20 0 0 20;" BorderPane.alignment="CENTER">
             <children>
-                <HBox alignment="CENTER_LEFT" prefHeight="75.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20 0 0 0; -fx-padding: 0 30 0 30;">
+                <HBox alignment="CENTER_LEFT" prefHeight="80.0" prefWidth="804.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20 0 0 0; -fx-padding: 0 30 0 30;">
                     <children>
-                        <VBox alignment="CENTER_LEFT" HBox.hgrow="ALWAYS">
+                        <VBox alignment="CENTER_LEFT" prefHeight="80.0" HBox.hgrow="ALWAYS">
                             <Label text="Active Devices" textFill="#222222"><font><Font name="System Bold" size="18.0" /></font></Label>
                             <Label text="View all devices that are currently inside the campus" textFill="#777777"><font><Font size="11.0" /></font></Label>
                         </VBox>
