@@ -7,238 +7,154 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="768.0"
-            prefWidth="1366.0"
-            style="-fx-background-color: #5C1515;"
-            xmlns="http://javafx.com/javafx/17.0.12"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="controller.LoginController">
-
+<StackPane prefHeight="768.0" prefWidth="1366.0" style="-fx-background-color: #5C1515;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.LoginController">
    <children>
 
-      <!-- BACKGROUND -->
-      <ImageView fitHeight="768.0"
-                 fitWidth="1366.0"
-                 opacity="0.38"
-                 preserveRatio="false">
-
+      <ImageView fitHeight="768.0" fitWidth="1366.0" opacity="0.38" pickOnBounds="true" preserveRatio="false" StackPane.alignment="CENTER">
          <image>
             <Image url="@../../../images/pup.png" />
          </image>
-
       </ImageView>
 
-      <!-- TOP LEFT LOGO -->
-      <HBox alignment="CENTER_LEFT"
-            layoutX="35.0"
-            layoutY="30.0"
-            spacing="12">
-
-         <children>
-
-            <ImageView fitHeight="55.0"
-                       fitWidth="55.0"
-                       preserveRatio="true">
-
-               <image>
-                  <Image url="@../../../images/pup_logo.png" />
-               </image>
-
-            </ImageView>
-
-            <Label text="PUP BYOD"
-                   textFill="#F2C76A">
-
-               <font>
-                  <Font name="Arial Bold"
-                        size="26.0"/>
-               </font>
-
-            </Label>
-
-         </children>
-
-      </HBox>
-
-      <!-- LEFT TEXT -->
-      <Label layoutX="56.0"
-             layoutY="531.0"
-             prefWidth="614.0"
-             text="Register. Track. Secure."
-             textFill="WHITE"
-             wrapText="true">
-
-         <font>
-            <Font name="Arial Bold"
-                  size="50.0"/>
-         </font>
-
-      </Label>
-
-      <Label layoutX="56.0"
-             layoutY="605.0"
-             prefWidth="596.0"
-             text="Securely manage student-owned devices on campus. Track entry and exit in real-time with our centralized monitoring platform."
-             textFill="WHITE"
-             wrapText="true">
-
-         <font>
-            <Font size="19.0"/>
-         </font>
-
-      </Label>
-
-      <!-- LOGIN CARD -->
-      <VBox alignment="TOP_CENTER"
-            layoutX="864.0"
-            layoutY="25.0"
-            prefHeight="710.0"
-            prefWidth="470.0"
-            spacing="18"
-            style="-fx-background-color: rgba(255,255,255,0.96);
-                     -fx-background-radius: 25;">
-
+      <GridPane hgap="40.0" vgap="20.0">
+         <columnConstraints>
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="55.0" />
+            <ColumnConstraints hgrow="ALWAYS" percentWidth="45.0" />
+         </columnConstraints>
+         <rowConstraints>
+            <RowConstraints vgrow="ALWAYS" />
+         </rowConstraints>
          <padding>
-            <Insets top="40"
-                    right="40"
-                    bottom="35"
-                    left="40"/>
+            <Insets bottom="40.0" left="50.0" right="50.0" top="40.0" />
          </padding>
 
          <children>
 
-            <ImageView fitHeight="140.0"
-                       fitWidth="140.0"
-                       preserveRatio="true">
-
-               <image>
-                  <Image url="@../../../images/byod_logo.png" />
-               </image>
-
-            </ImageView>
-
-            <Label text="BYOD"
-                   textFill="#6B0F0F">
-
-               <font>
-                  <Font name="Arial Bold"
-                        size="52.0"/>
-               </font>
-
-            </Label>
-
-            <Label text="REGISTRATION AND MONITORING SYSTEM"
-                   textFill="#555555">
-
-               <font>
-                  <Font size="13.0"/>
-               </font>
-
-            </Label>
-
-            <Region prefHeight="25.0"/>
-
-            <!-- EMAIL -->
-            <VBox prefWidth="360"
-                  spacing="8">
-
+            <VBox alignment="CENTER_LEFT" spacing="30.0" GridPane.columnIndex="0">
                <children>
+                  <HBox alignment="CENTER_LEFT" spacing="15.0">
+                     <children>
+                        <ImageView fitHeight="60.0" fitWidth="60.0" preserveRatio="true">
+                           <image>
+                              <Image url="@../../../images/pup_logo.png" />
+                           </image>
+                        </ImageView>
+                        <Label text="PUP BYOD" textFill="#F2C76A">
+                           <font>
+                              <Font name="Arial Bold" size="28.0" />
+                           </font>
+                        </Label>
+                     </children>
+                  </HBox>
 
-                  <Label text="Email">
+                  <Region VBox.vgrow="ALWAYS" />
 
-                     <font>
-                        <Font size="17.0"/>
-                     </font>
+                  <VBox spacing="15.0">
+                     <children>
+                        <Label text="Register. Track. Secure." textFill="WHITE" wrapText="true">
+                           <font>
+                              <Font name="Arial Bold" size="52.0" />
+                           </font>
+                        </Label>
+                        <Label maxWidth="600.0" text="Securely manage student-owned devices on campus. Track entry and exit in real-time with our centralized monitoring platform." textFill="WHITE" wrapText="true">
+                           <font>
+                              <Font size="19.0" />
+                           </font>
+                        </Label>
+                     </children>
+                  </VBox>
 
-                  </Label>
-
-                  <TextField fx:id="usernameField"
-                             prefHeight="50.0"
-                             promptText="Enter your email"
-                             style="-fx-background-radius: 10;
-                                    -fx-border-radius: 10;
-                                    -fx-border-color: #D5D5D5;
-                                    -fx-padding: 0 15 0 15;" />
-
+                  <Region VBox.vgrow="ALWAYS" />
                </children>
-
             </VBox>
 
-            <!-- PASSWORD -->
-            <VBox prefWidth="360"
-                  spacing="8">
-
+            <StackPane alignment="CENTER" GridPane.columnIndex="1">
                <children>
 
-                  <Label text="Password">
+                  <VBox alignment="TOP_CENTER" maxHeight="680.0" maxWidth="450.0" spacing="16.0" style="-fx-background-color: rgba(255,255,255,0.96); -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 15, 0, 0, 10);">
+                     <padding>
+                        <Insets bottom="30.0" left="35.0" right="35.0" top="35.0" />
+                     </padding>
+                     <children>
 
-                     <font>
-                        <Font size="17.0"/>
-                     </font>
+                        <ImageView fitHeight="110.0" fitWidth="110.0" preserveRatio="true">
+                           <image>
+                              <Image url="@../../../images/byod_logo.png" />
+                           </image>
+                        </ImageView>
 
-                  </Label>
+                        <VBox alignment="CENTER" spacing="4.0">
+                           <children>
+                              <Label text="BYOD" textFill="#6B0F0F">
+                                 <font>
+                                    <Font name="Arial Bold" size="44.0" />
+                                 </font>
+                              </Label>
+                              <Label text="REGISTRATION AND MONITORING SYSTEM" textFill="#555555" textAlignment="CENTER" wrapText="true">
+                                 <font>
+                                    <Font name="System Bold" size="11.0" />
+                                 </font>
+                              </Label>
+                           </children>
+                        </VBox>
 
-                  <PasswordField fx:id="passwordField"
-                                 prefHeight="50.0"
-                                 promptText="Enter your password"
-                                 style="-fx-background-radius: 10;
-                                        -fx-border-radius: 10;
-                                        -fx-border-color: #D5D5D5;
-                                        -fx-padding: 0 15 0 15;" />
+                        <Region prefHeight="10.0" />
 
+                        <VBox spacing="6.0">
+                           <children>
+                              <Label text="Email" textFill="#333333">
+                                 <font>
+                                    <Font name="System Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <TextField fx:id="usernameField" prefHeight="45.0" promptText="Enter your email" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 12;" />
+                           </children>
+                        </VBox>
+
+                        <VBox spacing="6.0">
+                           <children>
+                              <Label text="Password" textFill="#333333">
+                                 <font>
+                                    <Font name="System Bold" size="14.0" />
+                                 </font>
+                              </Label>
+                              <PasswordField fx:id="passwordField" prefHeight="45.0" promptText="Enter your password" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 12;" />
+                           </children>
+                        </VBox>
+
+                        <HBox alignment="CENTER_LEFT">
+                           <children>
+                              <CheckBox text="Remember Me" textFill="#555555" style="-fx-cursor: hand;" />
+                              <Region HBox.hgrow="ALWAYS" />
+                              <Hyperlink style="-fx-text-fill: #6B0F0F; -fx-underline: false;" text="Forgot Password?" />
+                           </children>
+                        </HBox>
+
+                        <Region prefHeight="5.0" />
+
+                        <Button maxWidth="1.7E308" onAction="#handleLogin" prefHeight="45.0" style="-fx-background-color: #6B0F0F; -fx-background-radius: 8; -fx-text-fill: white; -fx-cursor: hand;" text="Login">
+                           <font>
+                              <Font name="Arial Bold" size="16.0" />
+                           </font>
+                        </Button>
+
+                        <Separator prefWidth="200.0">
+                           <padding>
+                              <Insets top="10.0" />
+                           </padding>
+                        </Separator>
+
+                        <Label text="Authorized personnel only. Please log in with your credentials." textAlignment="CENTER" textFill="#777777" wrapText="true">
+                           <font>
+                              <Font size="11.0" />
+                           </font>
+                        </Label>
+
+                     </children>
+                  </VBox>
                </children>
-
-            </VBox>
-
-            <!-- OPTIONS -->
-            <HBox alignment="CENTER_LEFT"
-                  prefWidth="360">
-
-               <children>
-
-                  <CheckBox text="Remember Me"/>
-
-                  <Region HBox.hgrow="ALWAYS"/>
-
-                  <Hyperlink text="Forgot Password?"
-                             style="-fx-text-fill: #6B0F0F;"/>
-
-               </children>
-
-            </HBox>
-
-            <!-- LOGIN BUTTON -->
-            <Button prefHeight="50.0"
-                    prefWidth="360.0"
-                    text="Login"
-                    onAction="#handleLogin"
-                    style="-fx-background-color: #6B0F0F;
-                           -fx-background-radius: 10;
-                           -fx-text-fill: white;">
-
-               <font>
-                  <Font name="Arial Bold"
-                        size="18.0"/>
-               </font>
-
-            </Button>
-
-            <Separator prefWidth="360"/>
-
-            <Label text="Authorized personnel only. Please log in with your credentials."
-                   textFill="#777777"
-                   wrapText="true">
-
-               <font>
-                  <Font size="11.0"/>
-               </font>
-
-            </Label>
-
+            </StackPane>
          </children>
-
-      </VBox>
-
+      </GridPane>
    </children>
-
-</AnchorPane>
+</StackPane>
