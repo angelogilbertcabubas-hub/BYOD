@@ -1,26 +1,64 @@
 package utils;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import io.github.cdimascio.dotenv.Dotenv;
+
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseHelper {
 
-    private static final Dotenv dotenv = Dotenv.load();
+    // This object holds our pool of open, ready-to-use connections
+    private static HikariDataSource dataSource;
 
-    private static final String URL = dotenv.get("DB_URL");
-    private static final String USER = dotenv.get("DB_USER");
-    private static final String PASSWORD = dotenv.get("DB_PASSWORD");
+    // The static block runs once the moment the application starts
+    static {
+        try {
+            Dotenv dotenv = Dotenv.load();
+
+            String url = dotenv.get("DB_URL");
+            String user = dotenv.get("DB_USER");
+            String password = dotenv.get("DB_PASSWORD");
+
+            if (url == null || user == null || password == null) {
+                System.err.println("CRITICAL: Database credentials are missing in the .env file.");
+            }
+
+            // Configure the connection pool
+            HikariConfig config = new HikariConfig();
+            config.setJdbcUrl(url);
+            config.setUsername(user);
+            config.setPassword(password);
+
+            // Pool Settings for optimal speed
+            config.setMaximumPoolSize(10); // Keep up to 10 connections open
+            config.setMinimumIdle(2);      // Always keep at least 2 connections ready
+            config.setConnectionTimeout(30000); // 30 seconds wait before timing out
+
+            // PostgreSQL/Supabase specific speed optimizations
+            config.addDataSourceProperty("cachePrepStmts", "true");
+            config.addDataSourceProperty("prepStmtCacheSize", "250");
+            config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+
+            // Initialize the pool
+            dataSource = new HikariDataSource(config);
+            System.out.println("HikariCP Connection Pool initialized successfully.");
+
+        } catch (Exception e) {
+            System.err.println("Critical Error initializing HikariCP Connection Pool: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
     /**
-     * Establishes and returns a connection to the Supabase PostgreSQL database.
+     * Instantly returns an already-open connection from the pool.
      */
     public static Connection getConnection() throws SQLException {
-        if (URL == null || USER == null || PASSWORD == null) {
-            throw new SQLException("Database credentials are missing! Please check your .env file.");
+        if (dataSource == null) {
+            throw new SQLException("Connection pool is not initialized.");
         }
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        return dataSource.getConnection(); // Grabs a ready connection (0.01 seconds)
     }
 
     /**
@@ -28,7 +66,7 @@ public class DatabaseHelper {
      */
     public static void initializeDatabase() {
         try (Connection conn = getConnection()) {
-            System.out.println("Successfully connected to the Supabase Cloud Database securely!");
+            System.out.println("Successfully tested connection to the Supabase Cloud Database!");
         } catch (SQLException e) {
             System.err.println("Critical Error: Could not connect to Supabase.");
             System.err.println("Please check your internet connection and .env file.");

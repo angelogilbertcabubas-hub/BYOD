@@ -1,6 +1,7 @@
 package controller.Security;
 
 import utils.DataStore;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -19,19 +20,32 @@ public class SecurityDashboardController extends BaseSecurityController {
 
     @FXML
     public void initialize() {
-        // Automatically populate the dashboard counters with live data from DataStore
-        int activeDevices = DataStore.getInstance().getActiveDevicesList().size();
-        lblDevicesCount.setText(String.valueOf(activeDevices));
+        lblDevicesCount.setText("...");
+        lblCheckInCount.setText("...");
+        lblCheckOutCount.setText("...");
 
-        long checkIns = DataStore.getInstance().getMonitoringLogsList().stream()
-                .filter(log -> "Check-In".equals(log.getOperation()))
-                .count();
-        lblCheckInCount.setText(String.valueOf(checkIns));
+        Thread dataLoadThread = new Thread(() -> {
+            DataStore store = DataStore.getInstance();
 
-        long checkOuts = DataStore.getInstance().getMonitoringLogsList().stream()
-                .filter(log -> "Check-Out".equals(log.getOperation()))
-                .count();
-        lblCheckOutCount.setText(String.valueOf(checkOuts));
+            int activeDevices = store.getActiveDevicesList().size();
+
+            long checkIns = store.getMonitoringLogsList().stream()
+                    .filter(log -> "Check-In".equals(log.getOperation()))
+                    .count();
+
+            long checkOuts = store.getMonitoringLogsList().stream()
+                    .filter(log -> "Check-Out".equals(log.getOperation()))
+                    .count();
+
+            Platform.runLater(() -> {
+                lblDevicesCount.setText(String.valueOf(activeDevices));
+                lblCheckInCount.setText(String.valueOf(checkIns));
+                lblCheckOutCount.setText(String.valueOf(checkOuts));
+            });
+        });
+
+        dataLoadThread.setDaemon(true);
+        dataLoadThread.start();
     }
 
     @FXML
@@ -43,12 +57,9 @@ public class SecurityDashboardController extends BaseSecurityController {
         }
 
         showAlert(Alert.AlertType.INFORMATION, "Verification Status", "Searching registry for: " + query + "\n\nRedirecting to Gate Check-In...");
-
-        // Automatically routes the guard to the Check-In terminal after verifying
         goToCheckInOut();
     }
 
-    // --- QUICK ACTION DASHBOARD BUTTONS ---
     @FXML
     private void handleQuickCheckIn(ActionEvent event) {
         goToCheckInOut();
@@ -64,7 +75,6 @@ public class SecurityDashboardController extends BaseSecurityController {
         showAlert(Alert.AlertType.INFORMATION, "Incident Report", "Opening Security Incident Logging Protocol...");
     }
 
-    // Alert helper for popups
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);

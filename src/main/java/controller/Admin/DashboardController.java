@@ -2,6 +2,7 @@ package controller.Admin;
 
 import com.example.byod.model.LogEntry;
 import utils.DataStore;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.CategoryAxis;
@@ -31,7 +32,10 @@ public class DashboardController extends BaseAdminController {
 
     @FXML
     public void initialize() {
-        loadDashboardData();
+        lblTotalStudents.setText("Loading...");
+        lblRegisteredDevices.setText("Loading...");
+        lblDevicesInside.setText("Loading...");
+        lblTodayLogs.setText("Loading...");
 
         chartPlaceholder.setVisible(true);
         ingressEgressChart.setAnimated(false);
@@ -40,16 +44,22 @@ public class DashboardController extends BaseAdminController {
         colMiniAction.setCellValueFactory(new PropertyValueFactory<>("operation"));
         colMiniTime.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
 
-        miniLogsTable.setItems(DataStore.getInstance().getMonitoringLogsList());
+        Thread dataLoadThread = new Thread(() -> {
+            DataStore store = DataStore.getInstance();
+
+            Platform.runLater(() -> {
+                lblTotalStudents.setText(String.valueOf(store.getStudentsList().size()));
+                lblRegisteredDevices.setText(String.valueOf(store.getDevicesList().size()));
+                lblDevicesInside.setText(String.valueOf(store.getActiveDevicesList().size()));
+                lblTodayLogs.setText(String.valueOf(store.getMonitoringLogsList().size()));
+                miniLogsTable.setItems(store.getMonitoringLogsList());
+            });
+        });
+
+        dataLoadThread.setDaemon(true);
+        dataLoadThread.start();
 
         setupSampleData();
-    }
-
-    private void loadDashboardData() {
-        lblTotalStudents.setText(String.valueOf(DataStore.getInstance().getStudentsList().size()));
-        lblRegisteredDevices.setText(String.valueOf(DataStore.getInstance().getDevicesList().size()));
-        lblDevicesInside.setText(String.valueOf(DataStore.getInstance().getActiveDevicesList().size()));
-        lblTodayLogs.setText(String.valueOf(DataStore.getInstance().getMonitoringLogsList().size()));
     }
 
     private void setupSampleData() {

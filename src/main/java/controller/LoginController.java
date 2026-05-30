@@ -13,7 +13,6 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import utils.DatabaseHelper;
-import utils.DataStore;
 
 import java.net.URL;
 import java.sql.Connection;
@@ -39,18 +38,14 @@ public class LoginController {
         Scene currentScene = ((Node) event.getSource()).getScene();
         currentScene.setCursor(Cursor.WAIT);
 
-        // 2. Create a Background Thread to handle the heavy network lifting
+        // 2. Create a Background Thread strictly for Authentication
         Thread networkWorker = new Thread(() -> {
             try {
-                // This goes to the cloud (Takes time, but won't freeze the UI anymore!)
+                // Authenticate the user against Supabase using the fast Connection Pool
                 String role = authenticateUser(username, password);
 
                 if (role != null) {
-                    // Pre-load the heavy tables (Students & Devices) from the cloud NOW
-                    // so the dashboard opens instantly when we switch screens.
-                    DataStore.getInstance();
-
-                    // 3. The background worker is done! Use Platform.runLater to tell the UI Thread to switch screens safely.
+                    // 3. Authentication successful. Switch UI immediately.
                     Platform.runLater(() -> {
                         String fxmlPath = null;
                         String windowTitle = null;
@@ -71,7 +66,7 @@ public class LoginController {
                     });
 
                 } else {
-                    // Login failed. Tell the UI Thread to show an error and reset the mouse cursor.
+                    // Login failed.
                     Platform.runLater(() -> {
                         currentScene.setCursor(Cursor.DEFAULT);
                         System.out.println("Invalid Login Credentials Entered.");
@@ -79,7 +74,6 @@ public class LoginController {
                     });
                 }
             } catch (Exception e) {
-                // If the internet drops or Supabase is down
                 Platform.runLater(() -> {
                     currentScene.setCursor(Cursor.DEFAULT);
                     System.err.println("Critical network error during login.");
@@ -89,19 +83,18 @@ public class LoginController {
             }
         });
 
-        // Set as a daemon so the thread dies if the user completely closes the app while it's loading
         networkWorker.setDaemon(true);
-        // Start the worker!
         networkWorker.start();
     }
 
     /**
-     * Connects to Supabase and verifies the username and password.
-     * Returns the user's role ("admin" or "security") if successful, or null if failed.
+     * Connects to Supabase and verifies the plain-text username and password.
      */
-    private String authenticateUser(String username, String password) {
+    private String authenticateUser(String username, String password) throws Exception {
+        // Using your original query that checks the plain text password
         String query = "SELECT role FROM users WHERE username = ? AND password_hash = ?";
 
+        // Grabs an instant connection from HikariCP
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
 
@@ -113,11 +106,7 @@ public class LoginController {
                     return rs.getString("role");
                 }
             }
-        } catch (Exception e) {
-            System.err.println("Database error during login verification!");
-            e.printStackTrace();
         }
-
         return null;
     }
 
@@ -129,7 +118,6 @@ public class LoginController {
             URL dashboardUrl = getClass().getResource(fxmlPath);
 
             if (dashboardUrl == null) {
-                // Failsafe: Reset cursor if FXML is missing
                 ((Node) event.getSource()).getScene().setCursor(Cursor.DEFAULT);
                 showErrorAlert("Navigation Error",
                         "Cannot find the FXML file at: " + fxmlPath +
