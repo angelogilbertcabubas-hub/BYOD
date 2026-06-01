@@ -2,9 +2,9 @@ package utils;
 
 import com.example.byod.model.Device;
 import com.example.byod.model.Student;
-import com.example.byod.model.LogEntry;
-import com.example.byod.model.Report;
-import com.example.byod.model.SystemUser;
+import com.example.byod.LogEntry;
+import com.example.byod.Report;
+import com.example.byod.SystemUser;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 

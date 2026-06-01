@@ -6,6 +6,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.event.ActionEvent;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 
 public class StudentsController extends BaseAdminController {
 
@@ -19,6 +21,8 @@ public class StudentsController extends BaseAdminController {
     @FXML private TableColumn<Student, String> colEmail;
     @FXML private TableColumn<Student, String> colStatus;
 
+    private FilteredList<Student> filteredStudents;
+
     @FXML
     public void initialize() {
         colStudentName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
@@ -27,10 +31,31 @@ public class StudentsController extends BaseAdminController {
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
 
-        studentsTableView.setItems(DataStore.getInstance().getStudentsList());
+        filteredStudents = new FilteredList<>(DataStore.getInstance().getStudentsList(), p -> true);
 
-        int count = DataStore.getInstance().getStudentsList().size();
-        statusSummaryLabel.setText("Showing 1 to " + count + " of " + count + " entries");
+        searchBarField.textProperty().addListener((observable, oldValue, newValue) -> {
+            filteredStudents.setPredicate(student -> {
+                if(newValue == null || newValue.isBlank()) return true;
+
+                String keyword = newValue.toLowerCase();
+
+                if(student.getFullName() != null && student.getFullName().toLowerCase().contains(keyword)) return true;
+                if(student.getStudentId() != null && student.getStudentId().toLowerCase().contains(keyword)) return true;
+                if(student.getCourse() != null && student.getCourse().toLowerCase().contains(keyword)) return true;
+                if(student.getEmail() != null && student.getEmail().toLowerCase().contains(keyword)) return true;
+                if(student.getStatus() != null && student.getStatus().toLowerCase().contains(keyword)) return true;
+
+                return false;
+            });
+
+            updateLabel(filteredStudents.size());
+        });
+
+        SortedList<Student> sortedStudent = new SortedList<>(filteredStudents);
+        sortedStudent.comparatorProperty().bind(studentsTableView.comparatorProperty());
+        studentsTableView.setItems(sortedStudent);
+
+        updateLabel(sortedStudent.size());
     }
 
     @FXML
@@ -61,6 +86,15 @@ public class StudentsController extends BaseAdminController {
         } catch (java.io.IOException e) {
             System.err.println("CRITICAL ERROR: Could not load the Add Student Modal.");
             e.printStackTrace();
+        }
+    }
+
+    private void updateLabel(int filtered) {
+        int total = DataStore.getInstance().getStudentsList().size();
+        if (filtered == total) {
+            statusSummaryLabel.setText("Showing 1 to " + total + " of " + total + " entries");
+        } else {
+            statusSummaryLabel.setText("Showing " + filtered + " of " + total + " entries");
         }
     }
 }

@@ -22,7 +22,7 @@ public class DatabaseHelper {
             String password = dotenv.get("DB_PASSWORD");
 
             if (url == null || user == null || password == null) {
-                System.err.println("CRITICAL: Database credentials are missing in the .env file.");
+                System.err.println("CRITICAL: Database credentials are missing in the ..env file.");
             }
 
             // Configure the connection pool
@@ -69,7 +69,7 @@ public class DatabaseHelper {
             System.out.println("Successfully tested connection to the Supabase Cloud Database!");
         } catch (SQLException e) {
             System.err.println("Critical Error: Could not connect to Supabase.");
-            System.err.println("Please check your internet connection and .env file.");
+            System.err.println("Please check your internet connection and ..env file.");
             System.err.println("Error details: " + e.getMessage());
         }
     }

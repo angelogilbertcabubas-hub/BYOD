@@ -1,6 +1,6 @@
 package controller.Admin;
 
-import com.example.byod.model.SystemUser;
+import com.example.byod.SystemUser;
 import utils.DataStore;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;

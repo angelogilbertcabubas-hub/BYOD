@@ -1,4 +1,4 @@
-package com.example.byod.model;
+package com.example.byod;
 
 public class SystemUser {
     private String username;

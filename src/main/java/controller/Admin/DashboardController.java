@@ -1,6 +1,6 @@
 package controller.Admin;
 
-import com.example.byod.model.LogEntry;
+import com.example.byod.LogEntry;
 import utils.DataStore;
 import javafx.application.Platform;
 import javafx.fxml.FXML;

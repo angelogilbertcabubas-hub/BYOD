@@ -1,6 +1,6 @@
 package controller.Security;
 
-import com.example.byod.model.LogEntry;
+import com.example.byod.LogEntry;
 import utils.DataStore;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;

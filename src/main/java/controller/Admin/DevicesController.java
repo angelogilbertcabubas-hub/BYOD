@@ -6,6 +6,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.event.ActionEvent;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 
 public class DevicesController extends BaseAdminController {
 
@@ -19,6 +21,8 @@ public class DevicesController extends BaseAdminController {
     @FXML private TableColumn<Device, String> colMAC;
     @FXML private TableColumn<Device, String> colToken;
 
+    private FilteredList<Device> filteredDevices;
+
     @FXML
     public void initialize() {
         colOwner.setCellValueFactory(new PropertyValueFactory<>("ownerName"));
@@ -27,7 +31,29 @@ public class DevicesController extends BaseAdminController {
         colMAC.setCellValueFactory(new PropertyValueFactory<>("macAddress"));
         colToken.setCellValueFactory(new PropertyValueFactory<>("token"));
 
-        devicesTableView.setItems(DataStore.getInstance().getDevicesList());
+        filteredDevices = new FilteredList<>(DataStore.getInstance().getDevicesList(), p -> true);
+
+        searchBarField.textProperty().addListener((observable, oldValue, newValue) -> {
+            filteredDevices.setPredicate(device -> {
+                if(newValue == null || newValue.isBlank()) return true;
+
+                String keyword = newValue.toLowerCase();
+
+                if (device.getOwnerName() != null && device.getOwnerName().toLowerCase().contains(keyword)) return true;
+                if (device.getDeviceType() != null && device.getDeviceType().toLowerCase().contains(keyword)) return true;
+                if (device.getModel() != null && device.getModel().toLowerCase().contains(keyword)) return true;
+                if (device.getMacAddress() != null && device.getMacAddress().toLowerCase().contains(keyword)) return true;
+                if (device.getToken() != null && device.getToken().toLowerCase().contains(keyword)) return true;
+
+                return false;
+            });
+
+            updateCountLabel();
+        });
+
+        SortedList<Device> sortedDevices = new SortedList<>(filteredDevices);
+        sortedDevices.comparatorProperty().bind(devicesTableView.comparatorProperty());
+        devicesTableView.setItems(sortedDevices);
 
         updateCountLabel();
     }

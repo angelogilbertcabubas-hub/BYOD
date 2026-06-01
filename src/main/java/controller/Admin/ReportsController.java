@@ -1,6 +1,7 @@
 package controller.Admin;
 
-import com.example.byod.model.LogEntry;
+import com.example.byod.LogEntry;
+import com.example.byod.Report;
 import utils.DataStore;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -11,6 +12,9 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.event.ActionEvent;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -31,6 +35,8 @@ public class ReportsController extends BaseAdminController {
 
     @FXML private Button btnGenerate;
     @FXML private Button btnExport;
+
+    private FilteredList<Report> filteredReports;
 
     @FXML
     public void initialize() {

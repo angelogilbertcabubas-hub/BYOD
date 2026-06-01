@@ -1,4 +1,4 @@
-package com.example.byod.model;
+package com.example.byod;
 
 public class Report {
     private String reportId;
