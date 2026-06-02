@@ -156,18 +156,26 @@
 
                         <VBox spacing="15.0" style="-fx-padding: 20 30 20 30;" VBox.vgrow="ALWAYS">
                             <children>
-
                                 <VBox spacing="10.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 12; -fx-padding: 15 20 15 20; -fx-border-color: #E0D5D5; -fx-border-radius: 12; -fx-border-width: 1;">
                                     <children>
                                         <Label text="Device Verification" textFill="#222222">
                                             <font><Font name="System Bold" size="14.0" /></font>
                                         </Label>
+
+                                        <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #EEEEEE; -fx-background-radius: 8; -fx-padding: 10;">
+                                            <ImageView fx:id="cameraView" fitWidth="300" fitHeight="200" preserveRatio="true" />
+                                            <Label fx:id="statusLabel" text="Initializing Camera..." style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #500A0E;"/>
+                                            <Button text="Restart Scanner" onAction="#restartScanner" style="-fx-cursor: hand; -fx-background-color: #8E5A5E; -fx-text-fill: white; -fx-font-size: 11px;"/>
+                                        </VBox>
+
+                                        <Label text="Or search manually:" textFill="#777777" style="-fx-font-size: 11px;"/>
+
                                         <HBox alignment="CENTER_LEFT" spacing="15.0">
                                             <children>
                                                 <HBox alignment="CENTER_LEFT" spacing="0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 8; -fx-border-color: #DDDDDD; -fx-border-radius: 8; -fx-border-width: 1; -fx-padding: 0 15 0 15;" HBox.hgrow="ALWAYS">
                                                     <children>
                                                         <Label style="-fx-font-size: 13px; -fx-text-fill: #aaaaaa; -fx-padding: 0 8 0 0;" text="🔍" />
-                                                        <TextField fx:id="txtDeviceSearch" prefHeight="38.0" promptText="Enter Access Code / Student ID / Serial Number..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-font-size: 13px; -fx-text-fill: #333333; -fx-prompt-text-fill: #aaaaaa;" HBox.hgrow="ALWAYS" />
+                                                        <TextField fx:id="txtDeviceSearch" prefHeight="38.0" promptText="Enter Student ID / Access Code..." style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-font-size: 13px; -fx-text-fill: #333333; -fx-prompt-text-fill: #aaaaaa;" HBox.hgrow="ALWAYS" />
                                                     </children>
                                                 </HBox>
                                                 <Button fx:id="btnSearch" onAction="#handleSearch" prefHeight="40.0" prefWidth="120.0" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;" text="SEARCH" />
@@ -180,7 +188,7 @@
                                     <children>
                                         <Label style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #222222; -fx-padding: 0 0 8 0;" text="Results" />
 
-                                        <GridPane vgap="6.0" hgap="10.0">
+                                        <GridPane vgap="15.0" hgap="10.0">
                                             <columnConstraints>
                                                 <ColumnConstraints prefWidth="140" />
                                                 <ColumnConstraints hgrow="ALWAYS" />
@@ -192,17 +200,24 @@
                                                 <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Student ID:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
                                                 <Label fx:id="lblStudentID" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="1" GridPane.columnIndex="1" />
 
-                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Device:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
-                                                <Label fx:id="lblDevice" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Course &amp; Section:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                                                <Label fx:id="lblCourseSection" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="2" GridPane.columnIndex="1" />
 
-                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Serial Number:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
-                                                <Label fx:id="lblSerialNumber" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Registered Devices:" GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.valignment="TOP">
+                                                    <GridPane.margin>
+                                                        <Insets top="8.0" />
+                                                    </GridPane.margin>
+                                                </Label>
+                                                <FlowPane fx:id="deviceContainer" hgap="10.0" vgap="10.0" GridPane.rowIndex="3" GridPane.columnIndex="1" />
 
-                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Access Code:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
-                                                <Label fx:id="lblAccessCode" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Serial Number:" GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.valignment="TOP" />
+                                                <Label fx:id="lblSerialNumber" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" wrapText="true" minHeight="-Infinity" GridPane.rowIndex="4" GridPane.columnIndex="1" GridPane.valignment="TOP" />
 
-                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Current Status:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
-                                                <Label fx:id="lblCurrentStatus" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="5" GridPane.columnIndex="1" />
+                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Access Code:" GridPane.rowIndex="5" GridPane.columnIndex="0" GridPane.valignment="TOP" />
+                                                <Label fx:id="lblAccessCode" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" wrapText="true" minHeight="-Infinity" GridPane.rowIndex="5" GridPane.columnIndex="1" GridPane.valignment="TOP" />
+
+                                                <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Current Status:" GridPane.rowIndex="6" GridPane.columnIndex="0" GridPane.valignment="TOP" />
+                                                <Label fx:id="lblCurrentStatus" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="6" GridPane.columnIndex="1" GridPane.valignment="TOP" />
                                             </children>
                                         </GridPane>
                                     </children>
@@ -213,7 +228,6 @@
                                         <Label text="Transaction" textFill="#222222">
                                             <font><Font name="System Bold" size="14.0" /></font>
                                         </Label>
-
                                         <GridPane vgap="10.0" hgap="20.0">
                                             <columnConstraints>
                                                 <ColumnConstraints percentWidth="50.0" />
@@ -226,33 +240,29 @@
                                                         <ComboBox fx:id="cmbAction" maxWidth="Infinity" style="-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-size: 12px; -fx-padding: 4 8;" />
                                                     </children>
                                                 </VBox>
-
                                                 <VBox spacing="4.0" GridPane.rowIndex="0" GridPane.columnIndex="1">
                                                     <children>
                                                         <Label text="Date &amp; Time" textFill="#555555"><font><Font size="11.0" /></font></Label>
                                                         <HBox alignment="CENTER_LEFT" spacing="8.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 6; -fx-border-color: #DDDDDD; -fx-border-radius: 6; -fx-border-width: 1; -fx-padding: 5 10;">
                                                             <children>
                                                                 <Label style="-fx-font-size: 12px; -fx-text-fill: #020202;" text="📅" />
-                                                                <Label fx:id="lblDateTime" style="-fx-font-size: 12px; -fx-text-fill: #333333;" text="05/17/2026  08:30 AM" />
+                                                                <Label fx:id="lblDateTime" style="-fx-font-size: 12px; -fx-text-fill: #333333;" text="" />
                                                             </children>
                                                         </HBox>
                                                     </children>
                                                 </VBox>
-
                                                 <VBox spacing="4.0" GridPane.rowIndex="1" GridPane.columnIndex="0">
                                                     <children>
                                                         <Label text="Location" textFill="#555555"><font><Font size="11.0" /></font></Label>
                                                         <ComboBox fx:id="cmbLocation" maxWidth="Infinity" style="-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-size: 12px; -fx-padding: 4 8;" />
                                                     </children>
                                                 </VBox>
-
                                                 <VBox spacing="4.0" GridPane.rowIndex="1" GridPane.columnIndex="1">
                                                     <children>
                                                         <Label text="Guard" textFill="#555555"><font><Font size="11.0" /></font></Label>
                                                         <ComboBox fx:id="cmbGuard" maxWidth="Infinity" style="-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 6; -fx-background-radius: 6; -fx-font-size: 12px; -fx-padding: 4 8;" />
                                                     </children>
                                                 </VBox>
-
                                                 <VBox spacing="4.0" GridPane.rowIndex="2" GridPane.columnIndex="0" GridPane.columnSpan="2">
                                                     <children>
                                                         <Label text="Remarks (optional)" textFill="#555555"><font><Font size="11.0" /></font></Label>
@@ -261,16 +271,14 @@
                                                 </VBox>
                                             </children>
                                         </GridPane>
-
                                         <HBox spacing="15.0" style="-fx-padding: 5 0 0 0;">
                                             <children>
                                                 <Button fx:id="btnClear" maxWidth="Infinity" onAction="#handleClear" prefHeight="38.0" style="-fx-background-color: #FFFFFF; -fx-text-fill: #555555; -fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 8; -fx-border-color: #CCCCCC; -fx-border-radius: 8; -fx-border-width: 1; -fx-cursor: hand;" text="CLEAR" HBox.hgrow="ALWAYS" />
-                                                <Button fx:id="btnConfirm" maxWidth="Infinity" onAction="#handleConfirm" prefHeight="38.0" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 8; -fx-cursor: hand;" text="CONFIRM" HBox.hgrow="ALWAYS" />
+                                                <Button fx:id="btnConfirm" maxWidth="Infinity" onAction="#handleConfirm" prefHeight="38.0" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 13px; -fx-background-radius: 8; -fx-cursor: hand;" text="CONFIRM" HBox.hgrow="ALWAYS" disable="true" />
                                             </children>
                                         </HBox>
                                     </children>
                                 </VBox>
-
                             </children>
                         </VBox>
                     </children>
