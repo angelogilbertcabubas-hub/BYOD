@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="550.0" prefWidth="750.0" style="-fx-background-color: #F4F6F8;" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.EditStudentController">
+    <children>
+        <HBox spacing="20.0" AnchorPane.bottomAnchor="20.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="20.0" AnchorPane.topAnchor="20.0">
+            <children>
+
+                <VBox prefWidth="350.0" spacing="15.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);">
+                    <padding>
+                        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+                    </padding>
+                    <Label text="Student Profile" textFill="#2c3e50">
+                        <font>
+                            <Font name="System Bold" size="18.0" />
+                        </font>
+                    </Label>
+                    <Separator />
+
+                    <Label text="Student ID" textFill="#7f8c8d" />
+                    <TextField fx:id="studentIdField" editable="false" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-radius: 4;" />
+
+                    <Label text="Full Name" textFill="#7f8c8d" />
+                    <TextField fx:id="fullNameField" style="-fx-border-color: #bdc3c7; -fx-border-radius: 4;" />
+
+                    <Label text="Course" textFill="#7f8c8d" />
+                    <TextField fx:id="courseField" style="-fx-border-color: #bdc3c7; -fx-border-radius: 4;" />
+
+                    <Label text="Email Address" textFill="#7f8c8d" />
+                    <TextField fx:id="emailField" style="-fx-border-color: #bdc3c7; -fx-border-radius: 4;" />
+
+                    <Label text="Account Status" textFill="#7f8c8d" />
+                    <ComboBox fx:id="statusComboBox" prefWidth="310.0" style="-fx-border-color: #bdc3c7; -fx-border-radius: 4;" />
+                </VBox>
+
+                <VBox prefWidth="350.0" spacing="15.0" HBox.hgrow="ALWAYS">
+
+                    <VBox alignment="CENTER" spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);">
+                        <padding>
+                            <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+                        </padding>
+                        <Label text="Secure Check-In QR" textFill="#2c3e50">
+                            <font>
+                                <Font name="System Bold" size="14.0" />
+                            </font>
+                        </Label>
+                        <ImageView fx:id="qrCodeImageView" fitHeight="130.0" fitWidth="130.0" pickOnBounds="true" preserveRatio="true" />
+                        <Button text="Regenerate QR" style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-background-radius: 4;" />
+                    </VBox>
+
+                    <VBox spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);" VBox.vgrow="ALWAYS">
+                        <padding>
+                            <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
+                        </padding>
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <Label text="Registered Devices" textFill="#2c3e50">
+                                <font>
+                                    <Font name="System Bold" size="14.0" />
+                                </font>
+                            </Label>
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label fx:id="deviceQuantityLabel" text="0 Devices" textFill="#7f8c8d" />
+                        </HBox>
+                        <TableView fx:id="devicesTableView" VBox.vgrow="ALWAYS" style="-fx-border-color: transparent;">
+                            <columns>
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </VBox>
+            </children>
+        </HBox>
+
+        <HBox alignment="CENTER_RIGHT" spacing="15.0" AnchorPane.bottomAnchor="20.0" AnchorPane.rightAnchor="20.0">
+            <children>
+                <Button onAction="#closeModal" prefWidth="100.0" style="-fx-background-color: white; -fx-border-color: #bdc3c7; -fx-border-radius: 4; -fx-text-fill: #2c3e50;" text="Cancel" />
+                <Button onAction="#handleSaveChanges" prefWidth="120.0" style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-background-radius: 4;" text="Save Changes">
+                    <font>
+                        <Font name="System Bold" size="12.0" />
+                    </font>
+                </Button>
+            </children>
+        </HBox>
+    </children>
+</AnchorPane>

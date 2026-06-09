@@ -55,6 +55,17 @@ public class StudentsController extends BaseAdminController {
         sortedStudent.comparatorProperty().bind(studentsTableView.comparatorProperty());
         studentsTableView.setItems(sortedStudent);
 
+        studentsTableView.setRowFactory(tv -> {
+            TableRow<Student> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    Student selectedStudent = row.getItem();
+                    openEditStudentModal(selectedStudent);
+                }
+            });
+            return row;
+        });
+
         updateLabel(sortedStudent.size());
     }
 
@@ -84,7 +95,29 @@ public class StudentsController extends BaseAdminController {
             }
 
         } catch (java.io.IOException e) {
-            System.err.println("CRITICAL ERROR: Could not load the Add Student Modal.");
+            e.printStackTrace();
+        }
+    }
+
+    private void openEditStudentModal(Student student) {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/byod/Admin/EditStudentModal.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            EditStudentController dialogController = loader.getController();
+            dialogController.initData(student);
+
+            javafx.stage.Stage dialogStage = new javafx.stage.Stage();
+            dialogStage.setTitle("Student Information & Devices");
+            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialogStage.initOwner(studentsTableView.getScene().getWindow());
+            dialogStage.setScene(new javafx.scene.Scene(root));
+
+            dialogStage.showAndWait();
+
+            studentsTableView.refresh();
+
+        } catch (java.io.IOException e) {
             e.printStackTrace();
         }
     }
