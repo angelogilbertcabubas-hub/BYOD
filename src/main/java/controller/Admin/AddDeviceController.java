@@ -2,7 +2,6 @@ package controller.Admin;
 
 import com.example.byod.model.Device;
 import com.example.byod.model.Student;
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -20,6 +19,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Random;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 public class AddDeviceController {
@@ -77,11 +77,11 @@ public class AddDeviceController {
         String brand = modelSplit[0];
         String modelStr = modelSplit.length > 1 ? modelSplit[1] : "Unknown";
 
-        int randomTokenNum = 1000 + new Random().nextInt(9000);
-        String generatedToken = "TKN-" + randomTokenNum;
+        String generatedToken = "TKN-" + (1000 + new Random().nextInt(9000));
 
-        String getStudentIdQuery = "SELECT student_id FROM students WHERE student_number = ?";
-        String insertQuery = "INSERT INTO devices (student_id, device_type, brand, model, serial_number, access_code) VALUES (?, ?, ?, ?, ?, ?)";
+        // UPDATED FOR SUPABASE SCHEMA
+        String getStudentIdQuery = "SELECT id FROM students WHERE school_id = ?";
+        String insertQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED')";
 
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement selectStmt = conn.prepareStatement(getStudentIdQuery)) {
@@ -90,10 +90,10 @@ public class AddDeviceController {
             ResultSet rs = selectStmt.executeQuery();
 
             if (rs.next()) {
-                int dbStudentId = rs.getInt("student_id");
+                UUID dbStudentId = (UUID) rs.getObject("id");
 
                 try (PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
-                    insertStmt.setInt(1, dbStudentId);
+                    insertStmt.setObject(1, dbStudentId);
                     insertStmt.setString(2, cmbDeviceType.getValue());
                     insertStmt.setString(3, brand);
                     insertStmt.setString(4, modelStr);
@@ -150,16 +150,14 @@ public class AddDeviceController {
         }
 
         String mac = txtMacAddress.getText();
-        if (mac == null || mac.trim().isEmpty() || !MAC_PATTERN.matcher(mac).matches()) {
-            errorBuilder.append("- Valid MAC Address is required (e.g., 00:1B:44:11:3A:B7).\n");
+        if (mac == null || mac.trim().isEmpty() || (!mac.equalsIgnoreCase("N/A") && !MAC_PATTERN.matcher(mac).matches())) {
+            errorBuilder.append("- Valid MAC Address is required (e.g., 00:1B:44:11:3A:B7 or N/A).\n");
         }
 
-        if (errorBuilder.length() == 0) {
-            return true;
-        } else {
-            showAlert(Alert.AlertType.WARNING, "Validation Error", "Please correct the following:\n\n" + errorBuilder.toString());
-            return false;
-        }
+        if (errorBuilder.length() == 0) return true;
+
+        showAlert(Alert.AlertType.WARNING, "Validation Error", "Please correct the following:\n\n" + errorBuilder.toString());
+        return false;
     }
 
     private void closeStage(ActionEvent event) {
