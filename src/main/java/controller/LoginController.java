@@ -50,15 +50,16 @@ public class LoginController {
                         String fxmlPath = null;
                         String windowTitle = null;
 
-                        if (role.equals("admin")) {
+                        // FIX: Changed .equals to .equalsIgnoreCase to match "ADMIN" from database
+                        if (role.equalsIgnoreCase("admin")) {
                             fxmlPath = "/com/example/byod/Admin/dashboard.fxml";
                             windowTitle = "Admin Dashboard";
-                        } else if (role.equals("security")) {
+                        } else if (role.equalsIgnoreCase("security")) {
                             fxmlPath = "/com/example/byod/Security/SecurityDashboard.fxml";
                             windowTitle = "Security Dashboard";
                         } else {
                             currentScene.setCursor(Cursor.DEFAULT);
-                            showErrorAlert("Access Error", "Your account role is not recognized by the system.");
+                            showErrorAlert("Access Error", "Your account role is not recognized by the system. Found: " + role);
                             return;
                         }
 
@@ -91,7 +92,6 @@ public class LoginController {
      * Connects to Supabase and verifies the plain-text username and password.
      */
     private String authenticateUser(String username, String password) throws Exception {
-        // Using your original query that checks the plain text password
         String query = "SELECT role FROM users WHERE username = ? AND password_hash = ?";
 
         // Grabs an instant connection from HikariCP

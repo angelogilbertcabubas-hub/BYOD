@@ -3,22 +3,33 @@ package com.example.byod.model;
 public class Device {
     private String ownerName;
     private String deviceType;
-    private String model;
+    private String brandModel;
     private String macAddress;
-    private String token;
+    private String accessCode;
 
-    public Device(String ownerName, String deviceType, String model, String macAddress, String token) {
+    public Device(String ownerName, String deviceType, String brandModel, String macAddress, String accessCode) {
         this.ownerName = ownerName;
         this.deviceType = deviceType;
-        this.model = model;
+        this.brandModel = brandModel;
         this.macAddress = macAddress;
-        this.token = token;
+        this.accessCode = accessCode;
     }
 
-    // Getters required for JavaFX TableView
+    // --- NEW GETTERS (Used by the Student Profile Modal) ---
     public String getOwnerName() { return ownerName; }
     public String getDeviceType() { return deviceType; }
-    public String getModel() { return model; }
+    public String getBrandModel() { return brandModel; }
     public String getMacAddress() { return macAddress; }
-    public String getToken() { return token; }
+    public String getAccessCode() { return accessCode; }
+
+    // --- LEGACY ALIAS GETTERS (Fixes the DevicesController crash) ---
+    public String getModel() { return brandModel; }
+    public String getToken() { return accessCode; }
+
+    // --- SETTERS ---
+    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
+    public void setDeviceType(String deviceType) { this.deviceType = deviceType; }
+    public void setBrandModel(String brandModel) { this.brandModel = brandModel; }
+    public void setMacAddress(String macAddress) { this.macAddress = macAddress; }
+    public void setAccessCode(String accessCode) { this.accessCode = accessCode; }
 }

@@ -116,7 +116,7 @@
                                 <TableView fx:id="studentsTableView" prefHeight="400.0" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                                     <columns>
                                         <TableColumn fx:id="colStudentName" prefWidth="180.0" text="STUDENT NAME" />
-                                        <TableColumn fx:id="colStudentID" prefWidth="130.0" text="STUDENT ID" />
+                                        <TableColumn fx:id="colStudentNumber" prefWidth="130.0" text="STUDENT NUMBER" />
                                         <TableColumn fx:id="colCourse" prefWidth="120.0" text="COURSE" />
                                         <TableColumn fx:id="colEmail" prefWidth="160.0" text="EMAIL" />
                                         <TableColumn fx:id="colStatus" prefWidth="100.0" text="STATUS" />

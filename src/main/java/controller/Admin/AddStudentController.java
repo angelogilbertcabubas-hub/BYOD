@@ -21,14 +21,15 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 public class AddStudentController {
 
+    @FXML private TextField studentNumberField;
     @FXML private TextField firstNameField;
     @FXML private TextField middleNameField;
     @FXML private TextField lastNameField;
@@ -47,7 +48,6 @@ public class AddStudentController {
     private final Pattern SECTION_PATTERN = Pattern.compile("^[1-4]-[1-9]$");
     private final Pattern MAC_PATTERN = Pattern.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
 
-    // Inner class to keep track of dynamically generated UI elements
     private static class DeviceRowComponents {
         VBox cardContainer;
         ComboBox<String> typeBox;
@@ -65,14 +65,11 @@ public class AddStudentController {
     @FXML
     public void initialize() {
         cmbCourse.getItems().addAll("BSIT", "BSA", "BSECE", "BSBA", "BSCS", "BSCpE", "BSIE");
-
-        // Generate 3 empty device forms by default on startup
         for (int i = 0; i < 3; i++) {
             generateNewDeviceRowField();
         }
     }
 
-    // Creates the visual "Card" for a single device and adds it to the list
     private void generateNewDeviceRowField() {
         int continuousIndex = deviceRowsList.size() + 1;
 
@@ -80,7 +77,6 @@ public class AddStudentController {
         rowCard.setPadding(new Insets(15));
         rowCard.setStyle("-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-background-radius: 6;");
 
-        // Use pure CSS to ensure the label renders properly
         Label rowTitle = new Label("Device " + continuousIndex);
         rowTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #500A0E;");
         rowCard.getChildren().add(rowTitle);
@@ -89,7 +85,6 @@ public class AddStudentController {
         layoutGrid.setHgap(15);
         layoutGrid.setVgap(15);
 
-        // Type
         VBox typeContainer = new VBox(5);
         Label typeLabel = new Label("DEVICE TYPE");
         typeLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;");
@@ -102,7 +97,6 @@ public class AddStudentController {
         typeContainer.getChildren().addAll(typeLabel, typeBox);
         layoutGrid.add(typeContainer, 0, 0);
 
-        // Brand & Model
         VBox modelContainer = new VBox(5);
         Label modelLabel = new Label("BRAND & MODEL DESCRIPTION");
         modelLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;");
@@ -113,7 +107,6 @@ public class AddStudentController {
         modelContainer.getChildren().addAll(modelLabel, modelField);
         layoutGrid.add(modelContainer, 0, 1);
 
-        // MAC Address with N/A Button
         VBox macContainer = new VBox(5);
         Label macLabel = new Label("PHYSICAL MAC ADDRESS");
         macLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;");
@@ -128,7 +121,7 @@ public class AddStudentController {
         Button btnNA = new Button("N/A");
         btnNA.setPrefHeight(38);
         btnNA.setStyle("-fx-background-color: #E5E1E2; -fx-text-fill: #555555; -fx-font-weight: bold; -fx-border-color: #CCCCCC; -fx-border-radius: 6; -fx-cursor: hand;");
-        btnNA.setOnAction(e -> macField.setText("N/A")); // Securely sets the N/A format
+        btnNA.setOnAction(e -> macField.setText("N/A"));
 
         macInputGroup.getChildren().addAll(macField, btnNA);
         macContainer.getChildren().addAll(macLabel, macInputGroup);
@@ -163,6 +156,7 @@ public class AddStudentController {
     private void handleSaveStudentAction(ActionEvent event) {
         if (isInputValid()) {
             try {
+                String studentNumber = studentNumberField.getText().trim();
                 String fName = firstNameField.getText().trim();
                 String mName = middleNameField.getText().trim();
                 String lName = lastNameField.getText().trim();
@@ -171,63 +165,94 @@ public class AddStudentController {
                 String cleanEmail = emailField.getText().trim();
                 String cleanMobile = mobileField.getText().trim();
 
-                String fullCombinedName = lName + ", " + fName + (mName.isEmpty() ? "" : " " + mName);
-                String generatedId = "2026-" + (int)(Math.random() * 90000 + 10000);
+                String safeMName = "";
+                if (!mName.isEmpty()) {
+                    safeMName = mName.substring(0, 1).toUpperCase() + ".";
+                }
+
+                String fullCombinedName = lName + ", " + fName + (safeMName.isEmpty() ? "" : " " + safeMName);
+
+                int yearLevel = 1;
+                if(cleanSection.contains("-")){
+                    try { yearLevel = Integer.parseInt(cleanSection.split("-")[0]); } catch(Exception ignored){}
+                }
 
                 try (Connection conn = DatabaseHelper.getConnection()) {
                     conn.setAutoCommit(false);
-                    int dbStudentId = -1;
+                    UUID dbStudentId = null;
 
-                    String studentQuery = "INSERT INTO students (student_number, first_name, last_name, course, section, status) VALUES (?, ?, ?, ?, ?, 'Active')";
-                    try (PreparedStatement pstmt = conn.prepareStatement(studentQuery, Statement.RETURN_GENERATED_KEYS)) {
-                        pstmt.setString(1, generatedId);
+                    String studentQuery = "INSERT INTO students (school_id, first_name, last_name, middle_initial, program_course, department, year_level, section, email_address, mobile_number, status) " +
+                            "VALUES (?, ?, ?, ?, ?, 'CITE', ?, ?, ?, ?, 'ENROLLED')";
+
+                    try (PreparedStatement pstmt = conn.prepareStatement(studentQuery)) {
+                        pstmt.setString(1, studentNumber);
                         pstmt.setString(2, fName);
-                        pstmt.setString(3, lName + (mName.isEmpty() ? "" : " " + mName));
-                        pstmt.setString(4, cleanCourse);
-                        pstmt.setString(5, cleanSection);
+                        pstmt.setString(3, lName);
+                        pstmt.setString(4, safeMName);
+                        pstmt.setString(5, cleanCourse);
+                        pstmt.setInt(6, yearLevel);
+                        pstmt.setString(7, cleanSection);
+                        pstmt.setString(8, cleanEmail);
+                        pstmt.setString(9, cleanMobile);
                         pstmt.executeUpdate();
+                    }
 
-                        try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
-                            if (generatedKeys.next()) {
-                                dbStudentId = generatedKeys.getInt(1);
+                    String fetchIdQuery = "SELECT id FROM students WHERE school_id = ?";
+                    try (PreparedStatement idStmt = conn.prepareStatement(fetchIdQuery)) {
+                        idStmt.setString(1, studentNumber);
+                        try (ResultSet rs = idStmt.executeQuery()) {
+                            if (rs.next()) {
+                                dbStudentId = (UUID) rs.getObject("id");
                             }
                         }
                     }
 
-                    String deviceQuery = "INSERT INTO devices (student_id, device_type, brand, model, serial_number, access_code) VALUES (?, ?, ?, ?, ?, ?)";
-                    try (PreparedStatement insertStmt = conn.prepareStatement(deviceQuery)) {
-                        for (DeviceRowComponents row : deviceRowsList) {
-                            String type = row.typeBox.getValue();
-                            String rawModel = row.modelField.getText().trim();
-                            String mac = row.macField.getText().trim().toUpperCase();
+                    if (dbStudentId != null) {
+                        String deviceQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED')";
 
-                            if (type != null && !rawModel.isEmpty() && !mac.isEmpty()) {
-                                String[] modelSplit = rawModel.split(" ", 2);
-                                String brand = modelSplit[0];
-                                String modelStr = modelSplit.length > 1 ? modelSplit[1] : "Unknown";
+                        try (PreparedStatement insertStmt = conn.prepareStatement(deviceQuery)) {
+                            for (DeviceRowComponents row : deviceRowsList) {
+                                String type = row.typeBox.getValue();
+                                String rawModel = row.modelField.getText().trim();
+                                String mac = row.macField.getText().trim().toUpperCase();
 
-                                int randomTokenNum = 1000 + new Random().nextInt(9000);
-                                String generatedToken = "TKN-" + randomTokenNum;
+                                if (type != null && !rawModel.isEmpty() && !mac.isEmpty()) {
 
-                                insertStmt.setInt(1, dbStudentId);
-                                insertStmt.setString(2, type);
-                                insertStmt.setString(3, brand);
-                                insertStmt.setString(4, modelStr);
-                                insertStmt.setString(5, mac);
-                                insertStmt.setString(6, generatedToken);
-                                insertStmt.addBatch();
+                                    if (mac.equals("N/A")) {
+                                        mac = "N/A-" + (100 + new Random().nextInt(900));
+                                    }
+
+                                    String[] modelSplit = rawModel.split(" ", 2);
+                                    String brand = modelSplit[0];
+                                    String modelStr = modelSplit.length > 1 ? modelSplit[1] : "Unknown";
+
+                                    String generatedToken = "TKN-" + (1000 + new Random().nextInt(9000));
+
+                                    insertStmt.setObject(1, dbStudentId);
+                                    insertStmt.setString(2, type);
+                                    insertStmt.setString(3, brand);
+                                    insertStmt.setString(4, modelStr);
+                                    insertStmt.setString(5, mac);
+                                    insertStmt.setString(6, generatedToken);
+                                    insertStmt.addBatch();
+                                }
                             }
+                            insertStmt.executeBatch();
                         }
-                        insertStmt.executeBatch();
                     }
                     conn.commit();
+
+                    // REFRESH DATA INSTANTLY
+                    utils.DataStore.getInstance().refreshStudents();
+                    utils.DataStore.getInstance().refreshDevices();
                 }
 
-                newStudent = new Student(generatedId, fullCombinedName, cleanCourse, cleanSection, cleanMobile, "Active");
+                newStudent = new Student(studentNumber, fullCombinedName, cleanCourse, cleanSection, cleanMobile, "Active");
 
-                QRCodeGenerator.generateStudentQRCode(generatedId, fullCombinedName);
+                QRCodeGenerator.generateStudentQRCode(studentNumber, fullCombinedName);
                 String safeName = fullCombinedName.replaceAll("\\s+", "_");
-                String fileName = generatedId + "_" + safeName + ".png";
+                String fileName = studentNumber + "_" + safeName + ".png";
                 String filePath = "src/main/resources/qrcodes/" + fileName;
                 File qrFile = new File(filePath);
 
@@ -266,6 +291,9 @@ public class AddStudentController {
     private boolean isInputValid() {
         StringBuilder errorBuilder = new StringBuilder();
 
+        if (studentNumberField.getText() == null || studentNumberField.getText().trim().isEmpty()) {
+            errorBuilder.append("- Student Number is required.\n");
+        }
         if (firstNameField.getText() == null || firstNameField.getText().trim().isEmpty()) {
             errorBuilder.append("- First Name is required.\n");
         }
@@ -305,20 +333,18 @@ public class AddStudentController {
                     errorBuilder.append("- Brand/Model description missing on Device ").append(index).append(".\n");
                 }
                 if (mac.isEmpty() || !isValidMac(mac)) {
-                    errorBuilder.append("- MAC validation failed on Device ").append(index).append(" (Format: 00:1B:44:11:3A:B7 or N/A).\n");
+                    errorBuilder.append("- MAC validation failed on Device ").append(index).append(".\n");
                 }
             } else if (completelyFilled && !isValidMac(mac)) {
-                errorBuilder.append("- MAC validation failed on Device ").append(index).append(" (Format: 00:1B:44:11:3A:B7 or N/A).\n");
+                errorBuilder.append("- MAC validation failed on Device ").append(index).append(".\n");
             }
             index++;
         }
 
-        if (errorBuilder.length() == 0) {
-            return true;
-        } else {
-            showAlert(Alert.AlertType.WARNING, "Form Verification Failures", "Please resolve the following before saving:\n\n" + errorBuilder.toString());
-            return false;
-        }
+        if (errorBuilder.length() == 0) return true;
+
+        showAlert(Alert.AlertType.WARNING, "Form Verification Failures", "Please resolve the following before saving:\n\n" + errorBuilder.toString());
+        return false;
     }
 
     private void closeStage(ActionEvent event) {

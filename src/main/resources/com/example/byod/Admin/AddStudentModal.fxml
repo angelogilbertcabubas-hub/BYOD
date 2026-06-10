@@ -16,7 +16,6 @@
 
 <VBox prefHeight="700.0" prefWidth="560.0" spacing="15.0" style="-fx-background-color: #E5E1E2; -fx-padding: 20;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.AddStudentController">
     <children>
-        <!-- MAIN TITLE -->
         <VBox spacing="4.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 15;">
             <children>
                 <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 18px;" text="Register New Student" />
@@ -29,14 +28,17 @@
                 <VBox spacing="20.0">
                     <children>
 
-                        <!-- ========================================== -->
-                        <!-- STUDENT INFORMATION SECTION                -->
-                        <!-- ========================================== -->
                         <VBox spacing="15.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20;">
                             <children>
-                                <!-- HEADER -->
                                 <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 15px;" text="Student Information" />
                                 <Separator />
+
+                                <VBox spacing="5.0">
+                                    <children>
+                                        <Label style="-fx-text-fill: #555555; -fx-font-weight: bold; -fx-font-size: 11px;" text="STUDENT NUMBER *" />
+                                        <TextField fx:id="studentNumberField" prefHeight="38.0" promptText="e.g., 2026-12345" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                                    </children>
+                                </VBox>
 
                                 <VBox spacing="5.0">
                                     <children>
@@ -101,12 +103,8 @@
                             </children>
                         </VBox>
 
-                        <!-- ========================================== -->
-                        <!-- ADD DEVICE SECTION                         -->
-                        <!-- ========================================== -->
                         <VBox spacing="15.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20;">
                             <children>
-                                <!-- HEADER -->
                                 <HBox alignment="CENTER_LEFT">
                                     <children>
                                         <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 15px;" text="Device Information" />
@@ -117,7 +115,6 @@
                                 <Separator />
                                 <Label style="-fx-text-fill: #777777; -fx-font-size: 11px;" text="Leave blank if the student has no devices to register." />
 
-                                <!-- This VBox will automatically fill with Device Cards via Java -->
                                 <VBox fx:id="deviceListContainer" spacing="20.0" />
                             </children>
                         </VBox>
