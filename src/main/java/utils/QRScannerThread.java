@@ -9,7 +9,6 @@ import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.ImageView;
 
-import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -28,15 +27,10 @@ public class QRScannerThread extends Thread {
         this.webcam = Webcam.getDefault();
 
         if (this.webcam != null) {
-            // FIX: Ensure webcam is strictly closed before attempting to change resolution
             if (this.webcam.isOpen()) {
                 this.webcam.close();
             }
-
-            // Set resolution to VGA for high performance
             this.webcam.setViewSize(WebcamResolution.VGA.getSize());
-
-            // Now safely open it
             this.webcam.open();
         }
     }
@@ -54,12 +48,12 @@ public class QRScannerThread extends Thread {
 
         MultiFormatReader reader = new MultiFormatReader();
 
-        // Tell ZXing to ONLY look for QR Codes
         Map<DecodeHintType, Object> hints = new EnumMap<>(DecodeHintType.class);
         hints.put(DecodeHintType.POSSIBLE_FORMATS, Collections.singletonList(BarcodeFormat.QR_CODE));
         reader.setHints(hints);
 
         int frameSkipCounter = 0;
+        System.out.println("[SCANNER START] QR Video stream capturing active. Awaiting matrix target...");
 
         while (isScanning && webcam.isOpen()) {
             BufferedImage image = webcam.getImage();
@@ -73,14 +67,36 @@ public class QRScannerThread extends Thread {
                     BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
                     Result result = reader.decode(bitmap);
+                    String rawQrContent = result.getText();
 
-                    String studentNumber = result.getText();
-                    isScanning = false;
+                    // Diagnostic Console Output to verify exactly what text is hiding in the QR image
+                    System.out.println("[SCANNER CAPTURE] Decoded data stream payload: " + rawQrContent);
                     java.awt.Toolkit.getDefaultToolkit().beep();
 
-                    onQrDecoded.accept(studentNumber);
+                    // FIX 1: Safely isolate the Student Number if the QR code packs a composite string format
+                    final String cleanStudentNumber;
+                    if (rawQrContent.contains("\n")) {
+                        cleanStudentNumber = rawQrContent.split("\n")[0].trim();
+                    } else if (rawQrContent.contains(",")) {
+                        cleanStudentNumber = rawQrContent.split(",")[0].trim();
+                    } else {
+                        cleanStudentNumber = rawQrContent.trim();
+                    }
 
-                } catch (NotFoundException ignored) {}
+                    // FIX 2: Prevent Thread Silent Termination Crash!
+                    // Force the callback controller execution routine back onto the main JavaFX Application Thread.
+                    Platform.runLater(() -> {
+                        onQrDecoded.accept(cleanStudentNumber);
+                    });
+
+                    isScanning = false;
+
+                } catch (NotFoundException ignored) {
+                    // QR Code matrix profile not detected on this specific video frame slice
+                } catch (Exception e) {
+                    System.err.println("[SCANNER CRITICAL ERROR] Failure processing hardware decode routing: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
         }
     }
