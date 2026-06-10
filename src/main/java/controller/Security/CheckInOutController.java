@@ -47,20 +47,20 @@ public class CheckInOutController extends BaseSecurityController {
 
     private QRScannerThread scannerThread;
     private String currentScannedStudent;
+    private Object currentDbStudentId;
 
     private boolean isCheckingOut = false;
 
-    // Lists to track multiple device selections and multiple active database logs
-    private List<Integer> activeLogIds = new ArrayList<>();
-    private List<Integer> devicesInsideIds = new ArrayList<>();
-    private List<Integer> selectedDeviceIds = new ArrayList<>();
+    private List<Object> activeLogIds = new ArrayList<>();
+    private List<Object> devicesInsideIds = new ArrayList<>();
+    private List<Object> selectedDeviceIds = new ArrayList<>();
     private List<DeviceRecord> studentDeviceList = new ArrayList<>();
 
     private static class DeviceRecord {
-        int id;
+        Object id;
         String brand, model, serial, accessCode;
 
-        public DeviceRecord(int id, String brand, String model, String serial, String accessCode) {
+        public DeviceRecord(Object id, String brand, String model, String serial, String accessCode) {
             this.id = id;
             this.brand = (brand != null) ? brand : "Unknown Brand";
             this.model = (model != null) ? model : "Unknown Model";
@@ -90,6 +90,7 @@ public class CheckInOutController extends BaseSecurityController {
         btnConfirm.setDisable(true);
         statusLabel.setText("Scanning for QR...");
         currentScannedStudent = null;
+        currentDbStudentId = null;
         isCheckingOut = false;
 
         activeLogIds.clear();
@@ -141,7 +142,9 @@ public class CheckInOutController extends BaseSecurityController {
     }
 
     private void checkAccessStatus(Connection conn, String studentNumber) throws SQLException {
-        String query = "SELECT log_id, device_id FROM access_logs WHERE student_number = ? AND status = 'INSIDE'";
+        String query = "SELECT c.id as log_id, c.device_id FROM check_in_out c " +
+                "JOIN students s ON c.student_id = s.id " +
+                "WHERE s.school_id = ? AND c.status = 'CHECKED_IN'";
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, studentNumber);
             ResultSet rs = pstmt.executeQuery();
@@ -150,9 +153,9 @@ public class CheckInOutController extends BaseSecurityController {
             devicesInsideIds.clear();
 
             while (rs.next()) {
-                activeLogIds.add(rs.getInt("log_id"));
-                int devId = rs.getInt("device_id");
-                if (!rs.wasNull()) {
+                activeLogIds.add(rs.getObject("log_id"));
+                Object devId = rs.getObject("device_id");
+                if (devId != null) {
                     devicesInsideIds.add(devId);
                 }
             }
@@ -161,11 +164,11 @@ public class CheckInOutController extends BaseSecurityController {
     }
 
     private void fetchStudentAndDeviceData(Connection conn, String identifier) throws SQLException {
-        String query = "SELECT s.student_number, s.first_name, s.last_name, s.course, s.section, " +
-                "d.device_id, d.brand, d.model, d.serial_number, d.access_code " +
+        String query = "SELECT s.id as student_db_id, s.school_id, s.first_name, s.last_name, s.program_course, s.section, " +
+                "d.id as device_id, d.device_brand, d.device_name, d.mac_address, d.unique_code " +
                 "FROM students s " +
-                "LEFT JOIN devices d ON s.student_id = d.student_id " +
-                "WHERE s.student_number = ? OR d.access_code = ?";
+                "LEFT JOIN devices d ON s.id = d.student_id " +
+                "WHERE s.school_id = ? OR d.unique_code = ?";
 
         List<DeviceRecord> foundDevices = new ArrayList<>();
         String fullName = "";
@@ -179,18 +182,19 @@ public class CheckInOutController extends BaseSecurityController {
 
             while (rs.next()) {
                 if (fullName.isEmpty()) {
+                    currentDbStudentId = rs.getObject("student_db_id");
                     fullName = rs.getString("first_name") + " " + rs.getString("last_name");
-                    studentNum = rs.getString("student_number");
-                    String course = rs.getString("course");
+                    studentNum = rs.getString("school_id");
+                    String course = rs.getString("program_course");
                     String section = rs.getString("section");
                     courseSection = (course != null ? course : "N/A") + " - " + (section != null ? section : "N/A");
                 }
 
-                int dbDeviceId = rs.getInt("device_id");
-                if (!rs.wasNull()) {
+                Object dbDeviceId = rs.getObject("device_id");
+                if (dbDeviceId != null) {
                     foundDevices.add(new DeviceRecord(
-                            dbDeviceId, rs.getString("brand"), rs.getString("model"),
-                            rs.getString("serial_number"), rs.getString("access_code")
+                            dbDeviceId, rs.getString("device_brand"), rs.getString("device_name"),
+                            rs.getString("mac_address"), rs.getString("unique_code")
                     ));
                 }
             }
@@ -231,7 +235,7 @@ public class CheckInOutController extends BaseSecurityController {
                             ToggleButton card = createDeviceCard(d);
                             deviceContainer.getChildren().add(card);
                             card.setSelected(true);
-                            card.setDisable(true); // Locked. They must check out with what they brought in.
+                            card.setDisable(true);
                         }
                     }
                 }
@@ -251,7 +255,6 @@ public class CheckInOutController extends BaseSecurityController {
                         deviceContainer.getChildren().add(card);
                     }
 
-                    // Auto-select the first device by default just to save the guard a click
                     if (!deviceContainer.getChildren().isEmpty()) {
                         ((ToggleButton) deviceContainer.getChildren().get(0)).setSelected(true);
                     }
@@ -259,7 +262,6 @@ public class CheckInOutController extends BaseSecurityController {
                 btnConfirm.setDisable(false);
             }
 
-            // EXPLICIT FORCE UPDATE OF LABELS UPON LOAD
             updateSelectionLabels();
             statusLabel.setText("Verification Ready");
         });
@@ -282,7 +284,7 @@ public class CheckInOutController extends BaseSecurityController {
                 }
             } else {
                 btn.setStyle(defaultStyle);
-                selectedDeviceIds.remove(Integer.valueOf(device.id));
+                selectedDeviceIds.remove(device.id);
             }
             updateSelectionLabels();
         });
@@ -290,33 +292,30 @@ public class CheckInOutController extends BaseSecurityController {
         return btn;
     }
 
-    // Cleanly updates the labels if multiple devices are clicked with a bulleted list
     private void updateSelectionLabels() {
         if (selectedDeviceIds.isEmpty()) {
             lblSerialNumber.setText("N/A");
             lblAccessCode.setText("N/A");
         } else if (selectedDeviceIds.size() == 1) {
             DeviceRecord selected = studentDeviceList.stream()
-                    .filter(d -> d.id == selectedDeviceIds.get(0)).findFirst().orElse(null);
+                    .filter(d -> d.id.equals(selectedDeviceIds.get(0))).findFirst().orElse(null);
             if (selected != null) {
                 lblSerialNumber.setText(selected.serial);
                 lblAccessCode.setText(selected.accessCode);
             }
         } else {
-            // Multiple selected - build a dynamic, bulleted multi-line list
             StringBuilder serials = new StringBuilder();
             StringBuilder codes = new StringBuilder();
 
-            for (int id : selectedDeviceIds) {
+            for (Object id : selectedDeviceIds) {
                 DeviceRecord d = studentDeviceList.stream()
-                        .filter(x -> x.id == id).findFirst().orElse(null);
+                        .filter(x -> x.id.equals(id)).findFirst().orElse(null);
                 if (d != null) {
                     serials.append("• ").append(d.brand).append(" ").append(d.model).append(": ").append(d.serial).append("\n");
                     codes.append("• ").append(d.brand).append(" ").append(d.model).append(": ").append(d.accessCode).append("\n");
                 }
             }
 
-            // .trim() removes the extra invisible newline at the very end
             lblSerialNumber.setText(serials.toString().trim());
             lblAccessCode.setText(codes.toString().trim());
         }
@@ -324,31 +323,31 @@ public class CheckInOutController extends BaseSecurityController {
 
     @FXML
     private void handleConfirm() {
-        if (lblStudentID.getText().isEmpty() || currentScannedStudent == null) return;
+        if (lblStudentID.getText().isEmpty() || currentScannedStudent == null || currentDbStudentId == null) return;
         btnConfirm.setDisable(true);
 
         new Thread(() -> {
             try (Connection conn = DatabaseHelper.getConnection()) {
                 if (isCheckingOut && !activeLogIds.isEmpty()) {
-                    String update = "UPDATE access_logs SET time_out = CURRENT_TIMESTAMP, status = 'CLEARED' WHERE log_id = ?";
+                    String update = "UPDATE check_in_out SET check_out_time = CURRENT_TIMESTAMP, status = 'CHECKED_OUT' WHERE id = ?";
                     try (PreparedStatement pstmt = conn.prepareStatement(update)) {
-                        for (int logId : activeLogIds) {
-                            pstmt.setInt(1, logId);
+                        for (Object logId : activeLogIds) {
+                            pstmt.setObject(1, logId);
                             pstmt.addBatch();
                         }
                         pstmt.executeBatch();
                     }
                 } else if (!isCheckingOut) {
-                    String insert = "INSERT INTO access_logs (student_number, device_id, status) VALUES (?, ?, 'INSIDE')";
+                    String insert = "INSERT INTO check_in_out (student_id, device_id, status) VALUES (?, ?, 'CHECKED_IN')";
                     try (PreparedStatement pstmt = conn.prepareStatement(insert)) {
                         if (selectedDeviceIds.isEmpty()) {
-                            pstmt.setString(1, currentScannedStudent);
-                            pstmt.setNull(2, Types.INTEGER);
+                            pstmt.setObject(1, currentDbStudentId);
+                            pstmt.setNull(2, Types.OTHER);
                             pstmt.executeUpdate();
                         } else {
-                            for (int devId : selectedDeviceIds) {
-                                pstmt.setString(1, currentScannedStudent);
-                                pstmt.setInt(2, devId);
+                            for (Object devId : selectedDeviceIds) {
+                                pstmt.setObject(1, currentDbStudentId);
+                                pstmt.setObject(2, devId);
                                 pstmt.addBatch();
                             }
                             pstmt.executeBatch();
@@ -392,6 +391,8 @@ public class CheckInOutController extends BaseSecurityController {
         lblAccessCode.setText("");
         lblCurrentStatus.setText("");
         statusLabel.setText("Scanner Stopped");
+
+        currentDbStudentId = null;
 
         cmbAction.getSelectionModel().selectFirst();
         cmbLocation.getSelectionModel().selectFirst();
