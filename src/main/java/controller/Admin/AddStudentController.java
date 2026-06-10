@@ -1,6 +1,7 @@
 package controller.Admin;
 
 import com.example.byod.model.Student;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -12,12 +13,16 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DatabaseHelper;
 import utils.QRCodeGenerator;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -39,6 +44,10 @@ public class AddStudentController {
     @FXML private TextField mobileField;
     @FXML private VBox deviceListContainer;
 
+    @FXML private Button btnUploadStudentPhoto;
+    @FXML private Label lblStudentPhotoName;
+    private String studentPhotoPath = "default_student.png";
+
     private Student newStudent = null;
     private boolean saveClicked = false;
     private List<DeviceRowComponents> deviceRowsList = new ArrayList<>();
@@ -53,6 +62,7 @@ public class AddStudentController {
         ComboBox<String> typeBox;
         TextField modelField;
         TextField macField;
+        String devicePhotoPath = "default_device.png";
 
         DeviceRowComponents(VBox cardContainer, ComboBox<String> typeBox, TextField modelField, TextField macField) {
             this.cardContainer = cardContainer;
@@ -65,8 +75,22 @@ public class AddStudentController {
     @FXML
     public void initialize() {
         cmbCourse.getItems().addAll("BSIT", "BSA", "BSECE", "BSBA", "BSCS", "BSCpE", "BSIE");
+
+        if(lblStudentPhotoName != null) {
+            lblStudentPhotoName.setText("No file selected");
+        }
+
         for (int i = 0; i < 3; i++) {
             generateNewDeviceRowField();
+        }
+    }
+
+    @FXML
+    private void handleUploadStudentPhoto(ActionEvent event) {
+        File file = chooseImageFile(event);
+        if (file != null) {
+            studentPhotoPath = copyImageToLocal(file, "students", "STU");
+            if(lblStudentPhotoName != null) lblStudentPhotoName.setText(file.getName());
         }
     }
 
@@ -77,9 +101,20 @@ public class AddStudentController {
         rowCard.setPadding(new Insets(15));
         rowCard.setStyle("-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-background-radius: 6;");
 
+        HBox headerBox = new HBox(10);
         Label rowTitle = new Label("Device " + continuousIndex);
         rowTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #500A0E;");
-        rowCard.getChildren().add(rowTitle);
+
+        Button btnUploadDevicePhoto = new Button("📷 Photo");
+        btnUploadDevicePhoto.setStyle("-fx-background-color: #DDDDDD; -fx-cursor: hand; -fx-font-size: 11px;");
+        Label lblDevicePhotoName = new Label("No file");
+        lblDevicePhotoName.setStyle("-fx-font-size: 10px; -fx-text-fill: #777777;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        headerBox.getChildren().addAll(rowTitle, spacer, lblDevicePhotoName, btnUploadDevicePhoto);
+
+        rowCard.getChildren().add(headerBox);
 
         GridPane layoutGrid = new GridPane();
         layoutGrid.setHgap(15);
@@ -137,7 +172,16 @@ public class AddStudentController {
         rowCard.getChildren().add(layoutGrid);
         deviceListContainer.getChildren().add(rowCard);
 
-        deviceRowsList.add(new DeviceRowComponents(rowCard, typeBox, modelField, macField));
+        DeviceRowComponents newRow = new DeviceRowComponents(rowCard, typeBox, modelField, macField);
+        deviceRowsList.add(newRow);
+
+        btnUploadDevicePhoto.setOnAction(e -> {
+            File file = chooseImageFile(e);
+            if (file != null) {
+                newRow.devicePhotoPath = copyImageToLocal(file, "devices", "DEV");
+                lblDevicePhotoName.setText(file.getName());
+            }
+        });
     }
 
     @FXML
@@ -146,10 +190,38 @@ public class AddStudentController {
     }
 
     private boolean isValidMac(String macStr) {
-        if (macStr.equalsIgnoreCase("N/A")) {
-            return true;
-        }
+        if (macStr.equalsIgnoreCase("N/A")) return true;
         return MAC_PATTERN.matcher(macStr).matches();
+    }
+
+    private File chooseImageFile(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Photo");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+        );
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        return fileChooser.showOpenDialog(stage);
+    }
+
+    private String copyImageToLocal(File sourceFile, String subFolder, String prefix) {
+        try {
+            File dir = new File("src/main/resources/images/uploads/" + subFolder);
+            if (!dir.exists()) dir.mkdirs();
+
+            String extension = "";
+            int i = sourceFile.getName().lastIndexOf('.');
+            if (i > 0) extension = sourceFile.getName().substring(i);
+
+            String newFileName = prefix + "_" + System.currentTimeMillis() + extension;
+            File destFile = new File(dir, newFileName);
+
+            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            return "images/uploads/" + subFolder + "/" + newFileName;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "default_" + (subFolder.equals("students") ? "student" : "device") + ".png";
+        }
     }
 
     @FXML
@@ -165,11 +237,7 @@ public class AddStudentController {
                 String cleanEmail = emailField.getText().trim();
                 String cleanMobile = mobileField.getText().trim();
 
-                String safeMName = "";
-                if (!mName.isEmpty()) {
-                    safeMName = mName.substring(0, 1).toUpperCase() + ".";
-                }
-
+                String safeMName = !mName.isEmpty() ? mName.substring(0, 1).toUpperCase() + "." : "";
                 String fullCombinedName = lName + ", " + fName + (safeMName.isEmpty() ? "" : " " + safeMName);
 
                 int yearLevel = 1;
@@ -181,8 +249,8 @@ public class AddStudentController {
                     conn.setAutoCommit(false);
                     UUID dbStudentId = null;
 
-                    String studentQuery = "INSERT INTO students (school_id, first_name, last_name, middle_initial, program_course, department, year_level, section, email_address, mobile_number, status) " +
-                            "VALUES (?, ?, ?, ?, ?, 'CITE', ?, ?, ?, ?, 'ENROLLED')";
+                    String studentQuery = "INSERT INTO students (school_id, first_name, last_name, middle_initial, program_course, department, year_level, section, email_address, mobile_number, status, photo_path) " +
+                            "VALUES (?, ?, ?, ?, ?, 'CITE', ?, ?, ?, ?, 'ENROLLED', ?)";
 
                     try (PreparedStatement pstmt = conn.prepareStatement(studentQuery)) {
                         pstmt.setString(1, studentNumber);
@@ -194,6 +262,7 @@ public class AddStudentController {
                         pstmt.setString(7, cleanSection);
                         pstmt.setString(8, cleanEmail);
                         pstmt.setString(9, cleanMobile);
+                        pstmt.setString(10, studentPhotoPath);
                         pstmt.executeUpdate();
                     }
 
@@ -208,8 +277,8 @@ public class AddStudentController {
                     }
 
                     if (dbStudentId != null) {
-                        String deviceQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status) " +
-                                "VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED')";
+                        String deviceQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
                         try (PreparedStatement insertStmt = conn.prepareStatement(deviceQuery)) {
                             for (DeviceRowComponents row : deviceRowsList) {
@@ -235,6 +304,7 @@ public class AddStudentController {
                                     insertStmt.setString(4, modelStr);
                                     insertStmt.setString(5, mac);
                                     insertStmt.setString(6, generatedToken);
+                                    insertStmt.setString(7, row.devicePhotoPath);
                                     insertStmt.addBatch();
                                 }
                             }
@@ -243,7 +313,6 @@ public class AddStudentController {
                     }
                     conn.commit();
 
-                    // REFRESH DATA INSTANTLY
                     utils.DataStore.getInstance().refreshStudents();
                     utils.DataStore.getInstance().refreshDevices();
                 }
@@ -259,7 +328,7 @@ public class AddStudentController {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Registration Success");
                 alert.setHeaderText("Student Registered: " + fullCombinedName);
-                alert.setContentText("The student and all filled devices have been successfully registered.\nQR generated at: " + filePath);
+                alert.setContentText("The student and associated assets have been successfully saved.");
 
                 if (qrFile.exists()) {
                     Image qrImage = new Image(qrFile.toURI().toString());
@@ -291,30 +360,16 @@ public class AddStudentController {
     private boolean isInputValid() {
         StringBuilder errorBuilder = new StringBuilder();
 
-        if (studentNumberField.getText() == null || studentNumberField.getText().trim().isEmpty()) {
-            errorBuilder.append("- Student Number is required.\n");
-        }
-        if (firstNameField.getText() == null || firstNameField.getText().trim().isEmpty()) {
-            errorBuilder.append("- First Name is required.\n");
-        }
-        if (lastNameField.getText() == null || lastNameField.getText().trim().isEmpty()) {
-            errorBuilder.append("- Last Name is required.\n");
-        }
+        if (studentNumberField.getText() == null || studentNumberField.getText().trim().isEmpty()) errorBuilder.append("- Student Number is required.\n");
+        if (firstNameField.getText() == null || firstNameField.getText().trim().isEmpty()) errorBuilder.append("- First Name is required.\n");
+        if (lastNameField.getText() == null || lastNameField.getText().trim().isEmpty()) errorBuilder.append("- Last Name is required.\n");
         String email = emailField.getText();
-        if (email == null || email.trim().isEmpty() || !EMAIL_PATTERN.matcher(email).matches()) {
-            errorBuilder.append("- Valid Email Address is required (e.g., student@pup.edu.ph).\n");
-        }
-        if (cmbCourse.getValue() == null) {
-            errorBuilder.append("- Course selection is required.\n");
-        }
+        if (email == null || email.trim().isEmpty() || !EMAIL_PATTERN.matcher(email).matches()) errorBuilder.append("- Valid Email Address is required (e.g., student@pup.edu.ph).\n");
+        if (cmbCourse.getValue() == null) errorBuilder.append("- Course selection is required.\n");
         String section = sectionField.getText();
-        if (section == null || section.trim().isEmpty() || !SECTION_PATTERN.matcher(section).matches()) {
-            errorBuilder.append("- Section format must be [Year]-[Block] (e.g., 2-1, 4-3).\n");
-        }
+        if (section == null || section.trim().isEmpty() || !SECTION_PATTERN.matcher(section).matches()) errorBuilder.append("- Section format must be [Year]-[Block].\n");
         String mobile = mobileField.getText();
-        if (mobile == null || mobile.trim().isEmpty() || !MOBILE_PATTERN.matcher(mobile).matches()) {
-            errorBuilder.append("- Valid Philippine Mobile Number is required (e.g., 09123456789).\n");
-        }
+        if (mobile == null || mobile.trim().isEmpty() || !MOBILE_PATTERN.matcher(mobile).matches()) errorBuilder.append("- Valid Philippine Mobile Number is required.\n");
 
         int index = 1;
         for (DeviceRowComponents row : deviceRowsList) {
@@ -326,15 +381,9 @@ public class AddStudentController {
             boolean completelyFilled = (type != null) && !model.isEmpty() && !mac.isEmpty();
 
             if (partlyFilled && !completelyFilled) {
-                if (type == null) {
-                    errorBuilder.append("- Device Type selection missing on Device ").append(index).append(".\n");
-                }
-                if (model.isEmpty()) {
-                    errorBuilder.append("- Brand/Model description missing on Device ").append(index).append(".\n");
-                }
-                if (mac.isEmpty() || !isValidMac(mac)) {
-                    errorBuilder.append("- MAC validation failed on Device ").append(index).append(".\n");
-                }
+                if (type == null) errorBuilder.append("- Device Type selection missing on Device ").append(index).append(".\n");
+                if (model.isEmpty()) errorBuilder.append("- Brand/Model description missing on Device ").append(index).append(".\n");
+                if (mac.isEmpty() || !isValidMac(mac)) errorBuilder.append("- MAC validation failed on Device ").append(index).append(".\n");
             } else if (completelyFilled && !isValidMac(mac)) {
                 errorBuilder.append("- MAC validation failed on Device ").append(index).append(".\n");
             }
@@ -360,11 +409,6 @@ public class AddStudentController {
         alert.showAndWait();
     }
 
-    public Student getNewStudent() {
-        return newStudent;
-    }
-
-    public boolean isSaveClicked() {
-        return saveClicked;
-    }
+    public Student getNewStudent() { return newStudent; }
+    public boolean isSaveClicked() { return saveClicked; }
 }

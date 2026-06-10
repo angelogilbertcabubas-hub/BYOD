@@ -9,13 +9,22 @@ import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DataStore;
 import utils.DatabaseHelper;
+import utils.QRCodeGenerator;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -28,6 +37,9 @@ public class StudentProfileModalController {
     @FXML private Label txtProfileCourse;
     @FXML private Label txtProfileEmail;
     @FXML private Label txtProfileMobile;
+
+    @FXML private ImageView qrCodeImageView;
+    @FXML private ImageView devicePhotoImageView; // NEW
 
     @FXML private TableView<Device> deviceMatrixTable;
     @FXML private TableColumn<Device, String> colType;
@@ -42,6 +54,11 @@ public class StudentProfileModalController {
     private Student focusedStudent;
     private UUID databaseStudentUuid;
     private ObservableList<Device> isolatedDevicesList = FXCollections.observableArrayList();
+
+    // Maps the unique device token to its photo path
+    private Map<String, String> devicePhotoMap = new HashMap<>();
+    private String quickDevicePhotoPath = "default_device.png";
+
     private final Pattern MAC_PATTERN = Pattern.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
 
     @FXML
@@ -53,6 +70,16 @@ public class StudentProfileModalController {
 
         deviceMatrixTable.setItems(isolatedDevicesList);
         quickTypeBox.getItems().addAll("Smartphone", "Laptop", "Tablet", "Speaker", "Projector", "Smart Watch", "Others");
+
+        // NEW: Listener to change the image when you click a row
+        deviceMatrixTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
+            if (newSelection != null) {
+                String path = devicePhotoMap.get(newSelection.getAccessCode());
+                loadDevicePhoto(path);
+            } else {
+                devicePhotoImageView.setImage(null);
+            }
+        });
     }
 
     public void initData(Student targetStudent) {
@@ -65,13 +92,53 @@ public class StudentProfileModalController {
         txtProfileEmail.setText(targetStudent.getEmail());
         txtProfileMobile.setText(targetStudent.getMobile());
 
+        loadOrRegenerateQRCode();
         fetchInternalUuidAndDevices();
+    }
+
+    private void loadDevicePhoto(String photoPath) {
+        if (photoPath == null || photoPath.isEmpty()) {
+            devicePhotoImageView.setImage(null);
+            return;
+        }
+        try {
+            File imgFile = new File("src/main/resources/" + photoPath);
+            if (imgFile.exists()) {
+                devicePhotoImageView.setImage(new Image(imgFile.toURI().toString()));
+            } else {
+                devicePhotoImageView.setImage(null);
+            }
+        } catch (Exception e) {
+            System.err.println("Could not load device photo.");
+        }
+    }
+
+    private void loadOrRegenerateQRCode() {
+        try {
+            String safeName = focusedStudent.getFullName().replaceAll("\\s+", "_");
+            String fileName = focusedStudent.getStudentId() + "_" + safeName + ".png";
+            String filePath = "src/main/resources/qrcodes/" + fileName;
+            File qrFile = new File(filePath);
+
+            if (!qrFile.exists()) {
+                QRCodeGenerator.generateStudentQRCode(focusedStudent.getStudentId(), focusedStudent.getFullName());
+            }
+
+            if (qrFile.exists()) {
+                qrCodeImageView.setImage(new Image(qrFile.toURI().toString()));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void fetchInternalUuidAndDevices() {
         isolatedDevicesList.clear();
+        devicePhotoMap.clear();
+
         String fetchUuidSql = "SELECT id FROM students WHERE school_id = ?";
-        String fetchDevicesSql = "SELECT device_type, device_brand, device_name, mac_address, unique_code FROM devices WHERE student_id = ?";
+        // UPDATED: Now fetches photo_path
+        String fetchDevicesSql = "SELECT device_type, device_brand, device_name, mac_address, unique_code, photo_path FROM devices WHERE student_id = ?";
 
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmtUuid = conn.prepareStatement(fetchUuidSql)) {
@@ -92,15 +159,47 @@ public class StudentProfileModalController {
                             String brandModel = rsDev.getString("device_brand") + " " + rsDev.getString("device_name");
                             String mac = rsDev.getString("mac_address");
                             String token = rsDev.getString("unique_code");
+                            String photo = rsDev.getString("photo_path"); // Fetch path
 
                             isolatedDevicesList.add(new Device(focusedStudent.getFullName(), type, brandModel, mac, token));
+                            devicePhotoMap.put(token, photo); // Map token to photo path
                         }
                     }
                 }
             }
+
+            // Auto-select the first row if available
+            if (!isolatedDevicesList.isEmpty()) {
+                deviceMatrixTable.getSelectionModel().select(0);
+            }
+
         } catch (Exception e) {
-            System.err.println("Failed to fetch client context assets.");
             e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private void handleQuickUploadPhoto(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Device Photo");
+        fileChooser.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        File file = fileChooser.showOpenDialog(stage);
+
+        if (file != null) {
+            try {
+                File dir = new File("src/main/resources/images/uploads/devices");
+                if (!dir.exists()) dir.mkdirs();
+                String extension = file.getName().substring(file.getName().lastIndexOf('.'));
+                String newFileName = "DEV_" + System.currentTimeMillis() + extension;
+                File destFile = new File(dir, newFileName);
+                Files.copy(file.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                quickDevicePhotoPath = "images/uploads/devices/" + newFileName;
+                showAlert(Alert.AlertType.INFORMATION, "Photo Attached", "The image was successfully staged for the new device.");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -121,11 +220,10 @@ public class StudentProfileModalController {
         }
 
         try (Connection conn = DatabaseHelper.getConnection()) {
-            String insertSql = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED')";
+            // UPDATED: Inserts the photo_path for the quick-add device
+            String insertSql = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
-            if (mac.equals("N/A")) {
-                mac = "N/A-" + (100 + new Random().nextInt(900));
-            }
+            if (mac.equals("N/A")) mac = "N/A-" + (100 + new Random().nextInt(900));
 
             String[] modelSplit = rawModel.split(" ", 2);
             String brand = modelSplit[0];
@@ -139,19 +237,20 @@ public class StudentProfileModalController {
                 ps.setString(4, modelStr);
                 ps.setString(5, mac);
                 ps.setString(6, generatedToken);
+                ps.setString(7, quickDevicePhotoPath); // Insert assigned image
                 ps.executeUpdate();
             }
 
-            // Sync structural caching nodes immediately
             DataStore.getInstance().refreshDevices();
             fetchInternalUuidAndDevices();
 
             quickModelField.clear();
             quickMacField.clear();
             quickTypeBox.setValue(null);
+            quickDevicePhotoPath = "default_device.png"; // Reset after save
 
         } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Linkage Aborted", "Asset mapping error rule conflict: " + e.getMessage());
+            showAlert(Alert.AlertType.ERROR, "Linkage Aborted", "Asset mapping error: " + e.getMessage());
         }
     }
 
@@ -183,7 +282,7 @@ public class StudentProfileModalController {
         Alert confirmation = new Alert(Alert.AlertType.CONFIRMATION);
         confirmation.setTitle("Destructive Sequence Triggered");
         confirmation.setHeaderText("Wipe target student profile entity: " + focusedStudent.getFullName());
-        confirmation.setContentText("Proceeding will invoke foreign reference CASCADE dropping structural logs and mapped network asset links from cloud storage permanent matrices. Are you sure?");
+        confirmation.setContentText("Proceeding will invoke foreign reference CASCADE dropping structural logs and mapped network asset links. Are you sure?");
 
         if (confirmation.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             try (Connection conn = DatabaseHelper.getConnection()) {
@@ -193,7 +292,6 @@ public class StudentProfileModalController {
                     ps.executeUpdate();
                 }
 
-                // Global dynamic sync execution pipelines
                 DataStore.getInstance().getStudentsList().remove(focusedStudent);
                 DataStore.getInstance().refreshStudents();
                 DataStore.getInstance().refreshDevices();

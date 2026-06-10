@@ -192,10 +192,18 @@
                                             <columnConstraints>
                                                 <ColumnConstraints prefWidth="140" />
                                                 <ColumnConstraints hgrow="ALWAYS" />
+                                                <ColumnConstraints prefWidth="120" halignment="CENTER" />
                                             </columnConstraints>
                                             <children>
                                                 <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Student Name:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
                                                 <Label fx:id="lblStudentName" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+                                                <VBox alignment="CENTER" spacing="5.0" style="-fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 5;" GridPane.rowIndex="0" GridPane.columnIndex="2" GridPane.rowSpan="3">
+                                                    <children>
+                                                        <ImageView fx:id="imgStudentPhoto" fitHeight="90.0" fitWidth="100.0" preserveRatio="true" />
+                                                        <Label style="-fx-font-size: 10px; -fx-text-fill: #777777; -fx-font-weight: bold;" text="STUDENT" />
+                                                    </children>
+                                                </VBox>
 
                                                 <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Student ID:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
                                                 <Label fx:id="lblStudentID" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="1" GridPane.columnIndex="1" />
@@ -204,14 +212,19 @@
                                                 <Label fx:id="lblCourseSection" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" GridPane.rowIndex="2" GridPane.columnIndex="1" />
 
                                                 <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Registered Devices:" GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.valignment="TOP">
-                                                    <GridPane.margin>
-                                                        <Insets top="8.0" />
-                                                    </GridPane.margin>
+                                                    <GridPane.margin><Insets top="8.0" /></GridPane.margin>
                                                 </Label>
-                                                <FlowPane fx:id="deviceContainer" hgap="10.0" vgap="10.0" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+                                                <FlowPane fx:id="deviceContainer" hgap="10.0" vgap="10.0" GridPane.rowIndex="3" GridPane.columnIndex="1" GridPane.columnSpan="2" />
 
                                                 <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Serial Number:" GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.valignment="TOP" />
                                                 <Label fx:id="lblSerialNumber" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" wrapText="true" minHeight="-Infinity" GridPane.rowIndex="4" GridPane.columnIndex="1" GridPane.valignment="TOP" />
+
+                                                <VBox alignment="CENTER" spacing="5.0" style="-fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 5;" GridPane.rowIndex="4" GridPane.columnIndex="2" GridPane.rowSpan="3">
+                                                    <children>
+                                                        <ImageView fx:id="imgDevicePhoto" fitHeight="90.0" fitWidth="100.0" preserveRatio="true" />
+                                                        <Label style="-fx-font-size: 10px; -fx-text-fill: #777777; -fx-font-weight: bold;" text="DEVICE" />
+                                                    </children>
+                                                </VBox>
 
                                                 <Label style="-fx-font-size: 12.5px; -fx-text-fill: #777777;" text="Access Code:" GridPane.rowIndex="5" GridPane.columnIndex="0" GridPane.valignment="TOP" />
                                                 <Label fx:id="lblAccessCode" style="-fx-font-size: 12.5px; -fx-text-fill: #222222; -fx-font-weight: bold;" text="" wrapText="true" minHeight="-Infinity" GridPane.rowIndex="5" GridPane.columnIndex="1" GridPane.valignment="TOP" />

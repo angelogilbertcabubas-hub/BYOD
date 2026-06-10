@@ -9,12 +9,18 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DataStore;
 import utils.DatabaseHelper;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,6 +35,11 @@ public class AddDeviceController {
     @FXML private TextField txtModel;
     @FXML private TextField txtMacAddress;
 
+    // NEW: FXML IDs for the Device Photo Upload
+    @FXML private Button btnUploadDevicePhoto;
+    @FXML private Label lblDevicePhotoName;
+    private String devicePhotoPath = "default_device.png";
+
     private Device newDevice = null;
     private ObservableList<String> studentRecords;
     private final Pattern MAC_PATTERN = Pattern.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
@@ -36,6 +47,10 @@ public class AddDeviceController {
     @FXML
     public void initialize() {
         cmbDeviceType.getItems().addAll("Smartphone", "Laptop", "Tablet", "Speaker", "Projector", "Smart Watch", "Others");
+
+        if (lblDevicePhotoName != null) {
+            lblDevicePhotoName.setText("No file selected");
+        }
 
         studentRecords = FXCollections.observableArrayList();
         for (Student s : DataStore.getInstance().getStudentsList()) {
@@ -51,23 +66,56 @@ public class AddDeviceController {
 
             if (selected == null || !selected.equals(editor.getText())) {
                 filteredStudents.setPredicate(item -> {
-                    if (newValue == null || newValue.isEmpty()) {
-                        return true;
-                    }
+                    if (newValue == null || newValue.isEmpty()) return true;
                     return item.toLowerCase().contains(newValue.toLowerCase());
                 });
-                if (!cmbOwnerName.isShowing()) {
-                    cmbOwnerName.show();
-                }
+                if (!cmbOwnerName.isShowing()) cmbOwnerName.show();
             }
         });
     }
 
     @FXML
-    private void handleSave(ActionEvent event) {
-        if (!isInputValid()) {
-            return;
+    private void handleUploadDevicePhoto(ActionEvent event) {
+        File file = chooseImageFile(event);
+        if (file != null) {
+            devicePhotoPath = copyImageToLocal(file, "devices", "DEV");
+            if (lblDevicePhotoName != null) lblDevicePhotoName.setText(file.getName());
         }
+    }
+
+    private File chooseImageFile(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Device Photo");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
+        );
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        return fileChooser.showOpenDialog(stage);
+    }
+
+    private String copyImageToLocal(File sourceFile, String subFolder, String prefix) {
+        try {
+            File dir = new File("src/main/resources/images/uploads/" + subFolder);
+            if (!dir.exists()) dir.mkdirs();
+
+            String extension = "";
+            int i = sourceFile.getName().lastIndexOf('.');
+            if (i > 0) extension = sourceFile.getName().substring(i);
+
+            String newFileName = prefix + "_" + System.currentTimeMillis() + extension;
+            File destFile = new File(dir, newFileName);
+
+            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            return "images/uploads/" + subFolder + "/" + newFileName;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "default_device.png";
+        }
+    }
+
+    @FXML
+    private void handleSave(ActionEvent event) {
+        if (!isInputValid()) return;
 
         String rawSelection = cmbOwnerName.getEditor().getText();
         String studentNumber = rawSelection.substring(rawSelection.indexOf("[") + 1, rawSelection.indexOf("]"));
@@ -79,9 +127,9 @@ public class AddDeviceController {
 
         String generatedToken = "TKN-" + (1000 + new Random().nextInt(9000));
 
-        // UPDATED FOR SUPABASE SCHEMA
         String getStudentIdQuery = "SELECT id FROM students WHERE school_id = ?";
-        String insertQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED')";
+        // UPDATED SQL: Inserts photo_path
+        String insertQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement selectStmt = conn.prepareStatement(getStudentIdQuery)) {
@@ -99,16 +147,12 @@ public class AddDeviceController {
                     insertStmt.setString(4, modelStr);
                     insertStmt.setString(5, txtMacAddress.getText().trim());
                     insertStmt.setString(6, generatedToken);
+                    insertStmt.setString(7, devicePhotoPath); // Insert File Path
                     insertStmt.executeUpdate();
                 }
 
-                newDevice = new Device(
-                        ownerName,
-                        cmbDeviceType.getValue(),
-                        txtModel.getText(),
-                        txtMacAddress.getText(),
-                        generatedToken
-                );
+                newDevice = new Device(ownerName, cmbDeviceType.getValue(), txtModel.getText(), txtMacAddress.getText(), generatedToken);
+                DataStore.getInstance().refreshDevices();
 
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Success");
@@ -140,15 +184,8 @@ public class AddDeviceController {
         if (owner == null || owner.trim().isEmpty() || !owner.contains("[") || !owner.contains("]")) {
             errorBuilder.append("- Please search and select a valid registered student from the dropdown.\n");
         }
-
-        if (cmbDeviceType.getValue() == null) {
-            errorBuilder.append("- Device Type selection is required.\n");
-        }
-
-        if (txtModel.getText() == null || txtModel.getText().trim().isEmpty()) {
-            errorBuilder.append("- Brand and Model description is required.\n");
-        }
-
+        if (cmbDeviceType.getValue() == null) errorBuilder.append("- Device Type selection is required.\n");
+        if (txtModel.getText() == null || txtModel.getText().trim().isEmpty()) errorBuilder.append("- Brand and Model description is required.\n");
         String mac = txtMacAddress.getText();
         if (mac == null || mac.trim().isEmpty() || (!mac.equalsIgnoreCase("N/A") && !MAC_PATTERN.matcher(mac).matches())) {
             errorBuilder.append("- Valid MAC Address is required (e.g., 00:1B:44:11:3A:B7 or N/A).\n");
@@ -173,7 +210,5 @@ public class AddDeviceController {
         alert.showAndWait();
     }
 
-    public Device getNewDevice() {
-        return newDevice;
-    }
+    public Device getNewDevice() { return newDevice; }
 }
