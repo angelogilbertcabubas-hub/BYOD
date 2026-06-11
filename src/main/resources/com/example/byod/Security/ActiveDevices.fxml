@@ -14,7 +14,7 @@
                 <VBox alignment="CENTER" prefHeight="140.0" prefWidth="220.0" spacing="8.0">
                     <children>
                         <ImageView fitHeight="58.0" fitWidth="58.0" pickOnBounds="true" preserveRatio="true">
-                            <image><Image url="@../../../../images/byod3_logo.png" /></image>
+                            <image><Image url="@../../../../images/endpoint_logo1.png" /></image>
                             <clip><Circle centerX="29.0" centerY="29.0" radius="29.0" /></clip>
                         </ImageView>
                         <Label text="BYOD" textFill="#C5A059"><font><Font name="System Bold" size="16.0" /></font></Label>

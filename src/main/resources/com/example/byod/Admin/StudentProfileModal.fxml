@@ -1,62 +1,81 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.Separator?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<VBox prefHeight="680.0" prefWidth="640.0" spacing="15.0" style="-fx-background-color: #E5E1E2; -fx-padding: 20;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.StudentProfileModalController">
+<VBox prefHeight="700.0" prefWidth="660.0" spacing="20.0" style="-fx-background-color: #E5E1E2; -fx-padding: 25;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.StudentProfileModalController">
     <children>
         <HBox alignment="CENTER_LEFT" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 15;">
             <children>
                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                     <children>
                         <Label fx:id="lblFullNameHeader" style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 18px;" text="Student Profile Matrix" />
-                        <Label fx:id="lblStudentNumberSub" style="-fx-text-fill: #777777; -fx-font-size: 12px;" text="Student Account Profile Management Node" />
+                        <Label fx:id="lblStudentNumberSub" style="-fx-text-fill: #666666; -fx-font-size: 11px;" text="Student Account Profile Management Node" />
                     </children>
                 </VBox>
                 <Button mnemonicParsing="false" onAction="#handleRemoveStudent" style="-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;" text="❌ REMOVE STUDENT" />
             </children>
         </HBox>
 
-        <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20;">
+        <VBox spacing="15.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20;">
             <children>
-                <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 14px;" text="Account Dossier Details" />
+                <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 12px; -fx-letter-spacing: 1px;" text="ACCOUNT DOSSIER DETAILS" />
                 <Separator />
-                <GridPane hgap="15.0" vgap="10.0">
+
+                <GridPane hgap="15.0" vgap="12.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="NEVER" minWidth="120.0" prefWidth="130.0" />
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints minHeight="25.0" />
-                        <RowConstraints minHeight="25.0" />
-                        <RowConstraints minHeight="25.0" />
-                        <RowConstraints minHeight="25.0" />
+                        <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" vgrow="SOMETIMES" />
                     </rowConstraints>
                     <children>
-                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="STUDENT NUMBER:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                        <Label fx:id="txtProfileId" style="-fx-font-weight: bold; -fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                        <VBox spacing="4.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                            <children>
+                                <Label text="STUDENT NUMBER" textFill="#555555"><font><Font name="System Bold" size="10.0" /></font></Label>
+                                <StackPane alignment="CENTER_LEFT" prefHeight="35.0" style="-fx-background-color: #F7F5F5; -fx-background-radius: 6; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12;">
+                                    <children>
+                                        <Label fx:id="txtProfileId" style="-fx-font-weight: bold; -fx-text-fill: #222222;" text="---" />
+                                    </children>
+                                </StackPane>
+                            </children>
+                        </VBox>
 
-                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="COURSE MODULE:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-                        <Label fx:id="txtProfileCourse" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                        <VBox spacing="4.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                            <children>
+                                <Label text="COURSE MODULE" textFill="#555555"><font><Font name="System Bold" size="10.0" /></font></Label>
+                                <StackPane alignment="CENTER_LEFT" prefHeight="35.0" style="-fx-background-color: #F7F5F5; -fx-background-radius: 6; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12;">
+                                    <children>
+                                        <Label fx:id="txtProfileCourse" style="-fx-text-fill: #222222;" text="---" />
+                                    </children>
+                                </StackPane>
+                            </children>
+                        </VBox>
 
-                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="EMAIL ADDRESS:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-                        <Label fx:id="txtProfileEmail" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                        <VBox spacing="4.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                            <children>
+                                <Label text="EMAIL ADDRESS" textFill="#555555"><font><Font name="System Bold" size="10.0" /></font></Label>
+                                <StackPane alignment="CENTER_LEFT" prefHeight="35.0" style="-fx-background-color: #F7F5F5; -fx-background-radius: 6; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12;">
+                                    <children>
+                                        <Label fx:id="txtProfileEmail" style="-fx-text-fill: #222222;" text="---" />
+                                    </children>
+                                </StackPane>
+                            </children>
+                        </VBox>
 
-                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="MOBILE LINK:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
-                        <Label fx:id="txtProfileMobile" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                        <VBox spacing="4.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                            <children>
+                                <Label text="MOBILE LINK" textFill="#555555"><font><Font name="System Bold" size="10.0" /></font></Label>
+                                <StackPane alignment="CENTER_LEFT" prefHeight="35.0" style="-fx-background-color: #F7F5F5; -fx-background-radius: 6; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12;">
+                                    <children>
+                                        <Label fx:id="txtProfileMobile" style="-fx-text-fill: #222222;" text="---" />
+                                    </children>
+                                </StackPane>
+                            </children>
+                        </VBox>
                     </children>
                 </GridPane>
             </children>
@@ -66,14 +85,14 @@
             <children>
                 <HBox alignment="CENTER_LEFT">
                     <children>
-                        <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 14px;" text="Registered Authorized Devices" />
+                        <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 12px; -fx-letter-spacing: 1px;" text="REGISTERED AUTHORIZED DEVICES" />
                         <Region HBox.hgrow="ALWAYS" />
-                        <Button mnemonicParsing="false" onAction="#handleRemoveSelectedDevice" style="-fx-background-color: transparent; -fx-border-color: #D32F2F; -fx-border-radius: 4; -fx-text-fill: #D32F2F; -fx-font-weight: bold; -fx-cursor: hand;" text="🗑 Delete Selected Asset" />
+                        <Button mnemonicParsing="false" onAction="#handleRemoveSelectedDevice" style="-fx-background-color: transparent; -fx-border-color: #D32F2F; -fx-border-radius: 6; -fx-text-fill: #D32F2F; -fx-font-weight: bold; -fx-cursor: hand; -fx-padding: 5 12;" text="🗑 Delete Selected Asset" />
                     </children>
                 </HBox>
                 <Separator />
 
-                <TableView fx:id="deviceMatrixTable" prefHeight="180.0" VBox.vgrow="ALWAYS">
+                <TableView fx:id="deviceMatrixTable" prefHeight="150.0" style="-fx-background-radius: 6;" VBox.vgrow="ALWAYS">
                     <columns>
                         <TableColumn fx:id="colType" prefWidth="110.0" text="ASSET TYPE" />
                         <TableColumn fx:id="colModel" prefWidth="160.0" text="BRAND &amp; MODEL" />
@@ -83,21 +102,25 @@
                     <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
                 </TableView>
 
-                <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 12px;" text="⚡ Provision New Asset Attachment" />
-                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                <VBox spacing="6.0">
                     <children>
-                        <ComboBox fx:id="quickTypeBox" prefHeight="35.0" prefWidth="130.0" promptText="Type" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" />
-                        <TextField fx:id="quickModelField" prefHeight="35.0" promptText="Brand/Model (e.g., iPad Air)" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" HBox.hgrow="ALWAYS" />
-                        <TextField fx:id="quickMacField" prefHeight="35.0" prefWidth="150.0" promptText="MAC Address / NA" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" />
-                        <Button mnemonicParsing="false" onAction="#handleQuickAddDevice" prefHeight="35.0" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4; -fx-cursor: hand;" text="+ Link Asset" />
+                        <Label style="-fx-text-fill: #555555; -fx-font-weight: bold; -fx-font-size: 10px;" text="⚡ PROVISION NEW ASSET ATTACHMENT" />
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <children>
+                                <ComboBox fx:id="quickTypeBox" prefHeight="35.0" prefWidth="120.0" promptText="Type" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                                <TextField fx:id="quickModelField" prefHeight="35.0" promptText="Brand/Model (e.g., iPad Air)" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" HBox.hgrow="ALWAYS" />
+                                <TextField fx:id="quickMacField" prefHeight="35.0" prefWidth="150.0" promptText="MAC Address / NA" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                                <Button mnemonicParsing="false" onAction="#handleQuickAddDevice" prefHeight="35.0" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 0 15;" text="+ Link Asset" />
+                            </children>
+                        </HBox>
                     </children>
-                </HBox>
+                </VBox>
             </children>
         </VBox>
 
         <HBox alignment="CENTER_RIGHT">
             <children>
-                <Button mnemonicParsing="false" onAction="#handleCloseModal" prefHeight="38.0" prefWidth="110.0" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" text="CLOSE VIEW" />
+                <Button mnemonicParsing="false" onAction="#handleCloseModal" prefHeight="35.0" prefWidth="120.0" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" text="CLOSE VIEW" />
             </children>
         </HBox>
     </children>
