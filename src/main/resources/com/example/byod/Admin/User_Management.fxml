@@ -57,7 +57,7 @@
                     <Label text="Reports" textFill="#C9A4A7"><font><Font name="System Bold" size="13.0" /></font></Label>
                 </HBox>
 
-                <HBox alignment="CENTER_LEFT" prefHeight="40.0" spacing="15.0" style="-fx-padding: 0 0 0 20; -fx-cursor: hand; -fx-background-color: #61171B; -fx-background-radius: 0 6 6 0;">
+                <HBox alignment="CENTER_LEFT" prefHeight="40.0" spacing="15.0" style="-fx-padding: 0 0 0 20; -fx-cursor: hand; -fx-background-color: #c19a43; -fx-background-radius: 0 6 6 0;">
                     <Label text="👥" textFill="WHITE"><font><Font size="14.0" /></font></Label>
                     <Label text="User Management" textFill="WHITE"><font><Font name="System Bold" size="13.0" /></font></Label>
                 </HBox>
