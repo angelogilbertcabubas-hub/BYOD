@@ -1,21 +1,22 @@
 package controller.Admin;
 
 import com.example.byod.LogEntry;
-import com.example.byod.model.Device;
-import utils.DataStore;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
-import javafx.event.ActionEvent;
+import utils.DatabaseHelper;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 public class Active_DevicesController extends BaseAdminController {
 
-    @FXML private TextField searchBarField;
-    @FXML private Label statusSummaryLabel;
+    // Matches the fx:id attributes exactly as defined in Active_Devices.fxml
     @FXML private TableView<LogEntry> activeDevicesTableView;
-
     @FXML private TableColumn<LogEntry, String> colStudentName;
     @FXML private TableColumn<LogEntry, String> colStudentID;
     @FXML private TableColumn<LogEntry, String> colDevice;
@@ -23,10 +24,11 @@ public class Active_DevicesController extends BaseAdminController {
     @FXML private TableColumn<LogEntry, String> colTimeIn;
     @FXML private TableColumn<LogEntry, String> colLocation;
 
-    private FilteredList<LogEntry> filteredActiveDevices;
+    private ObservableList<LogEntry> activeList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
+        // Link the columns to the properties inside the LogEntry model
         colStudentName.setCellValueFactory(new PropertyValueFactory<>("studentName"));
         colStudentID.setCellValueFactory(new PropertyValueFactory<>("studentId"));
         colDevice.setCellValueFactory(new PropertyValueFactory<>("deviceModel"));
@@ -34,40 +36,45 @@ public class Active_DevicesController extends BaseAdminController {
         colTimeIn.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
         colLocation.setCellValueFactory(new PropertyValueFactory<>("location"));
 
-        filteredActiveDevices = new FilteredList<>(DataStore.getInstance().getActiveDevicesList(), p -> true);
-
-        searchBarField.textProperty().addListener((observable, oldValue, newValue) -> {
-            filteredActiveDevices.setPredicate(activeDevice -> {
-                if (newValue == null || newValue.isBlank()) return true;
-
-                String keyword = newValue.toLowerCase();
-
-                if(activeDevice.getStudentName() != null && activeDevice.getStudentName().toLowerCase().contains(keyword));
-                if(activeDevice.getStudentId() != null && activeDevice.getStudentId().toLowerCase().contains(keyword));
-                if(activeDevice.getDeviceModel() != null && activeDevice.getDeviceModel().toLowerCase().contains(keyword));
-                if(activeDevice.getAccessToken() != null && activeDevice.getAccessToken().toLowerCase().contains(keyword));
-                if(activeDevice.getTimestamp() != null && activeDevice.getTimestamp().toLowerCase().contains(keyword));
-                if(activeDevice.getLocation() != null && activeDevice.getLocation().toLowerCase().contains(keyword));
-
-                return false;
-
-            });
-
-            updateCountLabel();
-        });
-
-        SortedList<LogEntry> sortedActiveDevices = new SortedList<>(filteredActiveDevices);
-        sortedActiveDevices.comparatorProperty().bind(activeDevicesTableView.comparatorProperty());
-        activeDevicesTableView.setItems(sortedActiveDevices);
+        activeDevicesTableView.setItems(activeList);
+        loadActiveDevices();
     }
 
-    private void updateCountLabel() {
-        int total = DataStore.getInstance().getActiveDevicesList().size();
-        int filtered = filteredActiveDevices.size();
-        if (filtered == total) {
-            statusSummaryLabel.setText("Showing 1 to " + total + " of " + total + " entries");
-        } else {
-            statusSummaryLabel.setText("Showing " + filtered + " of " + total + " entries");
+    private void loadActiveDevices() {
+        activeList.clear();
+
+        // This query specifically looks for devices that are CHECKED_IN and have no check_out_time
+        String query = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, " +
+                "d.device_brand, d.device_name, d.unique_code, " +
+                "TO_CHAR(c.check_in_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_in " +
+                "FROM check_in_out c " +
+                "JOIN students s ON c.student_id = s.id " +
+                "JOIN devices d ON c.device_id = d.id " +
+                "WHERE c.status = 'CHECKED_IN' AND c.check_out_time IS NULL";
+
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                String logId = String.valueOf(rs.getObject("log_id"));
+                String studentName = rs.getString("first_name") + " " + rs.getString("last_name");
+                String studentId = rs.getString("school_id");
+
+                String brand = rs.getString("device_brand");
+                String deviceModel = (brand != null) ? brand + " " + rs.getString("device_name") : "No Device";
+
+                String accessCode = rs.getString("unique_code");
+                if (accessCode == null) accessCode = "N/A";
+
+                String timeIn = rs.getString("formatted_time_in");
+                if (timeIn == null) timeIn = "Unknown Time";
+
+                // Populate the LogEntry model using the live database data
+                activeList.add(new LogEntry(logId, studentName, studentId, deviceModel, accessCode, "Check-In", timeIn, "Main Gate"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
