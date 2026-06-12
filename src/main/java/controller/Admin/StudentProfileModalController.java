@@ -2,6 +2,7 @@ package controller.Admin;
 
 import com.example.byod.model.Device;
 import com.example.byod.model.Student;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -11,15 +12,15 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DataStore;
 import utils.DatabaseHelper;
 import utils.QRCodeGenerator;
+import utils.SupabaseStorageHelper;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,8 +39,9 @@ public class StudentProfileModalController {
     @FXML private Label txtProfileEmail;
     @FXML private Label txtProfileMobile;
 
+    @FXML private ImageView studentCloudPhotoView; // NEW: The Student's Photo
     @FXML private ImageView qrCodeImageView;
-    @FXML private ImageView devicePhotoImageView; // NEW
+    @FXML private ImageView devicePhotoImageView;
 
     @FXML private TableView<Device> deviceMatrixTable;
     @FXML private TableColumn<Device, String> colType;
@@ -51,11 +53,22 @@ public class StudentProfileModalController {
     @FXML private TextField quickModelField;
     @FXML private TextField quickMacField;
 
+    @FXML private Button btnEditToggle;
+    @FXML private Button btnSaveEdit;
+    @FXML private Button btnCancelEdit;
+
+    @FXML private TextField editCourseField;
+    @FXML private TextField editEmailField;
+    @FXML private TextField editMobileField;
+
+    @FXML private GridPane viewModeGrid;
+    @FXML private GridPane editModeGrid;
+    @FXML private TextField editStudentIdField;
+
     private Student focusedStudent;
     private UUID databaseStudentUuid;
     private ObservableList<Device> isolatedDevicesList = FXCollections.observableArrayList();
 
-    // Maps the unique device token to its photo path
     private Map<String, String> devicePhotoMap = new HashMap<>();
     private String quickDevicePhotoPath = "default_device.png";
 
@@ -71,7 +84,6 @@ public class StudentProfileModalController {
         deviceMatrixTable.setItems(isolatedDevicesList);
         quickTypeBox.getItems().addAll("Smartphone", "Laptop", "Tablet", "Speaker", "Projector", "Smart Watch", "Others");
 
-        // NEW: Listener to change the image when you click a row
         deviceMatrixTable.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null) {
                 String path = devicePhotoMap.get(newSelection.getAccessCode());
@@ -80,6 +92,13 @@ public class StudentProfileModalController {
                 devicePhotoImageView.setImage(null);
             }
         });
+
+        editModeGrid.setVisible(false);
+        editModeGrid.setManaged(false);
+        btnSaveEdit.setVisible(false);
+        btnSaveEdit.setManaged(false);
+        btnCancelEdit.setVisible(false);
+        btnCancelEdit.setManaged(false);
     }
 
     public void initData(Student targetStudent) {
@@ -92,8 +111,41 @@ public class StudentProfileModalController {
         txtProfileEmail.setText(targetStudent.getEmail());
         txtProfileMobile.setText(targetStudent.getMobile());
 
-        loadOrRegenerateQRCode();
+        if (editStudentIdField != null) {
+            editStudentIdField.setText(targetStudent.getStudentId());
+        }
+
+        fetchStudentCloudPhoto();
+        renderZeroDiskQRCode();
         fetchInternalUuidAndDevices();
+    }
+
+    // Connects to Cloud and pulls the student profile picture
+    private void fetchStudentCloudPhoto() {
+        String query = "SELECT photo_path FROM students WHERE school_id = ?";
+        new Thread(() -> {
+            try (Connection conn = DatabaseHelper.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(query)) {
+
+                ps.setString(1, focusedStudent.getStudentId());
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()) {
+                    String photoUrl = rs.getString("photo_path");
+                    if (photoUrl != null && photoUrl.startsWith("http")) {
+                        Platform.runLater(() -> studentCloudPhotoView.setImage(new Image(photoUrl, true)));
+                    } else if (photoUrl != null) {
+                        // Fallback for old local files
+                        File imgFile = new File("src/main/resources/" + photoUrl);
+                        if (imgFile.exists()) {
+                            Platform.runLater(() -> studentCloudPhotoView.setImage(new Image(imgFile.toURI().toString())));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     private void loadDevicePhoto(String photoPath) {
@@ -102,30 +154,27 @@ public class StudentProfileModalController {
             return;
         }
         try {
-            File imgFile = new File("src/main/resources/" + photoPath);
-            if (imgFile.exists()) {
-                devicePhotoImageView.setImage(new Image(imgFile.toURI().toString()));
+            if (photoPath.startsWith("http")) {
+                devicePhotoImageView.setImage(new Image(photoPath, true));
             } else {
-                devicePhotoImageView.setImage(null);
+                File imgFile = new File("src/main/resources/" + photoPath);
+                if (imgFile.exists()) {
+                    devicePhotoImageView.setImage(new Image(imgFile.toURI().toString()));
+                } else {
+                    devicePhotoImageView.setImage(null);
+                }
             }
         } catch (Exception e) {
-            System.err.println("Could not load device photo.");
+            System.err.println("Could not load device photo: " + photoPath);
         }
     }
 
-    private void loadOrRegenerateQRCode() {
+    // Pure Memory-Based QR Generation (No hard drive writes)
+    private void renderZeroDiskQRCode() {
         try {
-            String safeName = focusedStudent.getFullName().replaceAll("\\s+", "_");
-            String fileName = focusedStudent.getStudentId() + "_" + safeName + ".png";
-            String filePath = "src/main/resources/qrcodes/" + fileName;
-            File qrFile = new File(filePath);
-
-            if (!qrFile.exists()) {
-                QRCodeGenerator.generateStudentQRCode(focusedStudent.getStudentId(), focusedStudent.getFullName());
-            }
-
-            if (qrFile.exists()) {
-                qrCodeImageView.setImage(new Image(qrFile.toURI().toString()));
+            Image qrImage = QRCodeGenerator.generateQRCodeInMemory(focusedStudent.getStudentId(), 130, 130);
+            if (qrImage != null && qrCodeImageView != null) {
+                qrCodeImageView.setImage(qrImage);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -137,7 +186,6 @@ public class StudentProfileModalController {
         devicePhotoMap.clear();
 
         String fetchUuidSql = "SELECT id FROM students WHERE school_id = ?";
-        // UPDATED: Now fetches photo_path
         String fetchDevicesSql = "SELECT device_type, device_brand, device_name, mac_address, unique_code, photo_path FROM devices WHERE student_id = ?";
 
         try (Connection conn = DatabaseHelper.getConnection();
@@ -159,16 +207,15 @@ public class StudentProfileModalController {
                             String brandModel = rsDev.getString("device_brand") + " " + rsDev.getString("device_name");
                             String mac = rsDev.getString("mac_address");
                             String token = rsDev.getString("unique_code");
-                            String photo = rsDev.getString("photo_path"); // Fetch path
+                            String photo = rsDev.getString("photo_path");
 
                             isolatedDevicesList.add(new Device(focusedStudent.getFullName(), type, brandModel, mac, token));
-                            devicePhotoMap.put(token, photo); // Map token to photo path
+                            devicePhotoMap.put(token, photo);
                         }
                     }
                 }
             }
 
-            // Auto-select the first row if available
             if (!isolatedDevicesList.isEmpty()) {
                 deviceMatrixTable.getSelectionModel().select(0);
             }
@@ -188,17 +235,11 @@ public class StudentProfileModalController {
 
         if (file != null) {
             try {
-                File dir = new File("src/main/resources/images/uploads/devices");
-                if (!dir.exists()) dir.mkdirs();
-                String extension = file.getName().substring(file.getName().lastIndexOf('.'));
-                String newFileName = "DEV_" + System.currentTimeMillis() + extension;
-                File destFile = new File(dir, newFileName);
-                Files.copy(file.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-                quickDevicePhotoPath = "images/uploads/devices/" + newFileName;
-                showAlert(Alert.AlertType.INFORMATION, "Photo Attached", "The image was successfully staged for the new device.");
+                quickDevicePhotoPath = SupabaseStorageHelper.uploadImage(file, "DEV");
+                showAlert(Alert.AlertType.INFORMATION, "Cloud Photo Attached", "The image was successfully staged for the new device.");
             } catch (Exception e) {
                 e.printStackTrace();
+                showAlert(Alert.AlertType.ERROR, "Upload Failed", "Could not reach cloud storage.");
             }
         }
     }
@@ -220,7 +261,6 @@ public class StudentProfileModalController {
         }
 
         try (Connection conn = DatabaseHelper.getConnection()) {
-            // UPDATED: Inserts the photo_path for the quick-add device
             String insertSql = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
             if (mac.equals("N/A")) mac = "N/A-" + (100 + new Random().nextInt(900));
@@ -237,7 +277,7 @@ public class StudentProfileModalController {
                 ps.setString(4, modelStr);
                 ps.setString(5, mac);
                 ps.setString(6, generatedToken);
-                ps.setString(7, quickDevicePhotoPath); // Insert assigned image
+                ps.setString(7, quickDevicePhotoPath);
                 ps.executeUpdate();
             }
 
@@ -247,7 +287,7 @@ public class StudentProfileModalController {
             quickModelField.clear();
             quickMacField.clear();
             quickTypeBox.setValue(null);
-            quickDevicePhotoPath = "default_device.png"; // Reset after save
+            quickDevicePhotoPath = "default_device.png";
 
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Linkage Aborted", "Asset mapping error: " + e.getMessage());
@@ -317,5 +357,76 @@ public class StudentProfileModalController {
         alert.setHeaderText(header);
         alert.setContentText(body);
         alert.showAndWait();
+    }
+
+    @FXML
+    private void handleEditToggle(ActionEvent event){
+        editCourseField.setText(txtProfileCourse.getText());
+        editEmailField.setText(txtProfileEmail.getText());
+        editMobileField.setText(txtProfileMobile.getText());
+
+        viewModeGrid.setVisible(false);
+        viewModeGrid.setManaged(false);
+        editModeGrid.setManaged(true);
+        editModeGrid.setVisible(true);
+
+        btnEditToggle.setVisible(false);
+        btnEditToggle.setManaged(false);
+        btnSaveEdit.setVisible(true);
+        btnSaveEdit.setManaged(true);
+        btnCancelEdit.setVisible(true);
+        btnCancelEdit.setManaged(true);
+    }
+
+    @FXML
+    private void handleSaveEdit(ActionEvent event){
+        String newCourse = editCourseField.getText().trim();
+        String newEmail = editEmailField.getText().trim();
+        String newMobile = editMobileField.getText().trim();
+
+        if (newCourse.isEmpty() || newEmail.isEmpty() || newMobile.isEmpty()){
+            showAlert(Alert.AlertType.WARNING, "Empty Fields", "All fields must be filled in");
+            return;
+        }
+
+        try(Connection conn = DatabaseHelper.getConnection()) {
+            String updateSql = "UPDATE students SET program_course = ?, email_address = ?, mobile_number = ? WHERE school_id = ?";
+            try(PreparedStatement preparedStatement = conn.prepareStatement(updateSql)) {
+                preparedStatement.setString(1, newCourse);
+                preparedStatement.setString(2, newEmail);
+                preparedStatement.setString(3, newMobile);
+                preparedStatement.setString(4, focusedStudent.getStudentId());
+                preparedStatement.executeUpdate();
+            }
+            txtProfileCourse.setText(newCourse);
+            txtProfileEmail.setText(newEmail);
+            txtProfileMobile.setText(newMobile);
+
+            utils.DataStore.getInstance().refreshStudents();
+
+            showAlert(Alert.AlertType.INFORMATION, "Profile Updated", "Student new Information saved successfully");
+            switchToViewMode();
+        } catch (Exception e){
+            showAlert(Alert.AlertType.ERROR, "Update Failed", "Could not save new Informaion");
+            e.printStackTrace();
+        }
+    }
+
+    @FXML void handleCancelEdit(ActionEvent event){
+        switchToViewMode();
+    }
+
+    private void switchToViewMode() {
+        editModeGrid.setVisible(false);
+        editModeGrid.setManaged(false);
+        viewModeGrid.setVisible(true);
+        viewModeGrid.setManaged(true);
+
+        btnSaveEdit.setVisible(false);
+        btnSaveEdit.setManaged(false);
+        btnCancelEdit.setVisible(false);
+        btnCancelEdit.setManaged(false);
+        btnEditToggle.setVisible(true);
+        btnEditToggle.setManaged(true);
     }
 }

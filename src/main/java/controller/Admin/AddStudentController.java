@@ -14,15 +14,15 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DatabaseHelper;
 import utils.QRCodeGenerator;
+import utils.SupabaseStorageHelper;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -46,6 +46,7 @@ public class AddStudentController {
 
     @FXML private Button btnUploadStudentPhoto;
     @FXML private Label lblStudentPhotoName;
+    @FXML private ImageView studentPhotoPreview;
     private String studentPhotoPath = "default_student.png";
 
     private Student newStudent = null;
@@ -89,8 +90,19 @@ public class AddStudentController {
     private void handleUploadStudentPhoto(ActionEvent event) {
         File file = chooseImageFile(event);
         if (file != null) {
-            studentPhotoPath = copyImageToLocal(file, "students", "STU");
+            studentPhotoPreview.setImage(new Image(file.toURI().toString()));
             if(lblStudentPhotoName != null) lblStudentPhotoName.setText(file.getName());
+
+            new Thread(() -> {
+                try {
+                    String cloudUrl = SupabaseStorageHelper.uploadImage(file, "STU_" + System.currentTimeMillis());
+                    if (cloudUrl != null) {
+                        studentPhotoPath = cloudUrl;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
         }
     }
 
@@ -102,17 +114,33 @@ public class AddStudentController {
         rowCard.setStyle("-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-background-radius: 6;");
 
         HBox headerBox = new HBox(10);
+        headerBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
         Label rowTitle = new Label("Device " + continuousIndex);
         rowTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #500A0E;");
 
-        Button btnUploadDevicePhoto = new Button("📷 Photo");
-        btnUploadDevicePhoto.setStyle("-fx-background-color: #DDDDDD; -fx-cursor: hand; -fx-font-size: 11px;");
+        ImageView devicePreview = new ImageView();
+        devicePreview.setFitWidth(90);  // Larger image
+        devicePreview.setFitHeight(90); // Larger image
+        devicePreview.setPreserveRatio(true);
+        StackPane previewContainer = new StackPane(devicePreview);
+        previewContainer.setStyle("-fx-border-color: #CCCCCC; -fx-border-radius: 4; -fx-background-color: #FFFFFF;");
+        previewContainer.setPrefSize(100, 100);
+
+        Button btnUploadDevicePhoto = new Button("📷 Browse");
+        btnUploadDevicePhoto.setStyle("-fx-background-color: #E67E22; -fx-text-fill: white; -fx-cursor: hand; -fx-font-size: 11px; -fx-font-weight: bold;");
         Label lblDevicePhotoName = new Label("No file");
         lblDevicePhotoName.setStyle("-fx-font-size: 10px; -fx-text-fill: #777777;");
 
+        VBox btnAndLabel = new VBox(2, btnUploadDevicePhoto, lblDevicePhotoName);
+        btnAndLabel.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+
+        HBox uploadSection = new HBox(10, previewContainer, btnAndLabel);
+        uploadSection.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        headerBox.getChildren().addAll(rowTitle, spacer, lblDevicePhotoName, btnUploadDevicePhoto);
+        headerBox.getChildren().addAll(rowTitle, spacer, uploadSection);
 
         rowCard.getChildren().add(headerBox);
 
@@ -178,8 +206,15 @@ public class AddStudentController {
         btnUploadDevicePhoto.setOnAction(e -> {
             File file = chooseImageFile(e);
             if (file != null) {
-                newRow.devicePhotoPath = copyImageToLocal(file, "devices", "DEV");
+                devicePreview.setImage(new Image(file.toURI().toString()));
                 lblDevicePhotoName.setText(file.getName());
+
+                new Thread(() -> {
+                    try {
+                        String cloudUrl = SupabaseStorageHelper.uploadImage(file, "DEV_" + System.currentTimeMillis());
+                        if (cloudUrl != null) newRow.devicePhotoPath = cloudUrl;
+                    } catch (Exception ex) { ex.printStackTrace(); }
+                }).start();
             }
         });
     }
@@ -202,26 +237,6 @@ public class AddStudentController {
         );
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         return fileChooser.showOpenDialog(stage);
-    }
-
-    private String copyImageToLocal(File sourceFile, String subFolder, String prefix) {
-        try {
-            File dir = new File("src/main/resources/images/uploads/" + subFolder);
-            if (!dir.exists()) dir.mkdirs();
-
-            String extension = "";
-            int i = sourceFile.getName().lastIndexOf('.');
-            if (i > 0) extension = sourceFile.getName().substring(i);
-
-            String newFileName = prefix + "_" + System.currentTimeMillis() + extension;
-            File destFile = new File(dir, newFileName);
-
-            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            return "images/uploads/" + subFolder + "/" + newFileName;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "default_" + (subFolder.equals("students") ? "student" : "device") + ".png";
-        }
     }
 
     @FXML
@@ -319,22 +334,16 @@ public class AddStudentController {
 
                 newStudent = new Student(studentNumber, fullCombinedName, cleanCourse, cleanSection, cleanMobile, "Active");
 
-                QRCodeGenerator.generateStudentQRCode(studentNumber, fullCombinedName);
-                String safeName = fullCombinedName.replaceAll("\\s+", "_");
-                String fileName = studentNumber + "_" + safeName + ".png";
-                String filePath = "src/main/resources/qrcodes/" + fileName;
-                File qrFile = new File(filePath);
-
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Registration Success");
                 alert.setHeaderText("Student Registered: " + fullCombinedName);
                 alert.setContentText("The student and associated assets have been successfully saved.");
 
-                if (qrFile.exists()) {
-                    Image qrImage = new Image(qrFile.toURI().toString());
+                Image qrImage = QRCodeGenerator.generateQRCodeInMemory(studentNumber, 200, 200);
+                if (qrImage != null) {
                     ImageView imageView = new ImageView(qrImage);
-                    imageView.setFitWidth(250);
-                    imageView.setFitHeight(250);
+                    imageView.setFitWidth(200);
+                    imageView.setFitHeight(200);
                     imageView.setPreserveRatio(true);
                     alert.setGraphic(imageView);
                 }

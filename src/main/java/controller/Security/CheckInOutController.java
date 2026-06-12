@@ -33,7 +33,6 @@ public class CheckInOutController extends BaseSecurityController {
     @FXML private Label lblStudentID;
     @FXML private Label lblCourseSection;
 
-    // NEW: FXML IDs mapped to the visual layout
     @FXML private ImageView imgStudentPhoto;
     @FXML private ImageView imgDevicePhoto;
 
@@ -96,7 +95,10 @@ public class CheckInOutController extends BaseSecurityController {
 
     private void startScanner() {
         btnConfirm.setDisable(true);
+        btnConfirm.setText("Confirm");
         statusLabel.setText("Scanning for QR...");
+        statusLabel.setStyle("-fx-text-fill: #333333;");
+
         currentScannedStudent = null;
         currentDbStudentId = null;
         currentStudentPhotoPath = null;
@@ -107,6 +109,7 @@ public class CheckInOutController extends BaseSecurityController {
         selectedDeviceIds.clear();
         studentDeviceList.clear();
         deviceContainer.getChildren().clear();
+        deviceContainer.setDisable(false);
 
         if(imgStudentPhoto != null) imgStudentPhoto.setImage(null);
         if(imgDevicePhoto != null) imgDevicePhoto.setImage(null);
@@ -128,7 +131,8 @@ public class CheckInOutController extends BaseSecurityController {
         currentScannedStudent = studentNumber;
 
         Platform.runLater(() -> {
-            statusLabel.setText("QR Detected! Fetching Data...");
+            statusLabel.setText("QR Detected! Fetching Cloud Data...");
+            statusLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;"); // Loading Orange
             txtDeviceSearch.setText(studentNumber);
         });
 
@@ -138,7 +142,10 @@ public class CheckInOutController extends BaseSecurityController {
                 fetchStudentAndDeviceData(conn, studentNumber);
             } catch (SQLException e) {
                 e.printStackTrace();
-                Platform.runLater(() -> statusLabel.setText("Database Connection Error"));
+                Platform.runLater(() -> {
+                    statusLabel.setText("Database Connection Error");
+                    statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
+                });
             }
         }).start();
     }
@@ -216,6 +223,7 @@ public class CheckInOutController extends BaseSecurityController {
         if (fullName.isEmpty()) {
             Platform.runLater(() -> {
                 statusLabel.setText("Unregistered QR Code");
+                statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
                 showAlert(Alert.AlertType.ERROR, "No student found for: " + identifier);
             });
             return;
@@ -251,7 +259,7 @@ public class CheckInOutController extends BaseSecurityController {
                             ToggleButton card = createDeviceCard(d);
                             deviceContainer.getChildren().add(card);
                             card.setSelected(true);
-                            card.setDisable(true);
+                            card.setDisable(true); // Lock selection on checkout
                         }
                     }
                 }
@@ -270,7 +278,6 @@ public class CheckInOutController extends BaseSecurityController {
                         ToggleButton card = createDeviceCard(d);
                         deviceContainer.getChildren().add(card);
                     }
-
                     if (!deviceContainer.getChildren().isEmpty()) {
                         ((ToggleButton) deviceContainer.getChildren().get(0)).setSelected(true);
                     }
@@ -280,17 +287,23 @@ public class CheckInOutController extends BaseSecurityController {
 
             updateSelectionLabels();
             statusLabel.setText("Verification Ready");
+            statusLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;"); // Ready Green
         });
     }
 
+    // CLOUD UPGRADE: Teach the scanner to download Supabase URLs natively
     private void loadImageToView(ImageView imageView, String relativePath) {
         if (imageView == null || relativePath == null || relativePath.isEmpty()) return;
         try {
-            File imgFile = new File("src/main/resources/" + relativePath);
-            if (imgFile.exists()) {
-                imageView.setImage(new Image(imgFile.toURI().toString()));
+            if (relativePath.startsWith("http")) {
+                imageView.setImage(new Image(relativePath, true)); // True = background loading
             } else {
-                imageView.setImage(null);
+                File imgFile = new File("src/main/resources/" + relativePath);
+                if (imgFile.exists()) {
+                    imageView.setImage(new Image(imgFile.toURI().toString()));
+                } else {
+                    imageView.setImage(null);
+                }
             }
         } catch (Exception e) {
             System.err.println("Could not load image: " + relativePath);
@@ -357,7 +370,13 @@ public class CheckInOutController extends BaseSecurityController {
     @FXML
     private void handleConfirm() {
         if (lblStudentID.getText().isEmpty() || currentScannedStudent == null || currentDbStudentId == null) return;
+
+        // VISUAL LOADING STATE
         btnConfirm.setDisable(true);
+        btnConfirm.setText("Processing...");
+        deviceContainer.setDisable(true);
+        statusLabel.setText("Syncing with Cloud...");
+        statusLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;"); // Orange Loading Color
 
         new Thread(() -> {
             try (Connection conn = DatabaseHelper.getConnection()) {
@@ -380,7 +399,7 @@ public class CheckInOutController extends BaseSecurityController {
                         } else {
                             for (Object devId : selectedDeviceIds) {
                                 pstmt.setObject(1, currentDbStudentId);
-                                pstmt.setObject(2, devId);
+                                pstmt.setObject(2, devId); // Binds the strict device ID, locking the token
                                 pstmt.addBatch();
                             }
                             pstmt.executeBatch();
@@ -392,6 +411,8 @@ public class CheckInOutController extends BaseSecurityController {
 
                 Platform.runLater(() -> {
                     String actionStr = isCheckingOut ? "Check-Out" : "Check-In";
+                    statusLabel.setText("Sync Complete!");
+                    statusLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;"); // Green Success
                     showAlert(Alert.AlertType.INFORMATION, actionStr + " logged successfully!\n\nStudent: " + lblStudentName.getText());
                     handleClear();
                     startScanner();
@@ -399,8 +420,12 @@ public class CheckInOutController extends BaseSecurityController {
             } catch (SQLException e) {
                 e.printStackTrace();
                 Platform.runLater(() -> {
-                    showAlert(Alert.AlertType.ERROR, "Database error during transaction.");
+                    statusLabel.setText("Database Sync Failed");
+                    statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;"); // Red Error
+                    btnConfirm.setText("Confirm");
                     btnConfirm.setDisable(false);
+                    deviceContainer.setDisable(false);
+                    showAlert(Alert.AlertType.ERROR, "Database error during transaction.");
                 });
             }
         }).start();
@@ -423,7 +448,6 @@ public class CheckInOutController extends BaseSecurityController {
         lblSerialNumber.setText("");
         lblAccessCode.setText("");
         lblCurrentStatus.setText("");
-        statusLabel.setText("Scanner Stopped");
 
         if(imgStudentPhoto != null) imgStudentPhoto.setImage(null);
         if(imgDevicePhoto != null) imgDevicePhoto.setImage(null);

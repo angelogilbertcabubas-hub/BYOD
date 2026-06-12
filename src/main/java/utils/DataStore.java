@@ -30,7 +30,6 @@ public class DataStore {
         reportsList = FXCollections.observableArrayList();
         usersList = FXCollections.observableArrayList();
 
-        // Initial load on application startup
         loadStudentsFromDatabase();
         loadDevicesFromDatabase();
         loadLogsFromDatabase();
@@ -43,7 +42,6 @@ public class DataStore {
         return instance;
     }
 
-    // NEW REFRESH METHODS FOR REAL-TIME UI UPDATES
     public void refreshStudents() {
         studentsList.clear();
         loadStudentsFromDatabase();
@@ -60,6 +58,7 @@ public class DataStore {
     }
 
     private void loadLogsFromDatabase() {
+        // Sorts by Check-In time purely so the True Ledger stays sequential
         String query = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, " +
                 "d.device_brand, d.device_name, d.unique_code, c.status, " +
                 "TO_CHAR(c.check_in_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_in, " +
@@ -67,7 +66,7 @@ public class DataStore {
                 "FROM check_in_out c " +
                 "JOIN students s ON c.student_id = s.id " +
                 "JOIN devices d ON c.device_id = d.id " +
-                "ORDER BY COALESCE(c.check_out_time, c.check_in_time) DESC LIMIT 100";
+                "ORDER BY c.check_in_time DESC LIMIT 150";
 
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query);
@@ -85,14 +84,23 @@ public class DataStore {
                 if (accessToken == null) accessToken = "N/A";
 
                 String status = rs.getString("status");
-                String operation = "CHECKED_OUT".equals(status) ? "Check-Out" : "Check-In";
+                String timeIn = rs.getString("formatted_time_in");
+                String timeOut = rs.getString("formatted_time_out");
 
-                String timestamp = "CHECKED_OUT".equals(status) ?
-                        rs.getString("formatted_time_out") : rs.getString("formatted_time_in");
+                // THE TRUE LEDGER UPGRADE
+                // Always create a row for the Check-In event
+                monitoringLogsList.add(new LogEntry(
+                        logId + "-IN", studentName, studentId, deviceModel, accessToken,
+                        "Check-In", (timeIn != null ? timeIn : "Unknown Time"), "Main Gate"
+                ));
 
-                if (timestamp == null) timestamp = "Unknown Time";
-
-                monitoringLogsList.add(new LogEntry(logId, studentName, studentId, deviceModel, accessToken, operation, timestamp, "Main Gate"));
+                // If the student has checked out, generate a SECOND row just for the Check-Out event
+                if ("CHECKED_OUT".equals(status) && timeOut != null) {
+                    monitoringLogsList.add(new LogEntry(
+                            logId + "-OUT", studentName, studentId, deviceModel, accessToken,
+                            "Check-Out", timeOut, "Main Gate"
+                    ));
+                }
             }
         } catch (Exception e) { e.printStackTrace(); }
     }
