@@ -1,71 +1,159 @@
-<?xml version="1.0" encoding="UTF-8"?>
+package controller.Admin;
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
+        import com.example.byod.SystemUser;
+        import utils.DatabaseHelper;
+        import javafx.application.Platform;
+        import javafx.event.ActionEvent;
+        import javafx.fxml.FXML;
+        import javafx.geometry.Insets;
+        import javafx.scene.Node;
+        import javafx.scene.control.*;
+        import javafx.scene.layout.GridPane;
+        import javafx.stage.Stage;
 
-<VBox prefWidth="520.0" spacing="20.0" style="-fx-background-color: #E5E1E2; -fx-padding: 25;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.AddUserController">
-    <children>
-        <VBox spacing="4.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 15;">
-            <children>
-                <Label text="Provision New User" textFill="#500A0E">
-                    <font><Font name="System Bold" size="16.0" /></font>
-                </Label>
-                <Label text="Create a new administrative or security staff credentials profile." textFill="#666666">
-                    <font><Font size="11.0" /></font>
-                </Label>
-            </children>
-        </VBox>
+        import java.sql.Connection;
+        import java.sql.PreparedStatement;
+        import java.util.Optional;
+        import java.util.regex.Pattern;
 
-        <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20;" VBox.vgrow="ALWAYS">
-            <children>
-                <VBox spacing="4.0">
-                    <children>
-                        <Label text="USERNAME *" textFill="#555555">
-                            <font><Font name="System Bold" size="10.0" /></font>
-                        </Label>
-                        <TextField fx:id="txtUsername" prefHeight="35.0" promptText="e.g., admin_new" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
-                    </children>
-                </VBox>
+        public class AddUserController {
 
-                <VBox spacing="4.0">
-                    <children>
-                        <Label text="FULL NAME *" textFill="#555555">
-                            <font><Font name="System Bold" size="10.0" /></font>
-                        </Label>
-                        <TextField fx:id="txtFullName" prefHeight="35.0" promptText="e.g., Juan Dela Cruz" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
-                    </children>
-                </VBox>
+        @FXML private TextField txtUsername;
+        @FXML private TextField txtFullName;
+        @FXML private TextField txtRole;
 
-                <GridPane hgap="15.0">
-                    <columnConstraints>
-                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="240.0" />
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="105.0" minWidth="10.0" prefWidth="15.0" />
-                        <ColumnConstraints hgrow="SOMETIMES" maxWidth="210.0" minWidth="10.0" prefWidth="210.0" />
-                    </columnConstraints>
-                    <rowConstraints>
-                        <RowConstraints minHeight="10.0" prefHeight="55.0" vgrow="SOMETIMES" />
-                    </rowConstraints>
-                    <children>
-                        <VBox spacing="4.0" GridPane.columnIndex="0">
-                            <children>
-                                <Label text="SYSTEM ROLE *" textFill="#555555">
-                                    <font><Font name="System Bold" size="10.0" /></font>
-                                </Label>
-                                <TextField fx:id="txtRole" prefHeight="35.0" promptText="Administrator or Security Guard" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
-                            </children>
-                        </VBox>
-                        <VBox prefHeight="55.0" prefWidth="159.0" spacing="4.0" GridPane.columnIndex="2" />
-                    </children>
-                </GridPane>
-            </children>
-        </VBox>
+        private SystemUser newUser = null;
 
-        <HBox alignment="CENTER_RIGHT" spacing="15.0">
-            <children>
-                <Button mnemonicParsing="false" onAction="#handleCancel" prefHeight="35.0" prefWidth="90.0" style="-fx-background-color: white; -fx-text-fill: #444444; -fx-background-radius: 6; -fx-font-weight: bold; -fx-cursor: hand;" text="CANCEL" />
-                <Button mnemonicParsing="false" onAction="#handleSave" prefHeight="35.0" prefWidth="140.0" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-background-radius: 6; -fx-font-weight: bold; -fx-cursor: hand;" text="CREATE USER" />
-            </children>
-        </HBox>
-    </children>
-</VBox>
+        @FXML
+        private void handleSave(ActionEvent event) {
+        String username = txtUsername.getText().trim();
+        String fullName = txtFullName.getText().trim();
+        String role = txtRole.getText().trim();
+
+        if (username.isEmpty() || role.isEmpty()) {
+        showAlert(Alert.AlertType.WARNING, "Validation Error", "Username and Role parameters are strictly required.");
+        return;
+        }
+
+        // --- INJECT THE SECURE PASSWORD DIALOG ---
+        Dialog<String> dialog = new Dialog<>();
+    dialog.setTitle("Secure Password Provisioning");
+    dialog.setHeaderText("Set a secure initial password for: " + username);
+
+    ButtonType saveButtonType = new ButtonType("Create Account", ButtonBar.ButtonData.OK_DONE);
+    dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+    GridPane grid = new GridPane();
+    grid.setHgap(10);
+    grid.setVgap(10);
+    grid.setPadding(new Insets(20, 20, 10, 10));
+
+    PasswordField newPasswordField = new PasswordField();
+    newPasswordField.setPromptText("Enter secure password");
+    PasswordField confirmPasswordField = new PasswordField();
+    confirmPasswordField.setPromptText("Confirm secure password");
+
+    Label rulesLabel = new Label("Required: Min 8 chars, 1 uppercase, 1 lowercase, 1 number");
+    rulesLabel.setStyle("-fx-text-fill: #555555; -fx-font-size: 11px;");
+
+    Label errorLabel = new Label();
+    errorLabel.setStyle("-fx-text-fill: #D32F2F; -fx-font-size: 11px; -fx-font-weight: bold;");
+
+    grid.add(new Label("Initial Password:"), 0, 0);
+    grid.add(newPasswordField, 1, 0);
+    grid.add(new Label("Confirm Password:"), 0, 1);
+    grid.add(confirmPasswordField, 1, 1);
+    grid.add(rulesLabel, 1, 2);
+    grid.add(errorLabel, 1, 3);
+
+    dialog.getDialogPane().setContent(grid);
+
+    Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
+    saveButton.setDisable(true); // Disabled until rules are met
+
+    // Real-Time Validation Pattern
+    Pattern passwordPattern = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$");
+
+    javafx.beans.value.ChangeListener<String> validator = (observable, oldValue, newValue) -> {
+        String pwd = newPasswordField.getText();
+        String conf = confirmPasswordField.getText();
+
+        if (pwd.isEmpty()) {
+        errorLabel.setText("");
+        saveButton.setDisable(true);
+        } else if (!passwordPattern.matcher(pwd).matches()) {
+        errorLabel.setText("Password does not meet complexity requirements.");
+        saveButton.setDisable(true);
+        } else if (!pwd.equals(conf)) {
+        errorLabel.setText("Passwords do not match.");
+        saveButton.setDisable(true);
+        } else {
+        errorLabel.setText("Secure configuration verified.");
+        errorLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-size: 11px; -fx-font-weight: bold;");
+        saveButton.setDisable(false);
+        }
+        };
+
+        newPasswordField.textProperty().addListener(validator);
+        confirmPasswordField.textProperty().addListener(validator);
+
+        dialog.setResultConverter(dialogButton -> {
+        if (dialogButton == saveButtonType) {
+        return newPasswordField.getText();
+        }
+        return null;
+        });
+
+        Optional<String> result = dialog.showAndWait();
+
+            // If validation passed and the admin securely set the password
+            result.ifPresent(securePassword -> {
+            String insertQuery = "INSERT INTO users (username, role, password_hash) VALUES (?, ?, ?)";
+
+            try (Connection conn = DatabaseHelper.getConnection();
+            PreparedStatement pstmt = conn.prepareStatement(insertQuery)) {
+
+            pstmt.setString(1, username);
+            pstmt.setString(2, role.toUpperCase());
+            pstmt.setString(3, securePassword); // Secure password inserted directly
+            pstmt.executeUpdate();
+
+            // Store the verified object to pass back to the main table
+            newUser = new SystemUser(username, fullName, role, "Active", "");
+
+            showAlert(Alert.AlertType.INFORMATION, "User Provisioned",
+            "The account for " + username + " has been securely created in the cloud.\n\n" +
+            "They can now log in using the strict credential you just provided.");
+
+            closeStage(event);
+
+            } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to provision user. The username might already exist in the system.");
+            }
+            });
+            }
+
+            @FXML
+            private void handleCancel(ActionEvent event) {
+            newUser = null;
+            closeStage(event);
+            }
+
+            private void closeStage(ActionEvent event) {
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.close();
+            }
+
+            public SystemUser getNewUser() {
+            return newUser;
+            }
+
+            private void showAlert(Alert.AlertType type, String title, String message) {
+            Alert alert = new Alert(type);
+            alert.setTitle("Account Provisioning Security");
+            alert.setHeaderText(title);
+            alert.setContentText(message);
+            alert.showAndWait();
+            }
+            }

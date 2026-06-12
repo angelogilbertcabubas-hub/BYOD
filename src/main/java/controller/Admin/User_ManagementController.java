@@ -1,11 +1,24 @@
 package controller.Admin;
 
 import com.example.byod.SystemUser;
-import utils.DataStore;
+import utils.DatabaseHelper;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 public class User_ManagementController extends BaseAdminController {
 
@@ -17,6 +30,8 @@ public class User_ManagementController extends BaseAdminController {
     @FXML private TableColumn<SystemUser, String> colUserActionControls;
     @FXML private Label entriesSummaryCountLabel;
 
+    private ObservableList<SystemUser> cloudUsersList = FXCollections.observableArrayList();
+
     @FXML
     public void initialize() {
         colUserIdenticon.setCellValueFactory(new PropertyValueFactory<>("username"));
@@ -25,23 +40,22 @@ public class User_ManagementController extends BaseAdminController {
         colUserStateBadge.setCellValueFactory(new PropertyValueFactory<>("status"));
 
         colUserActionControls.setCellFactory(param -> new TableCell<SystemUser, String>() {
-            private final Button btnEdit = new Button("Edit");
+            private final Button btnReset = new Button("Reset Password");
             private final Button btnDelete = new Button("Delete");
-            private final javafx.scene.layout.HBox pane = new javafx.scene.layout.HBox(10, btnEdit, btnDelete);
+            private final HBox pane = new HBox(10, btnReset, btnDelete);
 
             {
-                btnEdit.setStyle("-fx-background-color: #500A0E; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 5 10;");
-                btnDelete.setStyle("-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 5 10;");
+                btnReset.setStyle("-fx-background-color: #E67E22; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 4; -fx-font-weight: bold;");
+                btnDelete.setStyle("-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 5 10; -fx-background-radius: 4; -fx-font-weight: bold;");
 
-                btnEdit.setOnAction(event -> {
+                btnReset.setOnAction(event -> {
                     SystemUser user = getTableView().getItems().get(getIndex());
-                    System.out.println("Editing user: " + user.getUsername());
+                    handleSecurePasswordReset(user);
                 });
 
                 btnDelete.setOnAction(event -> {
                     SystemUser user = getTableView().getItems().get(getIndex());
-                    DataStore.getInstance().getUsersList().remove(user);
-                    updateCountLabel(); // Refresh the counter
+                    handleDeleteUser(user);
                 });
             }
 
@@ -52,13 +66,157 @@ public class User_ManagementController extends BaseAdminController {
             }
         });
 
-        userManagementTableView.setItems(DataStore.getInstance().getUsersList());
-        updateCountLabel();
+        userManagementTableView.setItems(cloudUsersList);
+        fetchUsersFromCloud();
+    }
+
+    private void fetchUsersFromCloud() {
+        entriesSummaryCountLabel.setText("Syncing users with cloud...");
+
+        new Thread(() -> {
+            String query = "SELECT username, role FROM users";
+            try (Connection conn = DatabaseHelper.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(query);
+                 ResultSet rs = pstmt.executeQuery()) {
+
+                cloudUsersList.clear();
+
+                while (rs.next()) {
+                    String username = rs.getString("username");
+                    String role = rs.getString("role");
+
+                    // FIX: Added the 5th parameter ("") to match your SystemUser constructor!
+                    SystemUser user = new SystemUser(username, username, role, "Active", "");
+                    cloudUsersList.add(user);
+                }
+
+                Platform.runLater(this::updateCountLabel);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> entriesSummaryCountLabel.setText("Failed to connect to cloud database."));
+            }
+        }).start();
+    }
+
+    private void handleSecurePasswordReset(SystemUser user) {
+        Dialog<String> dialog = new Dialog<>();
+        dialog.setTitle("Secure Password Reset");
+        dialog.setHeaderText("Provision a new secure credential for: " + user.getUsername());
+
+        ButtonType saveButtonType = new ButtonType("Update Credentials", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 20, 10, 10));
+
+        PasswordField newPasswordField = new PasswordField();
+        newPasswordField.setPromptText("Enter new password");
+        PasswordField confirmPasswordField = new PasswordField();
+        confirmPasswordField.setPromptText("Confirm new password");
+
+        Label rulesLabel = new Label("Required: Min 8 chars, 1 uppercase, 1 lowercase, 1 number");
+        rulesLabel.setStyle("-fx-text-fill: #555555; -fx-font-size: 11px;");
+
+        Label errorLabel = new Label();
+        errorLabel.setStyle("-fx-text-fill: #D32F2F; -fx-font-size: 11px; -fx-font-weight: bold;");
+
+        grid.add(new Label("New Password:"), 0, 0);
+        grid.add(newPasswordField, 1, 0);
+        grid.add(new Label("Confirm Password:"), 0, 1);
+        grid.add(confirmPasswordField, 1, 1);
+        grid.add(rulesLabel, 1, 2);
+        grid.add(errorLabel, 1, 3);
+
+        dialog.getDialogPane().setContent(grid);
+
+        Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.setDisable(true);
+
+        Pattern passwordPattern = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$");
+
+        javafx.beans.value.ChangeListener<String> validator = (observable, oldValue, newValue) -> {
+            String pwd = newPasswordField.getText();
+            String conf = confirmPasswordField.getText();
+
+            if (pwd.isEmpty()) {
+                errorLabel.setText("");
+                saveButton.setDisable(true);
+            } else if (!passwordPattern.matcher(pwd).matches()) {
+                errorLabel.setText("Password does not meet complexity requirements.");
+                saveButton.setDisable(true);
+            } else if (!pwd.equals(conf)) {
+                errorLabel.setText("Passwords do not match.");
+                saveButton.setDisable(true);
+            } else {
+                errorLabel.setText("Secure configuration verified.");
+                errorLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-size: 11px; -fx-font-weight: bold;");
+                saveButton.setDisable(false);
+            }
+        };
+
+        newPasswordField.textProperty().addListener(validator);
+        confirmPasswordField.textProperty().addListener(validator);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                return newPasswordField.getText();
+            }
+            return null;
+        });
+
+        Optional<String> result = dialog.showAndWait();
+
+        result.ifPresent(newSecurePassword -> {
+            new Thread(() -> {
+                String query = "UPDATE users SET password_hash = ? WHERE username = ?";
+                try (Connection conn = DatabaseHelper.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+                    pstmt.setString(1, newSecurePassword);
+                    pstmt.setString(2, user.getUsername());
+                    pstmt.executeUpdate();
+
+                    Platform.runLater(() -> showAlert(Alert.AlertType.INFORMATION, "Reset Successful", "The secure password for " + user.getUsername() + " has been officially updated in the cloud."));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Sync Failed", "Could not reach the cloud database to update the credentials."));
+                }
+            }).start();
+        });
+    }
+
+    private void handleDeleteUser(SystemUser user) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Are you absolutely sure you want to permanently delete the account: " + user.getUsername() + "?", ButtonType.YES, ButtonType.NO);
+        confirm.setTitle("Delete Account");
+
+        if (confirm.showAndWait().orElse(ButtonType.NO) == ButtonType.YES) {
+            new Thread(() -> {
+                String query = "DELETE FROM users WHERE username = ?";
+                try (Connection conn = DatabaseHelper.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+                    pstmt.setString(1, user.getUsername());
+                    pstmt.executeUpdate();
+
+                    Platform.runLater(() -> {
+                        cloudUsersList.remove(user);
+                        updateCountLabel();
+                        showAlert(Alert.AlertType.INFORMATION, "Account Deleted", "User access has been permanently revoked.");
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Deletion Failed", "Could not remove user from cloud."));
+                }
+            }).start();
+        }
     }
 
     private void updateCountLabel() {
-        int count = DataStore.getInstance().getUsersList().size();
-        entriesSummaryCountLabel.setText("Showing 1 to " + count + " of " + count + " users");
+        int count = cloudUsersList.size();
+        entriesSummaryCountLabel.setText("Showing 1 to " + count + " of " + count + " authorized users");
     }
 
     @FXML
@@ -76,15 +234,21 @@ public class User_ManagementController extends BaseAdminController {
 
             dialogStage.showAndWait();
 
-            SystemUser createdUser = dialogController.getNewUser();
-            if (createdUser != null) {
-                DataStore.getInstance().getUsersList().add(createdUser);
-                updateCountLabel();
+            if (dialogController.getNewUser() != null) {
+                fetchUsersFromCloud();
             }
 
         } catch (java.io.IOException e) {
             System.err.println("CRITICAL FAULT: Unable to load Add User Modal.");
             e.printStackTrace();
         }
+    }
+
+    private void showAlert(Alert.AlertType type, String title, String message) {
+        Alert alert = new Alert(type);
+        alert.setTitle("Account Provisioning Security");
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

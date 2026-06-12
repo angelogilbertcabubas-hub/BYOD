@@ -125,7 +125,7 @@
                         <HBox alignment="CENTER_LEFT">
                            <children>
                               <Region HBox.hgrow="ALWAYS" />
-                              <Hyperlink style="-fx-text-fill: #6B0F0F; -fx-underline: false;" text="Forgot Password?" />
+                              <Hyperlink fx:id="forgotPasswordLink" style="-fx-text-fill: #6B0F0F; -fx-underline: false;" text="Forgot Password?" />
                            </children>
                         </HBox>
 
