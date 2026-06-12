@@ -79,7 +79,7 @@
 
                         <ImageView fitHeight="110.0" fitWidth="110.0" preserveRatio="true">
                            <image>
-                              <Image url="@../../../images/byod_logo.png" />
+                              <Image url="@../../../images/endpoint_logo1.png" />
                            </image>
                         </ImageView>
 
