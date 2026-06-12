@@ -11,6 +11,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DataStore;
@@ -50,6 +51,18 @@ public class StudentProfileModalController {
     @FXML private TextField quickModelField;
     @FXML private TextField quickMacField;
 
+    @FXML private Button btnEditToggle;
+    @FXML private Button btnSaveEdit;
+    @FXML private Button btnCancelEdit;
+
+    @FXML private TextField editCourseField;
+    @FXML private TextField editEmailField;
+    @FXML private TextField editMobileField;
+
+    @FXML private GridPane viewModeGrid;
+    @FXML private GridPane editModeGrid;
+    @FXML private TextField editStudentIdField;
+
     private Student focusedStudent;
     private UUID databaseStudentUuid;
     private ObservableList<Device> isolatedDevicesList = FXCollections.observableArrayList();
@@ -77,6 +90,13 @@ public class StudentProfileModalController {
                 devicePhotoImageView.setImage(null);
             }
         });
+
+        editModeGrid.setVisible(false);
+        editModeGrid.setManaged(false);
+        btnSaveEdit.setVisible(false);
+        btnSaveEdit.setManaged(false);
+        btnCancelEdit.setVisible(false);
+        btnCancelEdit.setManaged(false);
     }
 
     public void initData(Student targetStudent) {
@@ -314,5 +334,76 @@ public class StudentProfileModalController {
         alert.setHeaderText(header);
         alert.setContentText(body);
         alert.showAndWait();
+    }
+
+    @FXML
+    private void handleEditToggle(ActionEvent event){
+        editCourseField.setText(txtProfileCourse.getText());
+        editEmailField.setText(txtProfileEmail.getText());
+        editMobileField.setText(txtProfileMobile.getText());
+
+        viewModeGrid.setVisible(false);
+        viewModeGrid.setManaged(false);
+        editModeGrid.setManaged(true);
+        editModeGrid.setVisible(true);
+
+        btnEditToggle.setVisible(false);
+        btnEditToggle.setManaged(false);
+        btnSaveEdit.setVisible(true);
+        btnSaveEdit.setManaged(true);
+        btnCancelEdit.setVisible(true);
+        btnCancelEdit.setManaged(true);
+    }
+
+    @FXML
+    private void handleSaveEdit(ActionEvent event){
+        String newCourse = editCourseField.getText().trim();
+        String newEmail = editEmailField.getText().trim();
+        String newMobile = editMobileField.getText().trim();
+
+        if (newCourse.isEmpty() || newEmail.isEmpty() || newMobile.isEmpty()){
+            showAlert(Alert.AlertType.WARNING, "Empty Fields", "All fields must be filled in");
+            return;
+        }
+
+        try(Connection conn = DatabaseHelper.getConnection()) {
+            String updateSql = "UPDATE students SET program_course = ?, email_address = ?, mobile_number = ? WHERE school_id = ?";
+            try(PreparedStatement preparedStatement = conn.prepareStatement(updateSql)) {
+                preparedStatement.setString(1, newCourse);
+                preparedStatement.setString(1, newEmail);
+                preparedStatement.setString(1, newMobile);
+                preparedStatement.setString(1, focusedStudent.getStudentId());
+                preparedStatement.executeUpdate();
+            }
+            txtProfileCourse.setText(newCourse);
+            txtProfileEmail.setText(newEmail);
+            txtProfileMobile.setText(newMobile);
+
+            utils.DataStore.getInstance().refreshStudents();
+
+            showAlert(Alert.AlertType.INFORMATION, "Profile Updated", "Student new Information saved successfully");
+            switchToViewMode();
+        } catch (Exception e){
+            showAlert(Alert.AlertType.ERROR, "Update Failed", "Could not save new Informaion");
+            e.printStackTrace();
+        }
+    }
+
+    @FXML void handleCancelEdit(ActionEvent event){
+        switchToViewMode();
+    }
+
+    private void switchToViewMode() {
+        editModeGrid.setVisible(false);
+        editModeGrid.setManaged(false);
+        viewModeGrid.setVisible(true);
+        viewModeGrid.setManaged(true);
+
+        btnSaveEdit.setVisible(false);
+        btnSaveEdit.setManaged(false);
+        btnCancelEdit.setVisible(false);
+        btnCancelEdit.setManaged(false);
+        btnEditToggle.setVisible(true);
+        btnEditToggle.setManaged(true);
     }
 }

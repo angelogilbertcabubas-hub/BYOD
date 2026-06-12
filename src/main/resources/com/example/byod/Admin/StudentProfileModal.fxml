@@ -1,22 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.Separator?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
 
-<VBox prefHeight="680.0" prefWidth="700.0" spacing="15.0" style="-fx-background-color: #E5E1E2; -fx-padding: 20;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.StudentProfileModalController">
+<VBox prefHeight="720.0" prefWidth="700.0" spacing="15.0" style="-fx-background-color: #E5E1E2; -fx-padding: 20;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.StudentProfileModalController">
     <children>
+
+        <!-- HEADER -->
         <HBox alignment="CENTER_LEFT" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 15;">
             <children>
                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
@@ -29,50 +20,137 @@
             </children>
         </HBox>
 
+        <!-- ACCOUNT DOSSIER CARD -->
         <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20;">
             <children>
-                <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 14px;" text="Account Dossier Details" />
+
+                <!-- Card Header Row: Title + EDIT/SAVE/CANCEL buttons -->
+                <HBox alignment="CENTER_LEFT" spacing="8.0">
+                    <children>
+                        <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 14px;" text="Account Dossier Details" HBox.hgrow="ALWAYS" />
+                        <Region HBox.hgrow="ALWAYS" />
+
+                        <!-- EDIT button (visible by default) -->
+                        <Button fx:id="btnEditToggle" mnemonicParsing="false" onAction="#handleEditToggle"
+                                style="-fx-background-color: #E2DDD9; -fx-text-fill: #333333; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14;"
+                                text="✏ EDIT" />
+
+                        <!-- SAVE button (hidden by default) -->
+                        <Button fx:id="btnSaveEdit" mnemonicParsing="false" onAction="#handleSaveEdit"
+                                style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14;"
+                                text="✔ SAVE" visible="false" managed="false" />
+
+                        <!-- CANCEL button (hidden by default) -->
+                        <Button fx:id="btnCancelEdit" mnemonicParsing="false" onAction="#handleCancelEdit"
+                                style="-fx-background-color: #888888; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14;"
+                                text="✖ CANCEL" visible="false" managed="false" />
+                    </children>
+                </HBox>
+
                 <Separator />
 
-                <HBox spacing="20.0" alignment="CENTER_LEFT">
+                <HBox alignment="CENTER_LEFT" spacing="20.0">
                     <children>
-                        <GridPane hgap="15.0" vgap="10.0" HBox.hgrow="ALWAYS">
-                            <columnConstraints>
-                                <ColumnConstraints hgrow="NEVER" minWidth="120.0" prefWidth="130.0" />
-                                <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
-                            </columnConstraints>
-                            <rowConstraints>
-                                <RowConstraints minHeight="25.0" />
-                                <RowConstraints minHeight="25.0" />
-                                <RowConstraints minHeight="25.0" />
-                                <RowConstraints minHeight="25.0" />
-                            </rowConstraints>
+
+                        <VBox spacing="12.0" HBox.hgrow="ALWAYS">
                             <children>
-                                <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="STUDENT NUMBER:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                                <Label fx:id="txtProfileId" style="-fx-font-weight: bold; -fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                                <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="COURSE MODULE:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-                                <Label fx:id="txtProfileCourse" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                                <!-- VIEW MODE: Labels (visible by default) -->
+                                <GridPane fx:id="viewModeGrid" hgap="15.0" vgap="10.0">
+                                    <columnConstraints>
+                                        <ColumnConstraints hgrow="NEVER" minWidth="120.0" prefWidth="130.0" />
+                                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
+                                    </columnConstraints>
+                                    <rowConstraints>
+                                        <RowConstraints minHeight="25.0" />
+                                        <RowConstraints minHeight="25.0" />
+                                        <RowConstraints minHeight="25.0" />
+                                        <RowConstraints minHeight="25.0" />
+                                    </rowConstraints>
+                                    <children>
+                                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="STUDENT NUMBER:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                                        <Label fx:id="txtProfileId" style="-fx-font-weight: bold; -fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                                <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="EMAIL ADDRESS:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-                                <Label fx:id="txtProfileEmail" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="COURSE MODULE:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                                        <Label fx:id="txtProfileCourse" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                                <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="MOBILE LINK:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
-                                <Label fx:id="txtProfileMobile" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="EMAIL ADDRESS:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                                        <Label fx:id="txtProfileEmail" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="MOBILE LINK:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                                        <Label fx:id="txtProfileMobile" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                                    </children>
+                                </GridPane>
+
+                                <!-- EDIT MODE: Text Fields (hidden by default) -->
+                                <GridPane fx:id="editModeGrid" hgap="15.0" vgap="10.0" visible="false" managed="false">
+                                    <columnConstraints>
+                                        <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0" />
+                                        <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0" />
+                                    </columnConstraints>
+                                    <rowConstraints>
+                                        <RowConstraints minHeight="55.0" />
+                                        <RowConstraints minHeight="55.0" />
+                                    </rowConstraints>
+                                    <children>
+
+                                        <!-- Course (read-only notice: use ComboBox if you want a dropdown) -->
+                                        <VBox spacing="4.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                            <children>
+                                                <Label style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;" text="COURSE MODULE" />
+                                                <TextField fx:id="editCourseField" promptText="e.g. BSIT"
+                                                           style="-fx-background-color: #FFFFFF; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-pref-height: 38;" />
+                                            </children>
+                                        </VBox>
+
+                                        <!-- Email -->
+                                        <VBox spacing="4.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                            <children>
+                                                <Label style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;" text="EMAIL ADDRESS" />
+                                                <TextField fx:id="editEmailField" promptText="e.g. student@pup.edu.ph"
+                                                           style="-fx-background-color: #FFFFFF; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-pref-height: 38;" />
+                                            </children>
+                                        </VBox>
+
+                                        <!-- Mobile -->
+                                        <VBox spacing="4.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                            <children>
+                                                <Label style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;" text="MOBILE LINK" />
+                                                <TextField fx:id="editMobileField" promptText="e.g. 09XXXXXXXXX"
+                                                           style="-fx-background-color: #FFFFFF; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-pref-height: 38;" />
+                                            </children>
+                                        </VBox>
+
+                                        <!-- Student Number (read-only) -->
+                                        <VBox spacing="4.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                            <children>
+                                                <Label style="-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;" text="STUDENT NUMBER (read-only)" />
+                                                <TextField fx:id="editStudentIdField"
+                                                           style="-fx-background-color: #F0F0F0; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-pref-height: 38; -fx-text-fill: #999999;"
+                                                           editable="false" />
+                                            </children>
+                                        </VBox>
+
+                                    </children>
+                                </GridPane>
+
                             </children>
-                        </GridPane>
+                        </VBox>
 
+                        <!-- QR Code panel -->
                         <VBox alignment="CENTER" spacing="5.0" style="-fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 8;">
                             <children>
                                 <ImageView fx:id="qrCodeImageView" fitHeight="110.0" fitWidth="110.0" preserveRatio="true" />
                                 <Label style="-fx-font-size: 10px; -fx-text-fill: #777777; -fx-font-weight: bold;" text="ASSIGNED QR" />
                             </children>
                         </VBox>
+
                     </children>
                 </HBox>
             </children>
         </VBox>
 
+        <!-- DEVICES CARD -->
         <VBox spacing="12.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20;" VBox.vgrow="ALWAYS">
             <children>
                 <HBox alignment="CENTER_LEFT">
@@ -106,7 +184,7 @@
                 </HBox>
 
                 <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 12px;" text="⚡ Provision New Asset Attachment" />
-                <HBox spacing="8.0" alignment="CENTER_LEFT">
+                <HBox alignment="CENTER_LEFT" spacing="8.0">
                     <children>
                         <ComboBox fx:id="quickTypeBox" prefHeight="35.0" prefWidth="120.0" promptText="Type" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" />
                         <TextField fx:id="quickModelField" prefHeight="35.0" promptText="Brand/Model" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" HBox.hgrow="ALWAYS" />
@@ -118,10 +196,12 @@
             </children>
         </VBox>
 
+        <!-- FOOTER -->
         <HBox alignment="CENTER_RIGHT">
             <children>
                 <Button mnemonicParsing="false" onAction="#handleCloseModal" prefHeight="38.0" prefWidth="110.0" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" text="CLOSE VIEW" />
             </children>
         </HBox>
+
     </children>
 </VBox>
