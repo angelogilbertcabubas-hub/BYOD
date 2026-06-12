@@ -8,11 +8,18 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.scene.paint.Color;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -38,25 +45,6 @@ public class User_ManagementController extends BaseAdminController {
         colUserFullName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
         colUserPrivilegeBadge.setCellValueFactory(new PropertyValueFactory<>("role"));
         colUserStateBadge.setCellValueFactory(new PropertyValueFactory<>("status"));
-
-        // UI UPGRADE: Dynamic Table Cell Coloring based on Status
-        colUserStateBadge.setCellFactory(column -> new TableCell<SystemUser, String>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    setText(item);
-                    if (item.equals("Reset Requested")) {
-                        setStyle("-fx-text-fill: #D32F2F; -fx-font-weight: bold;"); // Red Warning
-                    } else {
-                        setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;"); // Green Active
-                    }
-                }
-            }
-        });
 
         colUserActionControls.setCellFactory(param -> new TableCell<SystemUser, String>() {
             private final Button btnReset = new Button("Reset Password");
@@ -93,8 +81,7 @@ public class User_ManagementController extends BaseAdminController {
         entriesSummaryCountLabel.setText("Syncing users with cloud...");
 
         new Thread(() -> {
-            // UI FIX: Pulling the actual status from the cloud instead of hardcoding "Active"
-            String query = "SELECT username, role, COALESCE(status, 'Active') as current_status FROM users";
+            String query = "SELECT username, role FROM users";
             try (Connection conn = DatabaseHelper.getConnection();
                  PreparedStatement pstmt = conn.prepareStatement(query);
                  ResultSet rs = pstmt.executeQuery()) {
@@ -104,9 +91,8 @@ public class User_ManagementController extends BaseAdminController {
                 while (rs.next()) {
                     String username = rs.getString("username");
                     String role = rs.getString("role");
-                    String status = rs.getString("current_status");
 
-                    SystemUser user = new SystemUser(username, username, role, status, "");
+                    SystemUser user = new SystemUser(username, username, role, "Active", "");
                     cloudUsersList.add(user);
                 }
 
@@ -120,79 +106,124 @@ public class User_ManagementController extends BaseAdminController {
     }
 
     private void handleSecurePasswordReset(SystemUser user) {
-        Dialog<String> dialog = new Dialog<>();
-        dialog.setTitle("Secure Password Reset");
-        dialog.setHeaderText("Provision a new secure credential for: " + user.getUsername());
+        Stage ownerStage = (Stage) userManagementTableView.getScene().getWindow();
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.initOwner(ownerStage);
+        dialog.initStyle(StageStyle.UNDECORATED);
 
-        ButtonType saveButtonType = new ButtonType("Update Credentials", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+        Label keyIconGfx = new Label("🔑");
+        keyIconGfx.setAlignment(Pos.CENTER);
+        keyIconGfx.setPrefSize(42, 42);
+        keyIconGfx.setMinSize(42, 42);
+        keyIconGfx.setMaxSize(42, 42);
+        keyIconGfx.setStyle("-fx-background-color: #C49A45; -fx-background-radius: 21; -fx-font-size: 20px;");
+
+        Label titleLabel = new Label("Secure Password Reset");
+        titleLabel.setStyle("-fx-font-family: 'System'; -fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #500A0E;");
+
+        Label subTitleLabel = new Label("Provision a new secure credential for: " + user.getUsername());
+        subTitleLabel.setStyle("-fx-font-family: 'System'; -fx-font-size: 13px; -fx-text-fill: #555555;");
+
+        VBox headerTextContainer = new VBox(2, titleLabel, subTitleLabel);
+        headerTextContainer.setAlignment(Pos.CENTER_LEFT);
+
+        HBox headerContainer = new HBox(15, keyIconGfx, headerTextContainer);
+        headerContainer.setAlignment(Pos.CENTER_LEFT);
+        headerContainer.setPadding(new Insets(20, 25, 10, 25));
 
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 20, 10, 10));
+        grid.setHgap(12);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(10, 25, 10, 25));
 
         PasswordField newPasswordField = new PasswordField();
         newPasswordField.setPromptText("Enter new password");
+        newPasswordField.setPrefWidth(295);
+        newPasswordField.setStyle("-fx-background-radius: 4; -fx-border-color: #DDD; -fx-border-radius: 4; -fx-padding: 5;");
+
         PasswordField confirmPasswordField = new PasswordField();
         confirmPasswordField.setPromptText("Confirm new password");
+        confirmPasswordField.setPrefWidth(295);
+        confirmPasswordField.setStyle("-fx-background-radius: 4; -fx-border-color: #DDD; -fx-border-radius: 4; -fx-padding: 5;");
+
+        Label lblNew = new Label("New Password:");
+        lblNew.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333;");
+        Label lblConf = new Label("Confirm Password:");
+        lblConf.setStyle("-fx-font-weight: bold; -fx-text-fill: #333333;");
+
+        grid.add(lblNew, 0, 0);
+        grid.add(newPasswordField, 1, 0);
+        grid.add(lblConf, 0, 1);
+        grid.add(confirmPasswordField, 1, 1);
 
         Label rulesLabel = new Label("Required: Min 8 chars, 1 uppercase, 1 lowercase, 1 number");
-        rulesLabel.setStyle("-fx-text-fill: #555555; -fx-font-size: 11px;");
+        rulesLabel.setStyle("-fx-text-fill: #666666; -fx-font-size: 11px;");
 
         Label errorLabel = new Label();
         errorLabel.setStyle("-fx-text-fill: #D32F2F; -fx-font-size: 11px; -fx-font-weight: bold;");
 
-        grid.add(new Label("New Password:"), 0, 0);
-        grid.add(newPasswordField, 1, 0);
-        grid.add(new Label("Confirm Password:"), 0, 1);
-        grid.add(confirmPasswordField, 1, 1);
-        grid.add(rulesLabel, 1, 2);
-        grid.add(errorLabel, 1, 3);
+        VBox validationContainer = new VBox(4, rulesLabel, errorLabel);
+        validationContainer.setPadding(new Insets(0, 25, 10, 25));
 
-        dialog.getDialogPane().setContent(grid);
+        Button btnSave = new Button("Update Password");
+        btnSave.setDisable(true);
+        btnSave.setStyle("-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;");
 
-        Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
-        saveButton.setDisable(true);
+        btnSave.setOnMouseEntered(e -> {
+            if (!btnSave.isDisabled()) {
+                btnSave.setStyle("-fx-background-color: #C49A45; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;");
+            }
+        });
+
+        btnSave.setOnMouseExited(e -> {
+            if (!btnSave.isDisabled()) {
+                btnSave.setStyle("-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;");
+            }
+        });
+
+        Button btnCancel = new Button("Cancel");
+        btnCancel.setStyle("-fx-background-color: #FFFFFF; -fx-text-fill: #500A0E; -fx-border-color: #500A0E; -fx-border-width: 1; -fx-border-radius: 6; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;");
+
+        HBox buttonContainer = new HBox(10, btnSave, btnCancel);
+        buttonContainer.setAlignment(Pos.BOTTOM_RIGHT);
+        buttonContainer.setPadding(new Insets(10, 25, 20, 25));
 
         Pattern passwordPattern = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$");
-
         javafx.beans.value.ChangeListener<String> validator = (observable, oldValue, newValue) -> {
             String pwd = newPasswordField.getText();
             String conf = confirmPasswordField.getText();
 
             if (pwd.isEmpty()) {
                 errorLabel.setText("");
-                saveButton.setDisable(true);
+                btnSave.setDisable(true);
             } else if (!passwordPattern.matcher(pwd).matches()) {
                 errorLabel.setText("Password does not meet complexity requirements.");
-                saveButton.setDisable(true);
+                btnSave.setDisable(true);
             } else if (!pwd.equals(conf)) {
                 errorLabel.setText("Passwords do not match.");
-                saveButton.setDisable(true);
+                btnSave.setDisable(true);
             } else {
                 errorLabel.setText("Secure configuration verified.");
                 errorLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-size: 11px; -fx-font-weight: bold;");
-                saveButton.setDisable(false);
+                btnSave.setDisable(false);
             }
         };
 
         newPasswordField.textProperty().addListener(validator);
         confirmPasswordField.textProperty().addListener(validator);
 
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == saveButtonType) {
-                return newPasswordField.getText();
-            }
-            return null;
-        });
+        VBox root = new VBox(5, headerContainer, grid, validationContainer, buttonContainer);
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #500A0E; -fx-border-width: 2; -fx-border-radius: 12; -fx-background-radius: 12;");
 
-        Optional<String> result = dialog.showAndWait();
+        btnCancel.setOnAction(e -> dialog.close());
 
-        result.ifPresent(newSecurePassword -> {
+        btnSave.setOnAction(e -> {
+            String newSecurePassword = newPasswordField.getText();
+            dialog.close();
+
             new Thread(() -> {
-                // UI FIX: Clear the 'Reset Requested' status back to 'Active' upon save
-                String query = "UPDATE users SET password_hash = ?, status = 'Active' WHERE username = ?";
+                String query = "UPDATE users SET password_hash = ? WHERE username = ?";
                 try (Connection conn = DatabaseHelper.getConnection();
                      PreparedStatement pstmt = conn.prepareStatement(query)) {
 
@@ -200,23 +231,32 @@ public class User_ManagementController extends BaseAdminController {
                     pstmt.setString(2, user.getUsername());
                     pstmt.executeUpdate();
 
-                    Platform.runLater(() -> {
-                        showAlert(Alert.AlertType.INFORMATION, "Reset Successful", "The secure password for " + user.getUsername() + " has been updated, and their status is cleared.");
-                        fetchUsersFromCloud(); // Refresh the table to paint it green again!
-                    });
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    Platform.runLater(() -> showAlert(Alert.AlertType.INFORMATION, "Reset Successful", "The secure password for " + user.getUsername() + " has been officially updated in the cloud."));
+                } catch (Exception ex) {
+                    ex.printStackTrace();
                     Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Sync Failed", "Could not reach the cloud database to update the credentials."));
                 }
             }).start();
         });
+
+        Scene scene = new Scene(root);
+        scene.setFill(Color.TRANSPARENT);
+        dialog.setScene(scene);
+        dialog.setWidth(500);
+        dialog.setHeight(300);
+
+        dialog.setOnShown(e -> {
+            dialog.setX(ownerStage.getX() + (ownerStage.getWidth() - dialog.getWidth()) / 2);
+            dialog.setY(ownerStage.getY() + (ownerStage.getHeight() - dialog.getHeight()) / 2);
+        });
+
+        dialog.showAndWait();
     }
 
     private void handleDeleteUser(SystemUser user) {
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Are you absolutely sure you want to permanently delete the account: " + user.getUsername() + "?", ButtonType.YES, ButtonType.NO);
-        confirm.setTitle("Delete Account");
+        Stage ownerStage = (Stage) userManagementTableView.getScene().getWindow();
 
-        if (confirm.showAndWait().orElse(ButtonType.NO) == ButtonType.YES) {
+        if (showCustomDeleteConfirmation(ownerStage, user.getUsername())) {
             new Thread(() -> {
                 String query = "DELETE FROM users WHERE username = ?";
                 try (Connection conn = DatabaseHelper.getConnection();
@@ -236,6 +276,84 @@ public class User_ManagementController extends BaseAdminController {
                 }
             }).start();
         }
+    }
+
+    private boolean showCustomDeleteConfirmation(Stage ownerStage, String username) {
+        Stage dialog = new Stage();
+        dialog.initModality(Modality.WINDOW_MODAL);
+        dialog.initOwner(ownerStage);
+        dialog.initStyle(StageStyle.UNDECORATED);
+
+        Label systemIconGfx = new Label("?");
+        systemIconGfx.setAlignment(Pos.CENTER);
+        systemIconGfx.setPrefSize(42, 42);
+        systemIconGfx.setMinSize(42, 42);
+        systemIconGfx.setMaxSize(42, 42);
+        systemIconGfx.setStyle(
+                "-fx-background-color: #C49A45; " +
+                        "-fx-background-radius: 21; " +
+                        "-fx-text-fill: white; " +
+                        "-fx-font-family: 'Segoe UI', 'System'; " +
+                        "-fx-font-weight: bold; " +
+                        "-fx-font-size: 22px;"
+        );
+
+        Label titleLabel = new Label("Confirmation");
+        titleLabel.setStyle("-fx-font-family: 'System'; -fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #500A0E;");
+
+        Label messageLabel = new Label("Are you absolutely sure you want to permanently delete the account: " + username + "?");
+        messageLabel.setWrapText(true);
+        messageLabel.setPrefWidth(320);
+        messageLabel.setStyle("-fx-font-family: 'System'; -fx-font-size: 13px; -fx-text-fill: #444444;");
+
+        VBox textContainer = new VBox(4, titleLabel, messageLabel);
+        textContainer.setAlignment(Pos.CENTER_LEFT);
+
+        HBox bodyContainer = new HBox(18, systemIconGfx, textContainer);
+        bodyContainer.setAlignment(Pos.CENTER_LEFT);
+        bodyContainer.setPadding(new Insets(25, 25, 15, 25));
+
+        Button btnYes = new Button("Yes");
+        btnYes.setPrefWidth(75);
+        btnYes.setStyle("-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 12; -fx-font-size: 12px;");
+
+        Button btnNo = new Button("No");
+        btnNo.setPrefWidth(75);
+        btnNo.setStyle("-fx-background-color: #FFFFFF; -fx-text-fill: #500A0E; -fx-border-color: #500A0E; -fx-border-width: 1; -fx-border-radius: 6; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 12; -fx-font-size: 12px;");
+
+        HBox buttonContainer = new HBox(10, btnYes, btnNo);
+        buttonContainer.setAlignment(Pos.BOTTOM_RIGHT);
+        buttonContainer.setPadding(new Insets(0, 25, 20, 25));
+
+        VBox root = new VBox(bodyContainer, buttonContainer);
+        root.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #500A0E; -fx-border-width: 2; -fx-border-radius: 12; -fx-background-radius: 12;");
+
+        final boolean[] userResponse = {false};
+
+        btnYes.setOnAction(e -> {
+            userResponse[0] = true;
+            dialog.close();
+        });
+
+        btnNo.setOnAction(e -> {
+            userResponse[0] = false;
+            dialog.close();
+        });
+
+        Scene scene = new Scene(root);
+        scene.setFill(Color.TRANSPARENT);
+
+        dialog.setScene(scene);
+        dialog.setWidth(430);
+        dialog.setHeight(165);
+
+        dialog.setOnShown(e -> {
+            dialog.setX(ownerStage.getX() + (ownerStage.getWidth() - dialog.getWidth()) / 2);
+            dialog.setY(ownerStage.getY() + (ownerStage.getHeight() - dialog.getHeight()) / 2);
+        });
+
+        dialog.showAndWait();
+        return userResponse[0];
     }
 
     private void updateCountLabel() {

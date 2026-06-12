@@ -7,9 +7,9 @@
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.*?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="768.0" prefWidth="1024.0" style="-fx-background-color: #5C1515;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.User_ManagementController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="768.0" prefWidth="1024.0" style="-fx-background-color: #500A0E;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.User_ManagementController">
     <left>
-        <VBox prefHeight="768.0" prefWidth="220.0" spacing="5.0" style="-fx-background-color: #500A0E; -fx-padding: 20 0 20 0;" BorderPane.alignment="CENTER">
+        <VBox prefHeight="768.0" prefWidth="220.0" spacing="3.0" style="-fx-background-color: #500A0E; -fx-padding: 20 0 20 0;" BorderPane.alignment="CENTER">
             <children>
                 <VBox alignment="CENTER" prefHeight="140.0" prefWidth="220.0" spacing="8.0">
                     <children>
@@ -57,7 +57,7 @@
                     <Label text="Reports" textFill="#C9A4A7"><font><Font name="System Bold" size="13.0" /></font></Label>
                 </HBox>
 
-                <HBox alignment="CENTER_LEFT" prefHeight="40.0" spacing="15.0" style="-fx-padding: 0 0 0 20; -fx-cursor: hand; -fx-background-color: #61171B; -fx-background-radius: 0 6 6 0;">
+                <HBox alignment="CENTER_LEFT" prefHeight="40.0" spacing="15.0" style="-fx-padding: 0 0 0 20; -fx-cursor: hand; -fx-background-color: #c19a43; -fx-background-radius: 0 6 6 0;">
                     <Label text="👥" textFill="WHITE"><font><Font size="14.0" /></font></Label>
                     <Label text="User Management" textFill="WHITE"><font><Font name="System Bold" size="13.0" /></font></Label>
                 </HBox>
@@ -72,11 +72,11 @@
     </left>
 
     <center>
-        <AnchorPane prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: #E5E1E2; -fx-background-radius: 16 16 16 16;" BorderPane.alignment="CENTER">
+        <AnchorPane prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: #F4F0F0; -fx-background-radius: 20 0 0 20;" BorderPane.alignment="CENTER">
             <children>
-                <HBox alignment="CENTER_LEFT" layoutX="20.0" layoutY="14.0" prefHeight="70.0" prefWidth="804.0" style="-fx-background-color: white; -fx-background-radius: 16 0 0 0;" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                <HBox alignment="CENTER_LEFT" layoutX="20.0" layoutY="14.0" prefHeight="80.0" prefWidth="804.0" style="-fx-background-color: white; -fx-background-radius: 20 0 0 0;" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                     <children>
-                        <VBox alignment="CENTER_LEFT" prefHeight="65.0" prefWidth="485.0">
+                        <VBox alignment="CENTER_LEFT" prefHeight="80.0" prefWidth="485.0">
                             <children>
                                 <Label text="User Management" textFill="#222222"><font><Font name="System Bold" size="18.0" /></font></Label>
                                 <Label text="Manage system users and their access" textFill="#777777"><font><Font size="11.0" /></font></Label>
@@ -112,7 +112,6 @@
 
                 <VBox spacing="15.0" AnchorPane.bottomAnchor="15.0" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="95.0">
                     <children>
-
                         <HBox alignment="CENTER_RIGHT">
                             <children>
                                 <Button alignment="CENTER" mnemonicParsing="false" onAction="#handleLabelAddUser" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-background-radius: 6; -fx-cursor: hand; -fx-font-weight: bold; -fx-font-size: 12;" text="+ Add User">
