@@ -38,7 +38,7 @@
                               <Image url="@../../../images/pup_logo.png" />
                            </image>
                         </ImageView>
-                        <Label text="PUP BYOD" textFill="#F2C76A">
+                        <Label text="PUP ENDPOINT" textFill="#F2C76A">
                            <font>
                               <Font name="Arial Bold" size="28.0" />
                            </font>
@@ -85,7 +85,7 @@
 
                         <VBox alignment="CENTER" spacing="4.0">
                            <children>
-                              <Label text="BYOD" textFill="#6B0F0F">
+                              <Label text="ENDPOINT" textFill="#6B0F0F">
                                  <font>
                                     <Font name="Arial Bold" size="44.0" />
                                  </font>

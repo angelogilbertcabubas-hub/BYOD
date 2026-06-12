@@ -22,7 +22,7 @@
                                 <Circle centerX="29.0" centerY="29.0" radius="29.0" />
                             </clip>
                         </ImageView>
-                        <Label text="BYOD" textFill="#C5A059">
+                        <Label text="ENDPOINT" textFill="#C5A059">
                             <font><Font name="System Bold" size="16.0" /></font>
                         </Label>
                         <Label alignment="CENTER" text="REGISTRATION &amp; MONITORING&#10;SYSTEM" textAlignment="CENTER" textFill="#EAEAEA" wrapText="true">
