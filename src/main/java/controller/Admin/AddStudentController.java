@@ -19,10 +19,9 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DatabaseHelper;
 import utils.QRCodeGenerator;
+import utils.SupabaseStorageHelper;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -89,7 +88,7 @@ public class AddStudentController {
     private void handleUploadStudentPhoto(ActionEvent event) {
         File file = chooseImageFile(event);
         if (file != null) {
-            studentPhotoPath = copyImageToLocal(file, "students", "STU");
+            studentPhotoPath = SupabaseStorageHelper.uploadImage(file, "STU");
             if(lblStudentPhotoName != null) lblStudentPhotoName.setText(file.getName());
         }
     }
@@ -178,7 +177,7 @@ public class AddStudentController {
         btnUploadDevicePhoto.setOnAction(e -> {
             File file = chooseImageFile(e);
             if (file != null) {
-                newRow.devicePhotoPath = copyImageToLocal(file, "devices", "DEV");
+                newRow.devicePhotoPath = SupabaseStorageHelper.uploadImage(file, "DEV");
                 lblDevicePhotoName.setText(file.getName());
             }
         });
@@ -202,26 +201,6 @@ public class AddStudentController {
         );
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         return fileChooser.showOpenDialog(stage);
-    }
-
-    private String copyImageToLocal(File sourceFile, String subFolder, String prefix) {
-        try {
-            File dir = new File("src/main/resources/images/uploads/" + subFolder);
-            if (!dir.exists()) dir.mkdirs();
-
-            String extension = "";
-            int i = sourceFile.getName().lastIndexOf('.');
-            if (i > 0) extension = sourceFile.getName().substring(i);
-
-            String newFileName = prefix + "_" + System.currentTimeMillis() + extension;
-            File destFile = new File(dir, newFileName);
-
-            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            return "images/uploads/" + subFolder + "/" + newFileName;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "default_" + (subFolder.equals("students") ? "student" : "device") + ".png";
-        }
     }
 
     @FXML

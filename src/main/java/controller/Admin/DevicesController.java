@@ -55,6 +55,18 @@ public class DevicesController extends BaseAdminController {
         sortedDevices.comparatorProperty().bind(devicesTableView.comparatorProperty());
         devicesTableView.setItems(sortedDevices);
 
+        // NEW: Make rows clickable to open the Device Profile Modal
+        devicesTableView.setRowFactory(tv -> {
+            TableRow<Device> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty())) {
+                    Device clickedDevice = row.getItem();
+                    openDeviceProfileModal(clickedDevice, event);
+                }
+            });
+            return row;
+        });
+
         updateCountLabel();
     }
 
@@ -75,14 +87,33 @@ public class DevicesController extends BaseAdminController {
 
             dialogStage.showAndWait();
 
-            Device createdDevice = dialogController.getNewDevice();
-            if (createdDevice != null) {
-                DataStore.getInstance().getDevicesList().add(createdDevice);
-                updateCountLabel();
-            }
+            // FIXED: The "double-dip" manual list addition has been removed here!
+            updateCountLabel();
 
         } catch (java.io.IOException e) {
             System.err.println("CRITICAL FAULT: Unable to compile asset registry pop-up sub-context views.");
+            e.printStackTrace();
+        }
+    }
+
+    // NEW: Method to launch the Device Profile Modal
+    private void openDeviceProfileModal(Device targetDevice, javafx.scene.input.MouseEvent event) {
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/byod/Admin/DeviceProfileModal.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            DeviceProfileModalController controller = loader.getController();
+            controller.initData(targetDevice);
+
+            javafx.stage.Stage dialogStage = new javafx.stage.Stage();
+            dialogStage.setTitle("Hardware Asset Profile");
+            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialogStage.initOwner(((javafx.scene.Node) event.getSource()).getScene().getWindow());
+            dialogStage.setScene(new javafx.scene.Scene(root));
+            dialogStage.showAndWait();
+
+        } catch (Exception e) {
+            System.err.println("Failed to load Device Profile Modal.");
             e.printStackTrace();
         }
     }

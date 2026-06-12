@@ -17,10 +17,9 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DataStore;
 import utils.DatabaseHelper;
+import utils.SupabaseStorageHelper; // Added your Cloud Helper
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -35,7 +34,6 @@ public class AddDeviceController {
     @FXML private TextField txtModel;
     @FXML private TextField txtMacAddress;
 
-    // NEW: FXML IDs for the Device Photo Upload
     @FXML private Button btnUploadDevicePhoto;
     @FXML private Label lblDevicePhotoName;
     private String devicePhotoPath = "default_device.png";
@@ -78,7 +76,8 @@ public class AddDeviceController {
     private void handleUploadDevicePhoto(ActionEvent event) {
         File file = chooseImageFile(event);
         if (file != null) {
-            devicePhotoPath = copyImageToLocal(file, "devices", "DEV");
+            // NEW: Upload straight to Supabase cloud!
+            devicePhotoPath = SupabaseStorageHelper.uploadImage(file, "DEV");
             if (lblDevicePhotoName != null) lblDevicePhotoName.setText(file.getName());
         }
     }
@@ -93,25 +92,7 @@ public class AddDeviceController {
         return fileChooser.showOpenDialog(stage);
     }
 
-    private String copyImageToLocal(File sourceFile, String subFolder, String prefix) {
-        try {
-            File dir = new File("src/main/resources/images/uploads/" + subFolder);
-            if (!dir.exists()) dir.mkdirs();
-
-            String extension = "";
-            int i = sourceFile.getName().lastIndexOf('.');
-            if (i > 0) extension = sourceFile.getName().substring(i);
-
-            String newFileName = prefix + "_" + System.currentTimeMillis() + extension;
-            File destFile = new File(dir, newFileName);
-
-            Files.copy(sourceFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            return "images/uploads/" + subFolder + "/" + newFileName;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "default_device.png";
-        }
-    }
+    // Note: The old copyImageToLocal() method has been completely deleted!
 
     @FXML
     private void handleSave(ActionEvent event) {
@@ -128,7 +109,6 @@ public class AddDeviceController {
         String generatedToken = "TKN-" + (1000 + new Random().nextInt(9000));
 
         String getStudentIdQuery = "SELECT id FROM students WHERE school_id = ?";
-        // UPDATED SQL: Inserts photo_path
         String insertQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
         try (Connection conn = DatabaseHelper.getConnection();
@@ -147,7 +127,7 @@ public class AddDeviceController {
                     insertStmt.setString(4, modelStr);
                     insertStmt.setString(5, txtMacAddress.getText().trim());
                     insertStmt.setString(6, generatedToken);
-                    insertStmt.setString(7, devicePhotoPath); // Insert File Path
+                    insertStmt.setString(7, devicePhotoPath); // Inserts Cloud URL
                     insertStmt.executeUpdate();
                 }
 
