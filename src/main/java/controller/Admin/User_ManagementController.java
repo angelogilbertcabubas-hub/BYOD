@@ -39,6 +39,25 @@ public class User_ManagementController extends BaseAdminController {
         colUserPrivilegeBadge.setCellValueFactory(new PropertyValueFactory<>("role"));
         colUserStateBadge.setCellValueFactory(new PropertyValueFactory<>("status"));
 
+        // UI UPGRADE: Dynamic Table Cell Coloring based on Status
+        colUserStateBadge.setCellFactory(column -> new TableCell<SystemUser, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if (item.equals("Reset Requested")) {
+                        setStyle("-fx-text-fill: #D32F2F; -fx-font-weight: bold;"); // Red Warning
+                    } else {
+                        setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;"); // Green Active
+                    }
+                }
+            }
+        });
+
         colUserActionControls.setCellFactory(param -> new TableCell<SystemUser, String>() {
             private final Button btnReset = new Button("Reset Password");
             private final Button btnDelete = new Button("Delete");
@@ -74,7 +93,8 @@ public class User_ManagementController extends BaseAdminController {
         entriesSummaryCountLabel.setText("Syncing users with cloud...");
 
         new Thread(() -> {
-            String query = "SELECT username, role FROM users";
+            // UI FIX: Pulling the actual status from the cloud instead of hardcoding "Active"
+            String query = "SELECT username, role, COALESCE(status, 'Active') as current_status FROM users";
             try (Connection conn = DatabaseHelper.getConnection();
                  PreparedStatement pstmt = conn.prepareStatement(query);
                  ResultSet rs = pstmt.executeQuery()) {
@@ -84,9 +104,9 @@ public class User_ManagementController extends BaseAdminController {
                 while (rs.next()) {
                     String username = rs.getString("username");
                     String role = rs.getString("role");
+                    String status = rs.getString("current_status");
 
-                    // FIX: Added the 5th parameter ("") to match your SystemUser constructor!
-                    SystemUser user = new SystemUser(username, username, role, "Active", "");
+                    SystemUser user = new SystemUser(username, username, role, status, "");
                     cloudUsersList.add(user);
                 }
 
@@ -171,7 +191,8 @@ public class User_ManagementController extends BaseAdminController {
 
         result.ifPresent(newSecurePassword -> {
             new Thread(() -> {
-                String query = "UPDATE users SET password_hash = ? WHERE username = ?";
+                // UI FIX: Clear the 'Reset Requested' status back to 'Active' upon save
+                String query = "UPDATE users SET password_hash = ?, status = 'Active' WHERE username = ?";
                 try (Connection conn = DatabaseHelper.getConnection();
                      PreparedStatement pstmt = conn.prepareStatement(query)) {
 
@@ -179,7 +200,10 @@ public class User_ManagementController extends BaseAdminController {
                     pstmt.setString(2, user.getUsername());
                     pstmt.executeUpdate();
 
-                    Platform.runLater(() -> showAlert(Alert.AlertType.INFORMATION, "Reset Successful", "The secure password for " + user.getUsername() + " has been officially updated in the cloud."));
+                    Platform.runLater(() -> {
+                        showAlert(Alert.AlertType.INFORMATION, "Reset Successful", "The secure password for " + user.getUsername() + " has been updated, and their status is cleared.");
+                        fetchUsersFromCloud(); // Refresh the table to paint it green again!
+                    });
                 } catch (Exception e) {
                     e.printStackTrace();
                     Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Sync Failed", "Could not reach the cloud database to update the credentials."));

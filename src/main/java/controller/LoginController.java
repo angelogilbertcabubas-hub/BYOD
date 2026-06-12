@@ -26,13 +26,10 @@ public class LoginController {
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
-
-    // THIS IS THE FIX: Binding the button here instead of the layout
     @FXML private Hyperlink forgotPasswordLink;
 
     @FXML
     public void initialize() {
-        // Bulletproof programmatic binding
         if (forgotPasswordLink != null) {
             forgotPasswordLink.setOnAction(this::handleForgotPassword);
         }
@@ -124,7 +121,8 @@ public class LoginController {
             if (targetUsername.isEmpty()) return;
 
             new Thread(() -> {
-                String query = "SELECT username FROM users WHERE username = ?";
+                // UI FIX: Tell the cloud database that this user needs a reset!
+                String query = "UPDATE users SET status = 'Reset Requested' WHERE username = ? RETURNING username";
                 try (Connection conn = DatabaseHelper.getConnection();
                      PreparedStatement pstmt = conn.prepareStatement(query)) {
 
@@ -136,7 +134,7 @@ public class LoginController {
                             Alert alert = new Alert(Alert.AlertType.INFORMATION);
                             alert.setTitle("Recovery Initiated");
                             alert.setHeaderText("System Administrator Notified");
-                            alert.setContentText("Your reset request for '" + targetUsername + "' has been verified.\n\nPlease contact your System Administrator. They will securely reset your password from the User Management console.");
+                            alert.setContentText("Your reset request for '" + targetUsername + "' has been flagged in the system.\n\nThe System Administrator will see your request on their dashboard and provision a new password for you.");
                             alert.showAndWait();
                         });
                     } else {
@@ -150,7 +148,7 @@ public class LoginController {
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Platform.runLater(() -> showErrorAlert("Connection Error", "Could not reach the database to verify your account."));
+                    Platform.runLater(() -> showErrorAlert("Connection Error", "Could not reach the database to flag your account."));
                 }
             }).start();
         }
@@ -169,7 +167,6 @@ public class LoginController {
             FXMLLoader loader = new FXMLLoader(dashboardUrl);
             Parent root = loader.load();
 
-            // Safe window retrieval
             Stage stage = null;
             if (event.getSource() instanceof Node) {
                 stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
