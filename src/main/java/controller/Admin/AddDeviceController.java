@@ -2,22 +2,21 @@ package controller.Admin;
 
 import com.example.byod.model.Device;
 import com.example.byod.model.Student;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DataStore;
 import utils.DatabaseHelper;
-import utils.SupabaseStorageHelper; // Added your Cloud Helper
+import utils.SupabaseStorageHelper;
 
 import java.io.File;
 import java.sql.Connection;
@@ -36,6 +35,7 @@ public class AddDeviceController {
 
     @FXML private Button btnUploadDevicePhoto;
     @FXML private Label lblDevicePhotoName;
+    @FXML private ImageView devicePhotoPreview;
     private String devicePhotoPath = "default_device.png";
 
     private Device newDevice = null;
@@ -74,25 +74,30 @@ public class AddDeviceController {
 
     @FXML
     private void handleUploadDevicePhoto(ActionEvent event) {
-        File file = chooseImageFile(event);
-        if (file != null) {
-            // NEW: Upload straight to Supabase cloud!
-            devicePhotoPath = SupabaseStorageHelper.uploadImage(file, "DEV");
-            if (lblDevicePhotoName != null) lblDevicePhotoName.setText(file.getName());
-        }
-    }
-
-    private File chooseImageFile(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select Device Photo");
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
         );
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        return fileChooser.showOpenDialog(stage);
-    }
+        File file = fileChooser.showOpenDialog(stage);
 
-    // Note: The old copyImageToLocal() method has been completely deleted!
+        if (file != null) {
+            devicePhotoPreview.setImage(new Image(file.toURI().toString()));
+            if (lblDevicePhotoName != null) lblDevicePhotoName.setText(file.getName());
+
+            new Thread(() -> {
+                try {
+                    String cloudUrl = SupabaseStorageHelper.uploadImage(file, "DEV_" + System.currentTimeMillis());
+                    if (cloudUrl != null) {
+                        devicePhotoPath = cloudUrl;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
 
     @FXML
     private void handleSave(ActionEvent event) {
@@ -127,20 +132,22 @@ public class AddDeviceController {
                     insertStmt.setString(4, modelStr);
                     insertStmt.setString(5, txtMacAddress.getText().trim());
                     insertStmt.setString(6, generatedToken);
-                    insertStmt.setString(7, devicePhotoPath); // Inserts Cloud URL
+                    insertStmt.setString(7, devicePhotoPath);
                     insertStmt.executeUpdate();
                 }
 
                 newDevice = new Device(ownerName, cmbDeviceType.getValue(), txtModel.getText(), txtMacAddress.getText(), generatedToken);
                 DataStore.getInstance().refreshDevices();
 
-                Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                alert.setTitle("Success");
-                alert.setHeaderText(null);
-                alert.setContentText("Device successfully registered for " + ownerName);
-                alert.showAndWait();
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Success");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Device successfully registered to cloud for " + ownerName);
+                    alert.showAndWait();
+                    closeStage(event);
+                });
 
-                closeStage(event);
             } else {
                 showAlert(Alert.AlertType.ERROR, "Registration Error", "Could not locate student ID in database.");
             }

@@ -2,6 +2,7 @@ package controller.Admin;
 
 import com.example.byod.model.Device;
 import com.example.byod.model.Student;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -17,7 +18,7 @@ import javafx.stage.Stage;
 import utils.DataStore;
 import utils.DatabaseHelper;
 import utils.QRCodeGenerator;
-import utils.SupabaseStorageHelper; // NEW CLOUD HELPER IMPORT
+import utils.SupabaseStorageHelper;
 
 import java.io.File;
 import java.sql.Connection;
@@ -38,6 +39,7 @@ public class StudentProfileModalController {
     @FXML private Label txtProfileEmail;
     @FXML private Label txtProfileMobile;
 
+    @FXML private ImageView studentCloudPhotoView; // NEW: The Student's Photo
     @FXML private ImageView qrCodeImageView;
     @FXML private ImageView devicePhotoImageView;
 
@@ -109,11 +111,43 @@ public class StudentProfileModalController {
         txtProfileEmail.setText(targetStudent.getEmail());
         txtProfileMobile.setText(targetStudent.getMobile());
 
-        loadOrRegenerateQRCode();
+        if (editStudentIdField != null) {
+            editStudentIdField.setText(targetStudent.getStudentId());
+        }
+
+        fetchStudentCloudPhoto();
+        renderZeroDiskQRCode();
         fetchInternalUuidAndDevices();
     }
 
-    // FIX #1: Teach the UI how to read Cloud URLs
+    // Connects to Cloud and pulls the student profile picture
+    private void fetchStudentCloudPhoto() {
+        String query = "SELECT photo_path FROM students WHERE school_id = ?";
+        new Thread(() -> {
+            try (Connection conn = DatabaseHelper.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(query)) {
+
+                ps.setString(1, focusedStudent.getStudentId());
+                ResultSet rs = ps.executeQuery();
+
+                if (rs.next()) {
+                    String photoUrl = rs.getString("photo_path");
+                    if (photoUrl != null && photoUrl.startsWith("http")) {
+                        Platform.runLater(() -> studentCloudPhotoView.setImage(new Image(photoUrl, true)));
+                    } else if (photoUrl != null) {
+                        // Fallback for old local files
+                        File imgFile = new File("src/main/resources/" + photoUrl);
+                        if (imgFile.exists()) {
+                            Platform.runLater(() -> studentCloudPhotoView.setImage(new Image(imgFile.toURI().toString())));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
     private void loadDevicePhoto(String photoPath) {
         if (photoPath == null || photoPath.isEmpty()) {
             devicePhotoImageView.setImage(null);
@@ -121,10 +155,8 @@ public class StudentProfileModalController {
         }
         try {
             if (photoPath.startsWith("http")) {
-                // It is a cloud image! The 'true' flag loads it in the background without freezing the app.
                 devicePhotoImageView.setImage(new Image(photoPath, true));
             } else {
-                // Fallback for your old local images
                 File imgFile = new File("src/main/resources/" + photoPath);
                 if (imgFile.exists()) {
                     devicePhotoImageView.setImage(new Image(imgFile.toURI().toString()));
@@ -137,19 +169,12 @@ public class StudentProfileModalController {
         }
     }
 
-    private void loadOrRegenerateQRCode() {
+    // Pure Memory-Based QR Generation (No hard drive writes)
+    private void renderZeroDiskQRCode() {
         try {
-            String safeName = focusedStudent.getFullName().replaceAll("\\s+", "_");
-            String fileName = focusedStudent.getStudentId() + "_" + safeName + ".png";
-            String filePath = "src/main/resources/qrcodes/" + fileName;
-            File qrFile = new File(filePath);
-
-            if (!qrFile.exists()) {
-                QRCodeGenerator.generateStudentQRCode(focusedStudent.getStudentId(), focusedStudent.getFullName());
-            }
-
-            if (qrFile.exists()) {
-                qrCodeImageView.setImage(new Image(qrFile.toURI().toString()));
+            Image qrImage = QRCodeGenerator.generateQRCodeInMemory(focusedStudent.getStudentId(), 130, 130);
+            if (qrImage != null && qrCodeImageView != null) {
+                qrCodeImageView.setImage(qrImage);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -200,7 +225,6 @@ public class StudentProfileModalController {
         }
     }
 
-    // FIX #2: Make the "Quick Add" photo button use the Cloud Helper
     @FXML
     private void handleQuickUploadPhoto(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
@@ -211,7 +235,6 @@ public class StudentProfileModalController {
 
         if (file != null) {
             try {
-                // Upload directly to Supabase
                 quickDevicePhotoPath = SupabaseStorageHelper.uploadImage(file, "DEV");
                 showAlert(Alert.AlertType.INFORMATION, "Cloud Photo Attached", "The image was successfully staged for the new device.");
             } catch (Exception e) {
