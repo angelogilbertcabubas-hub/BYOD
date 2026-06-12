@@ -7,7 +7,6 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
-import javafx.event.ActionEvent;
 
 public class Monitoring_LogsController extends BaseAdminController {
 
@@ -35,18 +34,19 @@ public class Monitoring_LogsController extends BaseAdminController {
 
         filteredMonitorLogs = new FilteredList<>(DataStore.getInstance().getMonitoringLogsList(), p -> true);
 
+        // FIX: Removed the trailing semicolons so the search actually works!
         searchBarField.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredMonitorLogs.setPredicate(monitorLogs -> {
                 if(newValue == null || newValue.isBlank()) return true;
 
                 String keyword = newValue.toLowerCase();
 
-                if(monitorLogs.getLogId() != null && monitorLogs.getLogId().toLowerCase().contains(keyword));
-                if(monitorLogs.getStudentName() != null && monitorLogs.getStudentName().toLowerCase().contains(keyword));
-                if(monitorLogs.getDeviceModel() != null && monitorLogs.getDeviceModel().toLowerCase().contains(keyword));
-                if(monitorLogs.getAccessToken() != null && monitorLogs.getAccessToken().toLowerCase().contains(keyword));
-                if(monitorLogs.getOperation() != null && monitorLogs.getOperation().toLowerCase().contains(keyword));
-                if(monitorLogs.getTimestamp() != null && monitorLogs.getTimestamp().toLowerCase().contains(keyword));
+                if(monitorLogs.getLogId() != null && monitorLogs.getLogId().toLowerCase().contains(keyword)) return true;
+                if(monitorLogs.getStudentName() != null && monitorLogs.getStudentName().toLowerCase().contains(keyword)) return true;
+                if(monitorLogs.getDeviceModel() != null && monitorLogs.getDeviceModel().toLowerCase().contains(keyword)) return true;
+                if(monitorLogs.getAccessToken() != null && monitorLogs.getAccessToken().toLowerCase().contains(keyword)) return true;
+                if(monitorLogs.getOperation() != null && monitorLogs.getOperation().toLowerCase().contains(keyword)) return true;
+                if(monitorLogs.getTimestamp() != null && monitorLogs.getTimestamp().toLowerCase().contains(keyword)) return true;
 
                 return false;
             });
@@ -65,11 +65,9 @@ public class Monitoring_LogsController extends BaseAdminController {
         int total = DataStore.getInstance().getMonitoringLogsList().size();
         int filtered = filteredMonitorLogs.size();
         if(filtered == total){
-            statusSummaryLabel.setText("Showing 1" +
-                    total + " of " + total + "streams data logged");
+            statusSummaryLabel.setText("Showing 1 to " + total + " of " + total + " logged streams");
         }else{
-            statusSummaryLabel.setText("Showing" + filtered + " of " +
-                    total + "streams data logged");
+            statusSummaryLabel.setText("Showing " + filtered + " matching streams");
         }
     }
 }

@@ -2,18 +2,19 @@ package controller.Admin;
 
 import com.example.byod.LogEntry;
 import com.example.byod.Report;
+import com.example.byod.model.IncidentReport;
 import utils.DataStore;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
 import javafx.event.ActionEvent;
 
 import java.io.File;
@@ -27,32 +28,55 @@ public class ReportsController extends BaseAdminController {
     @FXML private ComboBox<String> cmbReportType;
     @FXML private TextField txtDateFrom;
     @FXML private TextField txtDateTo;
+    @FXML private Label lblTotalCheckIn, lblTotalCheckOut, lblCurrentlyInside, lblRegisteredDevices;
+    @FXML private Button btnGenerate, btnExport;
 
-    @FXML private Label lblTotalCheckIn;
-    @FXML private Label lblTotalCheckOut;
-    @FXML private Label lblCurrentlyInside;
-    @FXML private Label lblRegisteredDevices;
-
-    @FXML private Button btnGenerate;
-    @FXML private Button btnExport;
-
-    private FilteredList<Report> filteredReports;
+    @FXML private TableView<IncidentReport> tblIncidents;
+    @FXML private TableColumn<IncidentReport, String> colIncDate, colIncTime, colIncStudent, colIncDevice, colIncType, colIncLocation;
+    @FXML private ComboBox<String> cmbIncidentFilter;
 
     @FXML
     public void initialize() {
         cmbReportType.getItems().addAll("Daily Summary", "Weekly Summary", "Monthly Summary", "Custom Range");
         cmbReportType.getSelectionModel().selectFirst();
 
-        // Aligned with the current academic deployment date context
         txtDateFrom.setText("05/30/2026");
         txtDateTo.setText("05/30/2026");
 
-        // Resolves the 'btnGenerate is assigned but never accessed' IDE warning smoothly
         if (btnGenerate != null) {
             btnGenerate.setDisable(false);
         }
 
         refreshMetrics();
+
+        // Setup Incident Filter Dropdown
+        if (cmbIncidentFilter != null) {
+            cmbIncidentFilter.getItems().addAll(
+                    "All Incidents", "Missing / Lost Device", "Stolen Device", "Found / Recovered Device", "Suspicious Activity", "Physical Hardware Damage"
+            );
+            cmbIncidentFilter.getSelectionModel().selectFirst();
+        }
+
+        // Setup Table Columns
+        if (tblIncidents != null) {
+            colIncDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+            colIncTime.setCellValueFactory(new PropertyValueFactory<>("time"));
+            colIncStudent.setCellValueFactory(new PropertyValueFactory<>("studentNumber"));
+            colIncDevice.setCellValueFactory(new PropertyValueFactory<>("deviceDetails"));
+            colIncType.setCellValueFactory(new PropertyValueFactory<>("incidentType"));
+            colIncLocation.setCellValueFactory(new PropertyValueFactory<>("location"));
+
+            FilteredList<IncidentReport> filteredData = new FilteredList<>(DataStore.getInstance().getIncidentReportsList(), p -> true);
+
+            cmbIncidentFilter.valueProperty().addListener((observable, oldValue, newValue) -> {
+                filteredData.setPredicate(report -> {
+                    if (newValue == null || newValue.equals("All Incidents")) return true;
+                    return report.getIncidentType().equals(newValue);
+                });
+            });
+
+            tblIncidents.setItems(filteredData);
+        }
     }
 
     private void refreshMetrics() {
@@ -82,27 +106,20 @@ public class ReportsController extends BaseAdminController {
         long checkOuts = DataStore.getInstance().getMonitoringLogsList().stream()
                 .filter(l -> "Check-Out".equals(l.getOperation())).count();
 
-        // 1. Create custom base Dialog container
         Dialog<ButtonType> reportDialog = new Dialog<>();
         reportDialog.setTitle("System Report Viewer");
 
-        // 2. Extract layout content pane container setup
         ScrollPane dialogLayout = buildStylizedReportUI(active, checkIns, checkOuts);
 
-        // 3. FIX: Fetch DialogPane target explicitly to append styles and items securely
         DialogPane dialogPane = reportDialog.getDialogPane();
         dialogPane.setContent(dialogLayout);
         dialogPane.setStyle("-fx-background-color: #E5E1E2;");
 
-        // Establish targeted control action trigger configurations
         ButtonType btnTypePrint = new ButtonType("PRINT REPORT", ButtonBar.ButtonData.LEFT);
         ButtonType btnTypeSave = new ButtonType("SAVE COPY", ButtonBar.ButtonData.LEFT);
         ButtonType btnTypeClose = new ButtonType("CLOSE VIEWER", ButtonBar.ButtonData.CANCEL_CLOSE);
 
-        // FIX: Executed on the dialogPane reference node instance directly
         dialogPane.getButtonTypes().setAll(btnTypePrint, btnTypeSave, btnTypeClose);
-
-        // Inject custom stylesheet rendering modifications over default prompt properties
         styleDialogButtons(dialogPane, btnTypePrint, btnTypeSave, btnTypeClose);
 
         Optional<ButtonType> result = reportDialog.showAndWait();
@@ -117,16 +134,12 @@ public class ReportsController extends BaseAdminController {
         }
     }
 
-    /**
-     * Constructs a programmatic UI view layout structure matching the application design system.
-     */
     private ScrollPane buildStylizedReportUI(int active, long checkIns, long checkOuts) {
         VBox container = new VBox(20);
         container.setPadding(new Insets(25));
         container.setPrefWidth(720);
         container.setStyle("-fx-background-color: #E5E1E2;");
 
-        // ---- HEADER CARD BANNER ----
         VBox headerCard = new VBox(4);
         headerCard.setPadding(new Insets(15));
         headerCard.setStyle("-fx-background-color: white; -fx-background-radius: 8;");
@@ -141,7 +154,6 @@ public class ReportsController extends BaseAdminController {
 
         headerCard.getChildren().addAll(lblTitle, lblSubtitle);
 
-        // ---- METRICS GRID SUMMARY CARD ----
         VBox metricsCard = new VBox(12);
         metricsCard.setPadding(new Insets(20));
         metricsCard.setStyle("-fx-background-color: white; -fx-background-radius: 8;");
@@ -161,7 +173,6 @@ public class ReportsController extends BaseAdminController {
 
         metricsCard.getChildren().addAll(lblSectionTraffic, metricsGrid);
 
-        // ---- TIMELINE LOGS LIST CARD ----
         VBox logsCard = new VBox(12);
         logsCard.setPadding(new Insets(20));
         logsCard.setStyle("-fx-background-color: white; -fx-background-radius: 8;");
@@ -210,13 +221,10 @@ public class ReportsController extends BaseAdminController {
         logsCard.getChildren().addAll(lblSectionLogs, logsListContainer);
         container.getChildren().addAll(headerCard, metricsCard, logsCard);
 
-        // ---- CONTAINER SCROLL VIEW WRAPPER ----
         ScrollPane scrollPane = new ScrollPane(container);
         scrollPane.setFitToWidth(true);
         scrollPane.setPrefHeight(550);
         scrollPane.setPrefWidth(740);
-
-        // FIX: Removed the duplicate -fx-background-color rules to fix IDE property warnings
         scrollPane.setStyle("-fx-background-color: transparent; -fx-background-insets: 0;");
 
         return scrollPane;
@@ -235,17 +243,11 @@ public class ReportsController extends BaseAdminController {
 
     private void styleDialogButtons(DialogPane dialogPane, ButtonType print, ButtonType save, ButtonType close) {
         Button btnPrint = (Button) dialogPane.lookupButton(print);
-        if (btnPrint != null) {
-            btnPrint.setStyle("-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 15;");
-        }
+        if (btnPrint != null) btnPrint.setStyle("-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 15;");
         Button btnSave = (Button) dialogPane.lookupButton(save);
-        if (btnSave != null) {
-            btnSave.setStyle("-fx-background-color: white; -fx-text-fill: #444444; -fx-border-color: #E2DDD9; -fx-border-radius: 4; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 15;");
-        }
+        if (btnSave != null) btnSave.setStyle("-fx-background-color: white; -fx-text-fill: #444444; -fx-border-color: #E2DDD9; -fx-border-radius: 4; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 15;");
         Button btnClose = (Button) dialogPane.lookupButton(close);
-        if (btnClose != null) {
-            btnClose.setStyle("-fx-background-color: #F4F4F4; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 15;");
-        }
+        if (btnClose != null) btnClose.setStyle("-fx-background-color: #F4F4F4; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 15;");
     }
 
     private String generateFlatTextFallback(int active, long checkIns, long checkOuts) {
