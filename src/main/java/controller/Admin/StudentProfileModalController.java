@@ -370,9 +370,9 @@ public class StudentProfileModalController {
             String updateSql = "UPDATE students SET program_course = ?, email_address = ?, mobile_number = ? WHERE school_id = ?";
             try(PreparedStatement preparedStatement = conn.prepareStatement(updateSql)) {
                 preparedStatement.setString(1, newCourse);
-                preparedStatement.setString(1, newEmail);
-                preparedStatement.setString(1, newMobile);
-                preparedStatement.setString(1, focusedStudent.getStudentId());
+                preparedStatement.setString(2, newEmail);
+                preparedStatement.setString(3, newMobile);
+                preparedStatement.setString(4, focusedStudent.getStudentId());
                 preparedStatement.executeUpdate();
             }
             txtProfileCourse.setText(newCourse);
