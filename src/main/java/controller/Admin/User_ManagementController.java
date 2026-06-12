@@ -117,7 +117,7 @@ public class User_ManagementController extends BaseAdminController {
         keyIconGfx.setPrefSize(42, 42);
         keyIconGfx.setMinSize(42, 42);
         keyIconGfx.setMaxSize(42, 42);
-        keyIconGfx.setStyle("-fx-background-color: #C49A45; -fx-background-radius: 21; -fx-font-size: 20px;");
+        keyIconGfx.setStyle("-fx-background-color: #C49A45; -fx-background-radius: 21; -fx-font-size: 20px; -fx-text-fill: white;");
 
         Label titleLabel = new Label("Secure Password Reset");
         titleLabel.setStyle("-fx-font-family: 'System'; -fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #500A0E;");
@@ -301,7 +301,7 @@ public class User_ManagementController extends BaseAdminController {
         Label titleLabel = new Label("Confirmation");
         titleLabel.setStyle("-fx-font-family: 'System'; -fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #500A0E;");
 
-        Label messageLabel = new Label("Are you absolutely sure you want to permanently delete the account: " + username + "?");
+        Label messageLabel = new Label("Are you sure you want to permanently delete the account: " + username + "?");
         messageLabel.setWrapText(true);
         messageLabel.setPrefWidth(320);
         messageLabel.setStyle("-fx-font-family: 'System'; -fx-font-size: 13px; -fx-text-fill: #444444;");
