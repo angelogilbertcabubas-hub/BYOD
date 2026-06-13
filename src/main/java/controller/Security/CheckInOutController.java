@@ -3,10 +3,14 @@ package controller.Security;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.TextAlignment;
 import utils.DataStore;
 import utils.DatabaseHelper;
 import utils.QRScannerThread;
@@ -32,11 +36,9 @@ public class CheckInOutController extends BaseSecurityController {
     @FXML private Label lblStudentName;
     @FXML private Label lblStudentID;
     @FXML private Label lblCourseSection;
-
     @FXML private ImageView imgStudentPhoto;
-    @FXML private ImageView imgDevicePhoto;
 
-    @FXML private FlowPane deviceContainer;
+    @FXML private FlowPane deviceContainer; // This will now hold our rich photo cards!
 
     @FXML private Label lblSerialNumber;
     @FXML private Label lblAccessCode;
@@ -53,8 +55,6 @@ public class CheckInOutController extends BaseSecurityController {
     private QRScannerThread scannerThread;
     private String currentScannedStudent;
     private Object currentDbStudentId;
-    private String currentStudentPhotoPath;
-
     private boolean isCheckingOut = false;
 
     private List<Object> activeLogIds = new ArrayList<>();
@@ -68,11 +68,11 @@ public class CheckInOutController extends BaseSecurityController {
 
         public DeviceRecord(Object id, String brand, String model, String serial, String accessCode, String photoPath) {
             this.id = id;
-            this.brand = (brand != null) ? brand : "Unknown Brand";
-            this.model = (model != null) ? model : "Unknown Model";
+            this.brand = (brand != null) ? brand : "Unknown";
+            this.model = (model != null) ? model : "Device";
             this.serial = (serial != null) ? serial : "N/A";
             this.accessCode = (accessCode != null) ? accessCode : "N/A";
-            this.photoPath = (photoPath != null) ? photoPath : "default_device.png";
+            this.photoPath = (photoPath != null && !photoPath.isEmpty()) ? photoPath : "default_device.png";
         }
     }
 
@@ -80,9 +80,9 @@ public class CheckInOutController extends BaseSecurityController {
     public void initialize() {
         cmbAction.getItems().addAll("Check-In", "Check-Out");
         cmbAction.getSelectionModel().selectFirst();
-        cmbLocation.getItems().addAll("Main Gate","Side Gate","Back Gate","Library Entrance","Admin Building");
+        cmbLocation.getItems().addAll("Main Gate","Side Gate","Library Entrance");
         cmbLocation.getSelectionModel().selectFirst();
-        cmbGuard.getItems().addAll("Guard 01","Guard 02","Guard 03","Guard 04");
+        cmbGuard.getItems().addAll("Guard 01","Guard 02","Guard 03");
         cmbGuard.getSelectionModel().selectFirst();
 
         updateDateTime();
@@ -98,24 +98,18 @@ public class CheckInOutController extends BaseSecurityController {
         btnConfirm.setText("Confirm");
         statusLabel.setText("Scanning for QR...");
         statusLabel.setStyle("-fx-text-fill: #333333;");
-
         currentScannedStudent = null;
         currentDbStudentId = null;
-        currentStudentPhotoPath = null;
         isCheckingOut = false;
-
         activeLogIds.clear();
         devicesInsideIds.clear();
         selectedDeviceIds.clear();
         studentDeviceList.clear();
         deviceContainer.getChildren().clear();
         deviceContainer.setDisable(false);
-
         if(imgStudentPhoto != null) imgStudentPhoto.setImage(null);
-        if(imgDevicePhoto != null) imgDevicePhoto.setImage(null);
 
         if (scannerThread != null) scannerThread.stopScanner();
-
         scannerThread = new QRScannerThread(cameraView, this::processScannedCode);
         scannerThread.setDaemon(true);
         scannerThread.start();
@@ -129,10 +123,9 @@ public class CheckInOutController extends BaseSecurityController {
 
     private void processScannedCode(String studentNumber) {
         currentScannedStudent = studentNumber;
-
         Platform.runLater(() -> {
-            statusLabel.setText("QR Detected! Fetching Cloud Data...");
-            statusLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;"); // Loading Orange
+            statusLabel.setText("QR Detected! Fetching Data...");
+            statusLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;");
             txtDeviceSearch.setText(studentNumber);
         });
 
@@ -141,7 +134,6 @@ public class CheckInOutController extends BaseSecurityController {
                 checkAccessStatus(conn, studentNumber);
                 fetchStudentAndDeviceData(conn, studentNumber);
             } catch (SQLException e) {
-                e.printStackTrace();
                 Platform.runLater(() -> {
                     statusLabel.setText("Database Connection Error");
                     statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
@@ -161,22 +153,19 @@ public class CheckInOutController extends BaseSecurityController {
     }
 
     private void checkAccessStatus(Connection conn, String studentNumber) throws SQLException {
+        // Restricting the check to CURRENT_DATE to solve Bug 12 & 13!
         String query = "SELECT c.id as log_id, c.device_id FROM check_in_out c " +
                 "JOIN students s ON c.student_id = s.id " +
-                "WHERE s.school_id = ? AND c.status = 'CHECKED_IN'";
+                "WHERE s.school_id = ? AND c.status = 'CHECKED_IN' AND DATE(c.check_in_time) = CURRENT_DATE";
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, studentNumber);
             ResultSet rs = pstmt.executeQuery();
-
             activeLogIds.clear();
             devicesInsideIds.clear();
-
             while (rs.next()) {
                 activeLogIds.add(rs.getObject("log_id"));
                 Object devId = rs.getObject("device_id");
-                if (devId != null) {
-                    devicesInsideIds.add(devId);
-                }
+                if (devId != null) devicesInsideIds.add(devId);
             }
             isCheckingOut = !activeLogIds.isEmpty();
         }
@@ -185,14 +174,10 @@ public class CheckInOutController extends BaseSecurityController {
     private void fetchStudentAndDeviceData(Connection conn, String identifier) throws SQLException {
         String query = "SELECT s.id as student_db_id, s.school_id, s.first_name, s.last_name, s.program_course, s.section, s.photo_path as student_photo, " +
                 "d.id as device_id, d.device_brand, d.device_name, d.mac_address, d.unique_code, d.photo_path as device_photo " +
-                "FROM students s " +
-                "LEFT JOIN devices d ON s.id = d.student_id " +
-                "WHERE s.school_id = ? OR d.unique_code = ?";
+                "FROM students s LEFT JOIN devices d ON s.id = d.student_id WHERE s.school_id = ? OR d.unique_code = ?";
 
         List<DeviceRecord> foundDevices = new ArrayList<>();
-        String fullName = "";
-        String studentNum = "";
-        String courseSection = "";
+        String fullName = "", studentNum = "", courseSection = "", studentPhoto = "";
 
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, identifier);
@@ -204,18 +189,11 @@ public class CheckInOutController extends BaseSecurityController {
                     currentDbStudentId = rs.getObject("student_db_id");
                     fullName = rs.getString("first_name") + " " + rs.getString("last_name");
                     studentNum = rs.getString("school_id");
-                    String course = rs.getString("program_course");
-                    String section = rs.getString("section");
-                    courseSection = (course != null ? course : "N/A") + " - " + (section != null ? section : "N/A");
-                    currentStudentPhotoPath = rs.getString("student_photo");
+                    courseSection = rs.getString("program_course") + " - " + rs.getString("section");
+                    studentPhoto = rs.getString("student_photo");
                 }
-
-                Object dbDeviceId = rs.getObject("device_id");
-                if (dbDeviceId != null) {
-                    foundDevices.add(new DeviceRecord(
-                            dbDeviceId, rs.getString("device_brand"), rs.getString("device_name"),
-                            rs.getString("mac_address"), rs.getString("unique_code"), rs.getString("device_photo")
-                    ));
+                if (rs.getObject("device_id") != null) {
+                    foundDevices.add(new DeviceRecord(rs.getObject("device_id"), rs.getString("device_brand"), rs.getString("device_name"), rs.getString("mac_address"), rs.getString("unique_code"), rs.getString("device_photo")));
                 }
             }
         }
@@ -224,109 +202,86 @@ public class CheckInOutController extends BaseSecurityController {
             Platform.runLater(() -> {
                 statusLabel.setText("Unregistered QR Code");
                 statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
-                showAlert(Alert.AlertType.ERROR, "No student found for: " + identifier);
             });
             return;
         }
 
         studentDeviceList = foundDevices;
-        final String finalFullName = fullName;
-        final String finalStudentNum = studentNum;
-        final String finalCourseSec = courseSection;
-        final String finalStudentPhoto = currentStudentPhotoPath;
+        final String fName = fullName, fNum = studentNum, fCourse = courseSection, fPhoto = studentPhoto;
 
         Platform.runLater(() -> {
-            lblStudentName.setText(finalFullName);
-            lblStudentID.setText(finalStudentNum);
-            lblCourseSection.setText(finalCourseSec);
-
-            loadImageToView(imgStudentPhoto, finalStudentPhoto);
-
+            lblStudentName.setText(fName);
+            lblStudentID.setText(fNum);
+            lblCourseSection.setText(fCourse);
+            loadImageToView(imgStudentPhoto, fPhoto);
             deviceContainer.getChildren().clear();
             selectedDeviceIds.clear();
 
             if (isCheckingOut) {
                 lblCurrentStatus.setText("Currently INSIDE");
                 cmbAction.getSelectionModel().select("Check-Out");
-
-                if (devicesInsideIds.isEmpty()) {
-                    Label noDev = new Label("No Device Brought Inside");
-                    noDev.setStyle("-fx-text-fill: #999999; -fx-font-style: italic;");
-                    deviceContainer.getChildren().add(noDev);
-                } else {
-                    for (DeviceRecord d : foundDevices) {
-                        if (devicesInsideIds.contains(d.id)) {
-                            ToggleButton card = createDeviceCard(d);
-                            deviceContainer.getChildren().add(card);
-                            card.setSelected(true);
-                            card.setDisable(true); // Lock selection on checkout
-                        }
+                for (DeviceRecord d : foundDevices) {
+                    if (devicesInsideIds.contains(d.id)) {
+                        ToggleButton card = createDeviceCard(d);
+                        card.setSelected(true);
+                        card.setDisable(true); // Lock selection
+                        deviceContainer.getChildren().add(card);
                     }
                 }
-                btnConfirm.setDisable(false);
-
             } else {
                 lblCurrentStatus.setText("Currently OUTSIDE");
                 cmbAction.getSelectionModel().select("Check-In");
-
-                if (foundDevices.isEmpty()) {
-                    Label noDev = new Label("No Registered Devices");
-                    noDev.setStyle("-fx-text-fill: #999999; -fx-font-style: italic;");
-                    deviceContainer.getChildren().add(noDev);
-                } else {
-                    for (DeviceRecord d : foundDevices) {
-                        ToggleButton card = createDeviceCard(d);
-                        deviceContainer.getChildren().add(card);
-                    }
-                    if (!deviceContainer.getChildren().isEmpty()) {
-                        ((ToggleButton) deviceContainer.getChildren().get(0)).setSelected(true);
-                    }
+                for (DeviceRecord d : foundDevices) {
+                    deviceContainer.getChildren().add(createDeviceCard(d));
                 }
-                btnConfirm.setDisable(false);
             }
-
             updateSelectionLabels();
             statusLabel.setText("Verification Ready");
-            statusLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;"); // Ready Green
+            statusLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;");
+            btnConfirm.setDisable(false);
         });
     }
 
-    // CLOUD UPGRADE: Teach the scanner to download Supabase URLs natively
-    private void loadImageToView(ImageView imageView, String relativePath) {
-        if (imageView == null || relativePath == null || relativePath.isEmpty()) return;
-        try {
-            if (relativePath.startsWith("http")) {
-                imageView.setImage(new Image(relativePath, true)); // True = background loading
-            } else {
-                File imgFile = new File("src/main/resources/" + relativePath);
-                if (imgFile.exists()) {
-                    imageView.setImage(new Image(imgFile.toURI().toString()));
-                } else {
-                    imageView.setImage(null);
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Could not load image: " + relativePath);
-        }
-    }
-
+    // THE PHASE 3 FIX: Dynamic Photo Grid Cards!
     private ToggleButton createDeviceCard(DeviceRecord device) {
-        ToggleButton btn = new ToggleButton(device.brand + "\n" + device.model);
-        btn.setUserData(device);
+        ToggleButton btn = new ToggleButton();
 
-        String defaultStyle = "-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8 15; -fx-cursor: hand; -fx-text-alignment: center; -fx-font-size: 11px; -fx-text-fill: #333333;";
-        String selectedStyle = "-fx-background-color: #500A0E; -fx-border-color: #500A0E; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8 15; -fx-cursor: hand; -fx-text-alignment: center; -fx-font-size: 11px; -fx-text-fill: white; -fx-font-weight: bold;";
+        // Build the inner visual layout of the card
+        VBox cardLayout = new VBox(5);
+        cardLayout.setAlignment(Pos.CENTER);
+        cardLayout.setPadding(new Insets(10));
+
+        // Inject the Image
+        ImageView img = new ImageView();
+        img.setFitWidth(100);
+        img.setFitHeight(90);
+        img.setPreserveRatio(true);
+        loadImageToView(img, device.photoPath);
+
+        // Inject the Device Name
+        Label lblName = new Label(device.brand + " " + device.model);
+        lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #222222;");
+        lblName.setWrapText(true);
+        lblName.setTextAlignment(TextAlignment.CENTER);
+
+        // Inject the Code
+        Label lblDetails = new Label("Token: " + device.accessCode);
+        lblDetails.setStyle("-fx-font-size: 9px; -fx-text-fill: #666666;");
+
+        cardLayout.getChildren().addAll(img, lblName, lblDetails);
+        btn.setGraphic(cardLayout);
+        btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
+
+        String defaultStyle = "-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 8; -fx-background-radius: 8; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);";
+        String selectedStyle = "-fx-background-color: #FEF0F0; -fx-border-color: #500A0E; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.2), 8, 0, 0, 3);";
 
         btn.setStyle(defaultStyle);
 
         btn.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
+            btn.setStyle(isNowSelected ? selectedStyle : defaultStyle);
             if (isNowSelected) {
-                btn.setStyle(selectedStyle);
-                if (!selectedDeviceIds.contains(device.id)) {
-                    selectedDeviceIds.add(device.id);
-                }
+                if (!selectedDeviceIds.contains(device.id)) selectedDeviceIds.add(device.id);
             } else {
-                btn.setStyle(defaultStyle);
                 selectedDeviceIds.remove(device.id);
             }
             updateSelectionLabels();
@@ -335,48 +290,34 @@ public class CheckInOutController extends BaseSecurityController {
         return btn;
     }
 
+    private void loadImageToView(ImageView imageView, String path) {
+        if (imageView == null || path == null || path.isEmpty()) return;
+        try {
+            if (path.startsWith("http")) {
+                imageView.setImage(new Image(path, true));
+            } else {
+                File imgFile = new File("src/main/resources/" + path);
+                if (imgFile.exists()) imageView.setImage(new Image(imgFile.toURI().toString()));
+            }
+        } catch (Exception ignored) {}
+    }
+
     private void updateSelectionLabels() {
         if (selectedDeviceIds.isEmpty()) {
-            lblSerialNumber.setText("N/A");
-            lblAccessCode.setText("N/A");
-            if(imgDevicePhoto != null) imgDevicePhoto.setImage(null);
-        } else if (selectedDeviceIds.size() == 1) {
-            DeviceRecord selected = studentDeviceList.stream()
-                    .filter(d -> d.id.equals(selectedDeviceIds.get(0))).findFirst().orElse(null);
-            if (selected != null) {
-                lblSerialNumber.setText(selected.serial);
-                lblAccessCode.setText(selected.accessCode);
-                loadImageToView(imgDevicePhoto, selected.photoPath);
-            }
+            lblSerialNumber.setText("No devices selected");
+            lblAccessCode.setText("-");
         } else {
-            StringBuilder serials = new StringBuilder();
-            StringBuilder codes = new StringBuilder();
-
-            for (Object id : selectedDeviceIds) {
-                DeviceRecord d = studentDeviceList.stream()
-                        .filter(x -> x.id.equals(id)).findFirst().orElse(null);
-                if (d != null) {
-                    serials.append("• ").append(d.brand).append(" ").append(d.model).append(": ").append(d.serial).append("\n");
-                    codes.append("• ").append(d.brand).append(" ").append(d.model).append(": ").append(d.accessCode).append("\n");
-                }
-            }
-
-            lblSerialNumber.setText(serials.toString().trim());
-            lblAccessCode.setText(codes.toString().trim());
-            if(imgDevicePhoto != null) imgDevicePhoto.setImage(null);
+            lblSerialNumber.setText(selectedDeviceIds.size() + " Device(s) Selected");
+            lblAccessCode.setText("Ready for processing");
         }
     }
 
     @FXML
     private void handleConfirm() {
-        if (lblStudentID.getText().isEmpty() || currentScannedStudent == null || currentDbStudentId == null) return;
-
-        // VISUAL LOADING STATE
+        if (lblStudentID.getText().isEmpty() || currentDbStudentId == null) return;
         btnConfirm.setDisable(true);
         btnConfirm.setText("Processing...");
         deviceContainer.setDisable(true);
-        statusLabel.setText("Syncing with Cloud...");
-        statusLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;"); // Orange Loading Color
 
         new Thread(() -> {
             try (Connection conn = DatabaseHelper.getConnection()) {
@@ -399,7 +340,7 @@ public class CheckInOutController extends BaseSecurityController {
                         } else {
                             for (Object devId : selectedDeviceIds) {
                                 pstmt.setObject(1, currentDbStudentId);
-                                pstmt.setObject(2, devId); // Binds the strict device ID, locking the token
+                                pstmt.setObject(2, devId);
                                 pstmt.addBatch();
                             }
                             pstmt.executeBatch();
@@ -410,18 +351,12 @@ public class CheckInOutController extends BaseSecurityController {
                 DataStore.getInstance().refreshLogs();
 
                 Platform.runLater(() -> {
-                    String actionStr = isCheckingOut ? "Check-Out" : "Check-In";
-                    statusLabel.setText("Sync Complete!");
-                    statusLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;"); // Green Success
-                    showAlert(Alert.AlertType.INFORMATION, actionStr + " logged successfully!\n\nStudent: " + lblStudentName.getText());
+                    showAlert(Alert.AlertType.INFORMATION, (isCheckingOut ? "Check-Out" : "Check-In") + " logged successfully!");
                     handleClear();
                     startScanner();
                 });
             } catch (SQLException e) {
-                e.printStackTrace();
                 Platform.runLater(() -> {
-                    statusLabel.setText("Database Sync Failed");
-                    statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;"); // Red Error
                     btnConfirm.setText("Confirm");
                     btnConfirm.setDisable(false);
                     deviceContainer.setDisable(false);
@@ -434,31 +369,18 @@ public class CheckInOutController extends BaseSecurityController {
     @FXML
     private void handleClear() {
         if (scannerThread != null) scannerThread.stopScanner();
-
         txtDeviceSearch.clear();
         txtRemarks.clear();
-
         lblStudentName.setText("");
         lblStudentID.setText("");
         lblCourseSection.setText("");
-
         deviceContainer.getChildren().clear();
         selectedDeviceIds.clear();
-
         lblSerialNumber.setText("");
         lblAccessCode.setText("");
         lblCurrentStatus.setText("");
-
         if(imgStudentPhoto != null) imgStudentPhoto.setImage(null);
-        if(imgDevicePhoto != null) imgDevicePhoto.setImage(null);
-
         currentDbStudentId = null;
-        currentStudentPhotoPath = null;
-
-        cmbAction.getSelectionModel().selectFirst();
-        cmbLocation.getSelectionModel().selectFirst();
-        cmbGuard.getSelectionModel().selectFirst();
-
         btnConfirm.setDisable(true);
         updateDateTime();
     }

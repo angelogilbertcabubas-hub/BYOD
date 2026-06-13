@@ -2,11 +2,11 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
 <?import javafx.scene.text.*?>
 
 <VBox prefHeight="720.0" prefWidth="760.0" spacing="20.0" style="-fx-background-color: #E5E1E2; -fx-padding: 25;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Security.ReportIncidentController">
     <children>
-
         <HBox alignment="CENTER_LEFT" style="-fx-background-color: linear-gradient(to right, #500A0E, #6B0F0F); -fx-background-radius: 8; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.15), 10, 0, 0, 4);">
             <children>
                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
@@ -21,7 +21,6 @@
 
         <HBox spacing="20.0" VBox.vgrow="ALWAYS">
             <children>
-
                 <VBox prefHeight="423.0" prefWidth="346.0" spacing="16.0" style="-fx-background-color: white; -fx-background-radius: 8; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.04), 8, 0, 0, 2);">
                     <children>
                         <VBox spacing="4.0">
@@ -39,8 +38,8 @@
                                 </Label>
                                 <StackPane alignment="CENTER_LEFT">
                                     <children>
-                                        <TextField fx:id="txtStudentNumber" prefHeight="40.0" promptText="e.g., 2024-00123-MN-0" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12 0 35; -fx-text-fill: #222222; -fx-font-weight: bold;" />
-                                        <Label style="-fx-padding: 0 0 0 12;" text="🔍" textFill="#999999" StackPane.alignment="CENTER_LEFT" />
+                                        <TextField fx:id="txtStudentNumber" prefHeight="40.0" promptText="Enter Student No. or Name" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12 0 35; -fx-text-fill: #222222; -fx-font-weight: bold;" />
+                                        <Button mnemonicParsing="false" onAction="#handleSearchStudent" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-padding: 0 0 0 8;" text="🔍" textFill="#999999" StackPane.alignment="CENTER_LEFT" />
                                     </children>
                                 </StackPane>
                             </children>
@@ -51,7 +50,7 @@
                                 <Label text="COMPROMISED HARDWARE ASSET *" textFill="#555555">
                                     <font><Font name="System Bold" size="10.0" /></font>
                                 </Label>
-                                <ComboBox fx:id="cmbTargetDevice" maxWidth="1.7E308" prefHeight="40.0" promptText="Select registered asset..." style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 4;" />
+                                <ComboBox fx:id="cmbTargetDevice" maxWidth="1.7E308" prefHeight="40.0" promptText="Search student first..." style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 4;" />
                                 <VBox spacing="8.0" style="-fx-background-color: #F9F9F9; -fx-border-color: #EBEBEB; -fx-border-radius: 6; -fx-padding: 12;">
                                     <children>
                                         <Label style="-fx-font-size: 9px; -fx-font-weight: bold;" text="AUTOMATED MITIGATION SYSTEM STATUS:" textFill="#777777" />
@@ -78,9 +77,18 @@
                             </children>
                         </VBox>
 
+                        <VBox spacing="6.0">
+                            <children>
+                                <Label text="INCIDENT CLASSIFICATION *" textFill="#555555">
+                                    <font><Font name="System Bold" size="10.0" /></font>
+                                </Label>
+                                <ComboBox fx:id="cmbIncidentType" maxWidth="1.7E308" prefHeight="40.0" promptText="Select incident type (e.g., Lost, Stolen, Found)..." style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 4;" />
+                            </children>
+                        </VBox>
+
                         <GridPane hgap="15.0" vgap="14.0">
                             <columnConstraints>
-                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="150.0" />
                                 <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
                             </columnConstraints>
                             <rowConstraints>
@@ -92,12 +100,10 @@
                                         <Label text="ESTIMATED DATE &amp; TIME *" textFill="#555555">
                                             <font><Font name="System Bold" size="10.0" /></font>
                                         </Label>
-                                        <StackPane alignment="CENTER_LEFT">
-                                            <children>
-                                                <TextField fx:id="txtIncidentTime" prefHeight="40.0" promptText="MM/dd/yyyy HH:mm" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12 0 35;" />
-                                                <Label style="-fx-padding: 0 0 0 12;" text="📅" textFill="#999999" StackPane.alignment="CENTER_LEFT" />
-                                            </children>
-                                        </StackPane>
+                                        <HBox spacing="10.0">
+                                            <DatePicker fx:id="dpIncidentDate" prefHeight="40.0" prefWidth="140.0" promptText="Select Date" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                                            <TextField fx:id="txtIncidentTime" prefHeight="40.0" prefWidth="80.0" promptText="HH:mm" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 10;" />
+                                        </HBox>
                                     </children>
                                 </VBox>
 
@@ -108,7 +114,7 @@
                                         </Label>
                                         <StackPane alignment="CENTER_LEFT">
                                             <children>
-                                                <TextField fx:id="txtLastLocation" prefHeight="40.0" promptText="e.g., CEA Bldg Room 302" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12 0 35;" />
+                                                <TextField fx:id="txtLastLocation" prefHeight="40.0" promptText="e.g., CEA Bldg 302" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6; -fx-padding: 0 12 0 35;" />
                                                 <Label style="-fx-padding: 0 0 0 12;" text="📍" textFill="#999999" StackPane.alignment="CENTER_LEFT" />
                                             </children>
                                         </StackPane>
@@ -127,7 +133,6 @@
                         </VBox>
                     </children>
                 </VBox>
-
             </children>
         </HBox>
 
@@ -140,7 +145,7 @@
 
         <HBox alignment="CENTER_RIGHT" spacing="15.0">
             <children>
-                <Button mnemonicParsing="false" onAction="#handleCancel" prefHeight="40.0" prefWidth="110.0" style="-fx-background-color: white; -fx-text-fill: #555555; -fx-background-radius: 6; -fx-font-weight: bold; -fx-border-color: #D5D5D5; -fx-border-radius: 6; -fx-cursor: hand;" text="CANCEL" />
+                <Button mnemonicParsing="false" onAction="#handleBack" prefHeight="40.0" prefWidth="110.0" style="-fx-background-color: white; -fx-text-fill: #555555; -fx-background-radius: 6; -fx-font-weight: bold; -fx-border-color: #D5D5D5; -fx-border-radius: 6; -fx-cursor: hand;" text="CANCEL" />
                 <Button mnemonicParsing="false" onAction="#handleFileReport" prefHeight="40.0" prefWidth="200.0" style="-fx-background-color: #500A0E; -fx-text-fill: #F2C76A; -fx-background-radius: 6; -fx-font-weight: bold; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.3), 10, 0, 0, 4);" text="🚨 FILE COMPROMISE" />
             </children>
         </HBox>

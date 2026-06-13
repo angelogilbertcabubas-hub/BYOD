@@ -4,7 +4,12 @@ import utils.DataStore;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
 public class SecurityDashboardController extends BaseSecurityController {
 
@@ -72,7 +77,33 @@ public class SecurityDashboardController extends BaseSecurityController {
 
     @FXML
     private void handleReportIncident(ActionEvent event) {
-        showAlert(Alert.AlertType.INFORMATION, "Incident Report", "Opening Security Incident Logging Protocol...");
+        try {
+            // Locate the FXML file from the resources folder
+            java.net.URL resource = getClass().getResource("/com/example/byod/Security/ReportIncident.fxml");
+
+            // Safety check: Prevent the "Location is not set" crash
+            if (resource == null) {
+                showAlert(Alert.AlertType.ERROR, "System Error", "Could not find ReportIncident.fxml. Please rebuild the project using Maven Clean and Install.");
+                return;
+            }
+
+            // Load the FXML file
+            FXMLLoader loader = new FXMLLoader(resource);
+            Parent root = loader.load();
+
+            // Create and show the popup window
+            Stage incidentStage = new Stage();
+            incidentStage.setTitle("Report Security Incident");
+            incidentStage.setScene(new Scene(root));
+
+            // Block interaction with the dashboard until this report is closed
+            incidentStage.initModality(Modality.APPLICATION_MODAL);
+            incidentStage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Loading Error", "An error occurred while opening the Incident Report.");
+        }
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
