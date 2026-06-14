@@ -7,18 +7,19 @@ public class Device {
     private String brandModel;
     private String macAddress;
     private String accessCode;
+    private String status; // NEW: Security Flag
 
-    // 6-Argument Constructor (Used by the updated DataStore for searching)
-    public Device(String studentNumber, String ownerName, String deviceType, String brandModel, String macAddress, String accessCode) {
+    public Device(String studentNumber, String ownerName, String deviceType, String brandModel, String macAddress, String accessCode, String status) {
         this.studentNumber = studentNumber;
         this.ownerName = ownerName;
         this.deviceType = deviceType;
         this.brandModel = brandModel;
         this.macAddress = macAddress;
         this.accessCode = accessCode;
+        this.status = (status != null) ? status : "ACTIVE";
     }
 
-    // 5-Argument Constructor (Legacy support for older controllers)
+    // Legacy Support Constructor
     public Device(String ownerName, String deviceType, String brandModel, String macAddress, String accessCode) {
         this.studentNumber = "N/A";
         this.ownerName = ownerName;
@@ -26,6 +27,7 @@ public class Device {
         this.brandModel = brandModel;
         this.macAddress = macAddress;
         this.accessCode = accessCode;
+        this.status = "ACTIVE";
     }
 
     public String getStudentNumber() { return studentNumber; }
@@ -34,13 +36,8 @@ public class Device {
     public String getBrandModel() { return brandModel; }
     public String getMacAddress() { return macAddress; }
     public String getAccessCode() { return accessCode; }
+    public String getStatus() { return status; }
 
     public String getModel() { return brandModel; }
     public String getToken() { return accessCode; }
-
-    public void setOwnerName(String ownerName) { this.ownerName = ownerName; }
-    public void setDeviceType(String deviceType) { this.deviceType = deviceType; }
-    public void setBrandModel(String brandModel) { this.brandModel = brandModel; }
-    public void setMacAddress(String macAddress) { this.macAddress = macAddress; }
-    public void setAccessCode(String accessCode) { this.accessCode = accessCode; }
 }

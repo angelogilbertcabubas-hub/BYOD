@@ -64,15 +64,16 @@ public class CheckInOutController extends BaseSecurityController {
 
     private static class DeviceRecord {
         Object id;
-        String brand, model, serial, accessCode, photoPath;
+        String brand, model, serial, accessCode, photoPath, status;
 
-        public DeviceRecord(Object id, String brand, String model, String serial, String accessCode, String photoPath) {
+        public DeviceRecord(Object id, String brand, String model, String serial, String accessCode, String photoPath, String status) {
             this.id = id;
             this.brand = (brand != null) ? brand : "Unknown";
             this.model = (model != null) ? model : "Device";
             this.serial = (serial != null) ? serial : "N/A";
             this.accessCode = (accessCode != null) ? accessCode : "N/A";
             this.photoPath = (photoPath != null && !photoPath.isEmpty()) ? photoPath : "default_device.png";
+            this.status = (status != null) ? status : "ACTIVE";
         }
     }
 
@@ -171,8 +172,9 @@ public class CheckInOutController extends BaseSecurityController {
     }
 
     private void fetchStudentAndDeviceData(Connection conn, String identifier) throws SQLException {
+        // Query updated to fetch d.status
         String query = "SELECT s.id as student_db_id, s.school_id, s.first_name, s.last_name, s.program_course, s.section, s.photo_path as student_photo, " +
-                "d.id as device_id, d.device_brand, d.device_name, d.mac_address, d.unique_code, d.photo_path as device_photo " +
+                "d.id as device_id, d.device_brand, d.device_name, d.mac_address, d.unique_code, d.photo_path as device_photo, d.status as device_status " +
                 "FROM students s LEFT JOIN devices d ON s.id = d.student_id WHERE s.school_id = ? OR d.unique_code = ?";
 
         List<DeviceRecord> foundDevices = new ArrayList<>();
@@ -192,7 +194,11 @@ public class CheckInOutController extends BaseSecurityController {
                     studentPhoto = rs.getString("student_photo");
                 }
                 if (rs.getObject("device_id") != null) {
-                    foundDevices.add(new DeviceRecord(rs.getObject("device_id"), rs.getString("device_brand"), rs.getString("device_name"), rs.getString("mac_address"), rs.getString("unique_code"), rs.getString("device_photo")));
+                    foundDevices.add(new DeviceRecord(
+                            rs.getObject("device_id"), rs.getString("device_brand"), rs.getString("device_name"),
+                            rs.getString("mac_address"), rs.getString("unique_code"), rs.getString("device_photo"),
+                            rs.getString("device_status")
+                    ));
                 }
             }
         }
@@ -231,7 +237,13 @@ public class CheckInOutController extends BaseSecurityController {
                 lblCurrentStatus.setText("Currently OUTSIDE");
                 cmbAction.getSelectionModel().select("Check-In");
                 for (DeviceRecord d : foundDevices) {
-                    deviceContainer.getChildren().add(createDeviceCard(d));
+                    ToggleButton card = createDeviceCard(d);
+                    deviceContainer.getChildren().add(card);
+
+                    // Do not auto-select compromised devices
+                    if (!"COMPROMISED".equalsIgnoreCase(d.status) && !"INACTIVE".equalsIgnoreCase(d.status) && selectedDeviceIds.isEmpty()) {
+                        card.setSelected(true);
+                    }
                 }
             }
             updateSelectionLabels();
@@ -244,7 +256,7 @@ public class CheckInOutController extends BaseSecurityController {
     private ToggleButton createDeviceCard(DeviceRecord device) {
         ToggleButton btn = new ToggleButton();
 
-        // Significantly increased size for a bold, large UI element
+        // Maintains the large UI sizing for images
         btn.setPrefSize(240, 260);
         btn.setMinSize(240, 260);
         btn.setMaxSize(240, 260);
@@ -260,8 +272,7 @@ public class CheckInOutController extends BaseSecurityController {
         img.setPreserveRatio(true);
         loadImageToView(img, device.photoPath);
 
-        Label lblName = new Label(device.brand + " " + device.model);
-        lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #222222;");
+        Label lblName = new Label();
         lblName.setWrapText(true);
         lblName.setTextAlignment(TextAlignment.CENTER);
         lblName.setMaxHeight(60);
@@ -273,20 +284,32 @@ public class CheckInOutController extends BaseSecurityController {
         btn.setGraphic(cardLayout);
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
 
+        // Styling variants
         String defaultStyle = "-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 16; -fx-background-radius: 16; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);";
         String selectedStyle = "-fx-background-color: #FEF0F0; -fx-border-color: #500A0E; -fx-border-width: 3; -fx-border-radius: 16; -fx-background-radius: 16; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.3), 12, 0, 0, 5);";
+        String compromisedStyle = "-fx-background-color: #FFCDD2; -fx-border-color: #B71C1C; -fx-border-width: 3; -fx-border-radius: 16; -fx-background-radius: 16;";
 
-        btn.setStyle(defaultStyle);
+        // Check the lock status
+        if ("COMPROMISED".equalsIgnoreCase(device.status) || "INACTIVE".equalsIgnoreCase(device.status)) {
+            lblName.setText("⚠️ LOCKED\n" + device.brand + " " + device.model);
+            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #B71C1C;");
+            btn.setStyle(compromisedStyle);
+            btn.setDisable(true); // HARD LOCK
+        } else {
+            lblName.setText(device.brand + " " + device.model);
+            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #222222;");
+            btn.setStyle(defaultStyle);
 
-        btn.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
-            btn.setStyle(isNowSelected ? selectedStyle : defaultStyle);
-            if (isNowSelected) {
-                if (!selectedDeviceIds.contains(device.id)) selectedDeviceIds.add(device.id);
-            } else {
-                selectedDeviceIds.remove(device.id);
-            }
-            updateSelectionLabels();
-        });
+            btn.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
+                btn.setStyle(isNowSelected ? selectedStyle : defaultStyle);
+                if (isNowSelected) {
+                    if (!selectedDeviceIds.contains(device.id)) selectedDeviceIds.add(device.id);
+                } else {
+                    selectedDeviceIds.remove(device.id);
+                }
+                updateSelectionLabels();
+            });
+        }
 
         return btn;
     }
