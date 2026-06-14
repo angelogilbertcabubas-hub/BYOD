@@ -349,7 +349,9 @@ public class CheckInOutController extends BaseSecurityController {
                     }
                 }
 
+                // FIX: Refresh BOTH the Logs and Active Devices across the whole system!
                 DataStore.getInstance().refreshLogs();
+                DataStore.getInstance().refreshActiveDevices();
 
                 Platform.runLater(() -> {
                     showAlert(Alert.AlertType.INFORMATION, (isCheckingOut ? "Check-Out" : "Check-In") + " logged successfully!");
