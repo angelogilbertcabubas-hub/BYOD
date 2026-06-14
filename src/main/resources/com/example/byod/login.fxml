@@ -120,7 +120,7 @@
                               </Label>
                               <StackPane>
                                  <PasswordField fx:id="passwordField" prefHeight="45.0" promptText="Password" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 12;" />
-                                 <TextField fx:id="passwordVisible" managed="false" promptText="Password" visible="false" />
+                                 <TextField fx:id="passwordVisible" prefHeight="45.0" managed="false" promptText="Password" visible="false" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 12;" />
                                  <Button fx:id="eyeToggleBtn" onAction="#togglePasswordVisibility" style="-fx-background-color: transparent; -fx-cursor: hand;" text="Show" StackPane.alignment="CENTER_RIGHT" />
                               </StackPane>
                            </children>

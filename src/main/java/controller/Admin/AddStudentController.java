@@ -19,6 +19,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import utils.DatabaseHelper;
+import utils.EmailHelper;
 import utils.QRCodeGenerator;
 import utils.SupabaseStorageHelper;
 
@@ -347,6 +348,8 @@ public class AddStudentController {
                     imageView.setPreserveRatio(true);
                     alert.setGraphic(imageView);
                 }
+
+                EmailHelper.sendQRCode(cleanEmail, fullCombinedName, studentNumber, qrImage);
 
                 alert.showAndWait();
                 saveClicked = true;
