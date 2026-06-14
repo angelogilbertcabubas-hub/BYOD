@@ -38,7 +38,7 @@ public class CheckInOutController extends BaseSecurityController {
     @FXML private Label lblCourseSection;
     @FXML private ImageView imgStudentPhoto;
 
-    @FXML private FlowPane deviceContainer; // This will now hold our rich photo cards!
+    @FXML private FlowPane deviceContainer;
 
     @FXML private Label lblSerialNumber;
     @FXML private Label lblAccessCode;
@@ -153,7 +153,6 @@ public class CheckInOutController extends BaseSecurityController {
     }
 
     private void checkAccessStatus(Connection conn, String studentNumber) throws SQLException {
-        // Restricting the check to CURRENT_DATE to solve Bug 12 & 13!
         String query = "SELECT c.id as log_id, c.device_id FROM check_in_out c " +
                 "JOIN students s ON c.student_id = s.id " +
                 "WHERE s.school_id = ? AND c.status = 'CHECKED_IN' AND DATE(c.check_in_time) = CURRENT_DATE";
@@ -224,7 +223,7 @@ public class CheckInOutController extends BaseSecurityController {
                     if (devicesInsideIds.contains(d.id)) {
                         ToggleButton card = createDeviceCard(d);
                         card.setSelected(true);
-                        card.setDisable(true); // Lock selection
+                        card.setDisable(true);
                         deviceContainer.getChildren().add(card);
                     }
                 }
@@ -242,38 +241,40 @@ public class CheckInOutController extends BaseSecurityController {
         });
     }
 
-    // THE PHASE 3 FIX: Dynamic Photo Grid Cards!
     private ToggleButton createDeviceCard(DeviceRecord device) {
         ToggleButton btn = new ToggleButton();
 
-        // Build the inner visual layout of the card
-        VBox cardLayout = new VBox(5);
-        cardLayout.setAlignment(Pos.CENTER);
-        cardLayout.setPadding(new Insets(10));
+        // Significantly increased size for a bold, large UI element
+        btn.setPrefSize(240, 260);
+        btn.setMinSize(240, 260);
+        btn.setMaxSize(240, 260);
 
-        // Inject the Image
+        VBox cardLayout = new VBox(12);
+        cardLayout.setAlignment(Pos.CENTER);
+        cardLayout.setPadding(new Insets(20));
+        cardLayout.setPrefSize(240, 260);
+
         ImageView img = new ImageView();
-        img.setFitWidth(100);
-        img.setFitHeight(90);
+        img.setFitWidth(180);
+        img.setFitHeight(150);
         img.setPreserveRatio(true);
         loadImageToView(img, device.photoPath);
 
-        // Inject the Device Name
         Label lblName = new Label(device.brand + " " + device.model);
-        lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #222222;");
+        lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #222222;");
         lblName.setWrapText(true);
         lblName.setTextAlignment(TextAlignment.CENTER);
+        lblName.setMaxHeight(60);
 
-        // Inject the Code
         Label lblDetails = new Label("Token: " + device.accessCode);
-        lblDetails.setStyle("-fx-font-size: 9px; -fx-text-fill: #666666;");
+        lblDetails.setStyle("-fx-font-size: 12px; -fx-text-fill: #555555;");
 
         cardLayout.getChildren().addAll(img, lblName, lblDetails);
         btn.setGraphic(cardLayout);
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
 
-        String defaultStyle = "-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 8; -fx-background-radius: 8; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);";
-        String selectedStyle = "-fx-background-color: #FEF0F0; -fx-border-color: #500A0E; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.2), 8, 0, 0, 3);";
+        String defaultStyle = "-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 16; -fx-background-radius: 16; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);";
+        String selectedStyle = "-fx-background-color: #FEF0F0; -fx-border-color: #500A0E; -fx-border-width: 3; -fx-border-radius: 16; -fx-background-radius: 16; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.3), 12, 0, 0, 5);";
 
         btn.setStyle(defaultStyle);
 
