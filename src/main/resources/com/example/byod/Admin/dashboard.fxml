@@ -292,14 +292,14 @@
                                         </Label>
                                         <StackPane VBox.vgrow="ALWAYS">
                                             <children>
-                                                <AreaChart fx:id="ingressEgressChart" createSymbols="true" legendSide="BOTTOM" titleSide="TOP">
+                                                <BarChart fx:id="ingressEgressChart" animated="false" legendSide="BOTTOM">
                                                     <xAxis>
                                                         <CategoryAxis fx:id="xAxisChart" side="BOTTOM" />
                                                     </xAxis>
                                                     <yAxis>
-                                                        <NumberAxis fx:id="yAxisChart" autoRanging="false" side="LEFT" tickUnit="20.0" upperBound="100.0" />
+                                                        <NumberAxis fx:id="yAxisChart" side="LEFT"/>
                                                     </yAxis>
-                                                </AreaChart>
+                                                </BarChart>
                                                 <VBox fx:id="chartPlaceholder" alignment="CENTER" spacing="10.0" style="-fx-background-color: rgba(255,255,255,0.92);">
                                                     <children>
                                                         <Label text="📈" textFill="#CCCCCC">
