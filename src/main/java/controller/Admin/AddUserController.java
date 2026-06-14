@@ -6,6 +6,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ComboBox; // Import ComboBox
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
@@ -16,44 +17,49 @@ public class AddUserController {
 
     @FXML private TextField txtUsername;
     @FXML private TextField txtFullName;
-    @FXML private TextField txtRole;
+    @FXML private ComboBox<String> cmbRole; // Changed from TextField to ComboBox
 
     private SystemUser newUser = null;
+
+    @FXML
+    public void initialize() {
+        // This populates the dropdown when the modal opens
+        cmbRole.getItems().addAll("Administrator", "Security Guard");
+        cmbRole.getSelectionModel().selectFirst();
+    }
 
     @FXML
     private void handleSave(ActionEvent event) {
         String username = txtUsername.getText().trim();
         String fullName = txtFullName.getText().trim();
-        String role = txtRole.getText().trim();
+        // Use cmbRole.getValue() to get the selection from the dropdown
+        String role = (cmbRole.getValue() != null) ? cmbRole.getValue().trim() : "";
 
         if (username.isEmpty() || role.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Validation Error", "Username and Role parameters are strictly required.");
             return;
         }
 
-        // Beam the new user directly to the Supabase Cloud
         String insertQuery = "INSERT INTO users (username, role, password_hash) VALUES (?, ?, 'PUP-123456')";
 
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(insertQuery)) {
 
             pstmt.setString(1, username);
-            pstmt.setString(2, role.toUpperCase()); // Normalize role to ADMIN or SECURITY
+            pstmt.setString(2, role.toUpperCase());
             pstmt.executeUpdate();
 
-            // Store the verified object to pass back to the main table
             newUser = new SystemUser(username, fullName, role, "Active", "");
 
             showAlert(Alert.AlertType.INFORMATION, "User Provisioned",
                     "The account for " + username + " has been securely created in the cloud.\n\n" +
-                            "Initial Temporary Password: PUP-123456\n\n" +
-                            "The user can now log in. You can securely update this password later using the Reset Password feature.");
+                            "Initial Temporary Password: PUP-123456");
 
             closeStage(event);
 
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to provision user. The username might already exist in the system.");
+            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to provision user. Username might already exist.");
         }
     }
 
