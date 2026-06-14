@@ -118,7 +118,13 @@
                                     <Font name="System Bold" size="14.0" />
                                  </font>
                               </Label>
-                              <PasswordField fx:id="passwordField" prefHeight="45.0" promptText="Enter your password" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 12;" />
+                              <StackPane>
+                                 <PasswordField fx:id="passwordField" promptText="Password" />
+                                 <TextField fx:id="passwordVisible" promptText="Password" visible="false" managed="false" />
+                                 <Button fx:id="eyeToggleBtn" text="Show" onAction="#togglePasswordVisibility"
+                                         style="-fx-background-color: transparent; -fx-cursor: hand;"
+                                         StackPane.alignment="CENTER_RIGHT" />
+                              </StackPane>
                            </children>
                         </VBox>
 

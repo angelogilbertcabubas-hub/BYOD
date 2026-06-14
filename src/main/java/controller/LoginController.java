@@ -34,6 +34,11 @@ public class LoginController {
     @FXML private PasswordField passwordField;
     @FXML private Hyperlink forgotPasswordLink;
 
+    @FXML private TextField passwordVisible;
+    @FXML private Button eyeToggleBtn;
+
+    private boolean isPasswordVisible = false;
+
     @FXML
     public void initialize() {
         if (forgotPasswordLink != null) {
@@ -41,10 +46,30 @@ public class LoginController {
         }
     }
 
+    public void togglePasswordVisibility(ActionEvent event){
+        isPasswordVisible = !isPasswordVisible;
+
+        if(isPasswordVisible){
+            passwordVisible.setText(passwordField.getText());
+            passwordVisible.setVisible(true);
+            passwordVisible.setManaged(true);
+            passwordField.setVisible(false);
+            passwordField.setManaged(false);
+            eyeToggleBtn.setText("Show");
+        } else{
+            passwordVisible.setText(passwordField.getText());
+            passwordField.setVisible(true);
+            passwordField.setManaged(true);
+            passwordVisible.setVisible(false);
+            passwordVisible.setManaged(false);
+            eyeToggleBtn.setText("Hide");
+        }
+    }
+
     @FXML
     public void handleLogin(ActionEvent event) {
         String username = usernameField.getText();
-        String password = passwordField.getText();
+        String password = isPasswordVisible ? passwordVisible.getText() : passwordField.getText();
 
         if (username.isEmpty() || password.isEmpty()) {
             showCustomAlert("Login Failed", "Please enter both username and password.");
