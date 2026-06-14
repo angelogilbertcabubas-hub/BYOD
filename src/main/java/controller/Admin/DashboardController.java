@@ -8,6 +8,7 @@ import javafx.scene.chart.AreaChart;
 import javafx.scene.chart.CategoryAxis;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -43,6 +44,19 @@ public class DashboardController extends BaseAdminController {
         colMiniName.setCellValueFactory(new PropertyValueFactory<>("studentName"));
         colMiniAction.setCellValueFactory(new PropertyValueFactory<>("operation"));
         colMiniTime.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
+
+        colMiniName.setCellFactory(column -> new TableCell<LogEntry, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item);
+                    setStyle("-fx-alignment: CENTER_LEFT;");
+                }
+            }
+        });
 
         Thread dataLoadThread = new Thread(() -> {
             DataStore store = DataStore.getInstance();

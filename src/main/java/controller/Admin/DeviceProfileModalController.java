@@ -103,6 +103,13 @@ public class DeviceProfileModalController {
     }
 
     @FXML
+    private void handleCancel(ActionEvent event) {
+        // This retrieves the current window (Stage) and closes it
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        stage.close();
+    }
+
+    @FXML
     private void handleSaveChanges(ActionEvent event) {
         String newType = cmbEditType.getValue();
         String newModel = txtEditModel.getText().trim();

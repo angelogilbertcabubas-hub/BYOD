@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.net.URL?>
 <?import javafx.geometry.*?>
 <?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
@@ -9,6 +10,9 @@
 <?import javafx.scene.text.*?>
 
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="768.0" prefWidth="1024.0" style="-fx-background-color: #500A0E;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.DashboardController">
+    <stylesheets>
+        <URL value="@style.css" />
+    </stylesheets>
     <left>
         <VBox prefHeight="768.0" prefWidth="220.0" spacing="3.0" style="-fx-background-color: #500A0E; -fx-padding: 20 0 20 0;" BorderPane.alignment="CENTER">
             <children>
@@ -337,9 +341,9 @@
                                         </Label>
                                         <TableView fx:id="miniLogsTable" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
                                             <columns>
-                                                <TableColumn fx:id="colMiniName" prefWidth="120.0" text="STUDENT" />
+                                                <TableColumn fx:id="colMiniName" prefWidth="130.0" text="STUDENT" />
                                                 <TableColumn fx:id="colMiniAction" prefWidth="60.0" text="ACTION" />
-                                                <TableColumn fx:id="colMiniTime" prefWidth="80.0" text="TIME" />
+                                                <TableColumn fx:id="colMiniTime" prefWidth="70.0" text="TIME" />
                                             </columns>
                                             <columnResizePolicy>
                                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
