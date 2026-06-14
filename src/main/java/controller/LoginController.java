@@ -11,6 +11,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import utils.DatabaseHelper;
 import javafx.geometry.Insets;
@@ -36,6 +37,7 @@ public class LoginController {
 
     @FXML private TextField passwordVisible;
     @FXML private Button eyeToggleBtn;
+    @FXML private StackPane loadingOverlay;
 
     private boolean isPasswordVisible = false;
 
@@ -76,6 +78,8 @@ public class LoginController {
             return;
         }
 
+        setLoading(true);
+
         Scene currentScene = ((Node) event.getSource()).getScene();
         currentScene.setCursor(Cursor.WAIT);
 
@@ -84,12 +88,14 @@ public class LoginController {
                 String role = authenticateUser(username, password);
                 if (role != null) {
                     Platform.runLater(() -> {
+                        setLoading(false);
                         String fxmlPath = role.equalsIgnoreCase("admin") ? "/com/example/byod/Admin/dashboard.fxml" : "/com/example/byod/Security/SecurityDashboard.fxml";
                         String windowTitle = role.equalsIgnoreCase("admin") ? "Admin Dashboard" : "Security Dashboard";
                         loadDashboard(event, fxmlPath, windowTitle);
                     });
                 } else {
                     Platform.runLater(() -> {
+                        setLoading(false);
                         currentScene.setCursor(Cursor.DEFAULT);
                         showCustomAlert("Access Denied", "The username or password you entered is incorrect.");
                     });
@@ -104,6 +110,11 @@ public class LoginController {
         });
         networkWorker.setDaemon(true);
         networkWorker.start();
+    }
+
+    private void setLoading(boolean loading){
+        loadingOverlay.setVisible(loading);
+        loadingOverlay.setManaged(loading);
     }
 
     private String authenticateUser(String username, String password) throws Exception {

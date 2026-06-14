@@ -119,11 +119,9 @@
                                  </font>
                               </Label>
                               <StackPane>
-                                 <PasswordField fx:id="passwordField" promptText="Password" />
-                                 <TextField fx:id="passwordVisible" promptText="Password" visible="false" managed="false" />
-                                 <Button fx:id="eyeToggleBtn" text="Show" onAction="#togglePasswordVisibility"
-                                         style="-fx-background-color: transparent; -fx-cursor: hand;"
-                                         StackPane.alignment="CENTER_RIGHT" />
+                                 <PasswordField fx:id="passwordField" prefHeight="45.0" promptText="Password" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 12;" />
+                                 <TextField fx:id="passwordVisible" managed="false" promptText="Password" visible="false" />
+                                 <Button fx:id="eyeToggleBtn" onAction="#togglePasswordVisibility" style="-fx-background-color: transparent; -fx-cursor: hand;" text="Show" StackPane.alignment="CENTER_RIGHT" />
                               </StackPane>
                            </children>
                         </VBox>
@@ -158,6 +156,9 @@
                      </children>
                   </VBox>
                </children>
+            </StackPane>
+            <StackPane fx:id="loadingOverlay" managed="false" style="-fx-background-color: rgba(0,0,0,0.35" visible="false">
+               <ProgressIndicator fx:id="loadingSpinner" prefHeight="60" prefWidth="60" StackPane.alignment="CENTER" />
             </StackPane>
          </children>
       </GridPane>
