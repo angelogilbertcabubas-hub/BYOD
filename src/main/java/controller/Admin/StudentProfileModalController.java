@@ -124,7 +124,6 @@ public class StudentProfileModalController {
         fetchInternalUuidAndDevices();
     }
 
-    // THE FIX: Correctly parses "http" so Supabase cloud photos actually render
     private void fetchStudentCloudPhoto() {
         String query = "SELECT photo_path FROM students WHERE school_id = ?";
         new Thread(() -> {
@@ -151,7 +150,6 @@ public class StudentProfileModalController {
         }).start();
     }
 
-    // THE FIX: Correctly parses "http" so Supabase device photos actually render
     private void loadDevicePhoto(String photoPath) {
         if (photoPath == null || photoPath.isEmpty()) {
             devicePhotoImageView.setImage(null);
@@ -189,7 +187,8 @@ public class StudentProfileModalController {
         devicePhotoMap.clear();
 
         String fetchUuidSql = "SELECT id FROM students WHERE school_id = ?";
-        String fetchDevicesSql = "SELECT device_type, device_brand, device_name, mac_address, unique_code, photo_path FROM devices WHERE student_id = ?";
+        // ONLY fetch devices that are NOT archived!
+        String fetchDevicesSql = "SELECT device_type, device_brand, device_name, mac_address, unique_code, photo_path FROM devices WHERE student_id = ? AND (status IS NULL OR status != 'ARCHIVED')";
 
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmtUuid = conn.prepareStatement(fetchUuidSql)) {
@@ -306,8 +305,9 @@ public class StudentProfileModalController {
         }
 
         try (Connection conn = DatabaseHelper.getConnection()) {
-            String deleteSql = "DELETE FROM devices WHERE unique_code = ?";
-            try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+            // SOFT DELETE: Update status to ARCHIVED instead of physically deleting
+            String archiveSql = "UPDATE devices SET status = 'ARCHIVED' WHERE unique_code = ?";
+            try (PreparedStatement ps = conn.prepareStatement(archiveSql)) {
                 ps.setString(1, selectedDevice.getAccessCode());
                 ps.executeUpdate();
             }
@@ -334,7 +334,7 @@ public class StudentProfileModalController {
         VBox header = new VBox(5, icon, title);
         header.setAlignment(Pos.CENTER);
 
-        Label message = new Label("Are you sure you want to remove " + focusedStudent.getFullName() + "?\nThis action will permanently delete their profile and logs.");
+        Label message = new Label("Are you sure you want to remove " + focusedStudent.getFullName() + "?\nThis action will safely archive their profile while maintaining historical logs.");
         message.setWrapText(true);
         message.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         message.setStyle("-fx-text-fill: #555555; -fx-font-size: 14px;");
@@ -367,20 +367,42 @@ public class StudentProfileModalController {
         dialog.showAndWait();
     }
 
+    // PHASE 4 FIX: Safe Soft Deletion (Archiving) ensures logs are never corrupted
     private void performStudentDeletion(ActionEvent event) {
         try (Connection conn = DatabaseHelper.getConnection()) {
-            String purgeSql = "DELETE FROM students WHERE id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(purgeSql)) {
+
+            // 1: If they are currently inside campus, force a check-out immediately
+            String forceOut = "UPDATE check_in_out SET check_out_time = CURRENT_TIMESTAMP, status = 'CHECKED_OUT' WHERE student_id = ? AND status = 'CHECKED_IN'";
+            try (PreparedStatement ps = conn.prepareStatement(forceOut)) {
                 ps.setObject(1, databaseStudentUuid);
                 ps.executeUpdate();
             }
+
+            // 2: Soft Delete (Archive) all their devices
+            String archiveDev = "UPDATE devices SET status = 'ARCHIVED' WHERE student_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(archiveDev)) {
+                ps.setObject(1, databaseStudentUuid);
+                ps.executeUpdate();
+            }
+
+            // 3: Soft Delete (Archive) the student
+            String archiveStud = "UPDATE students SET status = 'ARCHIVED' WHERE id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(archiveStud)) {
+                ps.setObject(1, databaseStudentUuid);
+                ps.executeUpdate();
+            }
+
+            // Refresh the UI to make them "disappear" from the active lists
             DataStore.getInstance().getStudentsList().remove(focusedStudent);
             DataStore.getInstance().refreshStudents();
             DataStore.getInstance().refreshDevices();
-            DataStore.getInstance().refreshLogs();
+            DataStore.getInstance().refreshActiveDevices();
+
+            // NOTE: We deliberately do NOT refresh the logs here, so the Admin history stays completely intact!
+
             handleCloseModal(event);
         } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Purge Failed", "Could not remove record: " + e.getMessage());
+            showAlert(Alert.AlertType.ERROR, "Archive Failed", "Could not archive record: " + e.getMessage());
         }
     }
 

@@ -37,6 +37,7 @@ public class DashboardController extends BaseAdminController {
     @FXML private TableColumn<LogEntry, String> colMiniName;
     @FXML private TableColumn<LogEntry, String> colMiniAction;
     @FXML private TableColumn<LogEntry, String> colMiniTime;
+    @FXML private Label getLblRefreshBtn;
 
     @FXML
     public void initialize() {
@@ -164,6 +165,36 @@ public class DashboardController extends BaseAdminController {
 
         setupSampleData();
         startChartAutoRefresh();
+    }
+
+    @FXML private Label lblRefreshBtn;
+
+    @FXML
+    private void handleRefresh() {
+        lblRefreshBtn.setText("Refreshing...");
+        lblTotalStudents.setText("...");
+        lblRegisteredDevices.setText("...");
+        lblDevicesInside.setText("...");
+        lblTodayLogs.setText("...");
+
+        new Thread(() -> {
+            DataStore store = DataStore.getInstance();
+            store.refreshStudents();
+            store.refreshDevices();
+            store.refreshLogs();
+            store.refreshActiveDevices();
+
+            Platform.runLater(() -> {
+                lblTotalStudents.setText(String.valueOf(store.getStudentsList().size()));
+                lblRegisteredDevices.setText(String.valueOf(store.getDevicesList().size()));
+                lblDevicesInside.setText(String.valueOf(store.getActiveDevicesList().size()));
+                lblTodayLogs.setText(String.valueOf(store.getMonitoringLogsList().size()));
+                miniLogsTable.setItems(store.getMonitoringLogsList());
+                ingressEgressChart.getData().clear();
+                setupSampleData();
+                lblRefreshBtn.setText("⟳ Refresh");
+            });
+        }).start();
     }
 
     private void setupSampleData() {

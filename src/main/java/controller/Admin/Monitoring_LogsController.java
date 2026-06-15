@@ -32,9 +32,6 @@ public class Monitoring_LogsController extends BaseAdminController {
         colLogType.setCellValueFactory(new PropertyValueFactory<>("operation"));
         colLogTimestamp.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
 
-        // --- BATCH 2: UI/UX SECURITY ENHANCEMENTS ---
-
-        // 1. Row Highlighting: Turns the entire row faint red if the device is compromised
         monitoringLogsTableView.setRowFactory(tv -> new TableRow<LogEntry>() {
             @Override
             protected void updateItem(LogEntry item, boolean empty) {
@@ -43,15 +40,14 @@ public class Monitoring_LogsController extends BaseAdminController {
                     setStyle("");
                 } else {
                     if ("COMPROMISED".equalsIgnoreCase(item.getStatus())) {
-                        setStyle("-fx-background-color: #FFEBEE;"); // Faint red alert background
+                        setStyle("-fx-background-color: #FFEBEE;");
                     } else {
-                        setStyle(""); // Default background
+                        setStyle("");
                     }
                 }
             }
         });
 
-        // 2. Cell Badging: Injects the 🚨 emoji and bold red text into the Device column
         colLogDevice.setCellFactory(column -> new TableCell<LogEntry, String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -72,12 +68,9 @@ public class Monitoring_LogsController extends BaseAdminController {
             }
         });
 
-        // --------------------------------------------
-
-        // --- PHASE 3 FIX: Fetching permanent history instead of daily logs ---
+        // --- PHASE 4 FIX: Use Historical Logs so Admin data doesn't wipe at midnight! ---
         filteredMonitorLogs = new FilteredList<>(DataStore.getInstance().getAllHistoricalLogsList(), p -> true);
 
-        // FIX: Removed the trailing semicolons so the search actually works!
         searchBarField.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredMonitorLogs.setPredicate(monitorLogs -> {
                 if(newValue == null || newValue.isBlank()) return true;
@@ -105,7 +98,6 @@ public class Monitoring_LogsController extends BaseAdminController {
     }
 
     private void updateCountLabel(){
-        // --- PHASE 3 FIX: Update counter to reflect historical log size ---
         int total = DataStore.getInstance().getAllHistoricalLogsList().size();
         int filtered = filteredMonitorLogs.size();
         if(filtered == total){

@@ -18,8 +18,8 @@ public class DataStore {
 
     private ObservableList<Student> studentsList = FXCollections.observableArrayList();
     private ObservableList<Device> devicesList = FXCollections.observableArrayList();
-    private ObservableList<LogEntry> monitoringLogsList = FXCollections.observableArrayList(); // TODAY ONLY (Security & Dashboards)
-    private ObservableList<LogEntry> allHistoricalLogsList = FXCollections.observableArrayList(); // ALL TIME (Admin History)
+    private ObservableList<LogEntry> monitoringLogsList = FXCollections.observableArrayList();
+    private ObservableList<LogEntry> allHistoricalLogsList = FXCollections.observableArrayList();
     private ObservableList<LogEntry> activeDevicesList = FXCollections.observableArrayList();
     private ObservableList<Report> reportsList = FXCollections.observableArrayList();
     private ObservableList<SystemUser> usersList = FXCollections.observableArrayList();
@@ -36,6 +36,14 @@ public class DataStore {
     public static DataStore getInstance() {
         if (instance == null) instance = new DataStore();
         return instance;
+    }
+
+    public void refreshAll(){
+        refreshStudents();
+        refreshDevices();
+        refreshLogs();
+        refreshActiveDevices();
+        refreshIncidents();
     }
 
     public void refreshStudents() { studentsList.clear(); loadStudentsFromDatabase(); }
@@ -66,7 +74,6 @@ public class DataStore {
     }
 
     private void loadLogsFromDatabase() {
-        // --- PHASE 3 FIX: Split Queries for Security (Today) vs Admin (All-Time) ---
         String todayQuery = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, d.device_brand, d.device_name, d.unique_code, c.status, " +
                 "TO_CHAR(c.check_in_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_in, TO_CHAR(c.check_out_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_out " +
                 "FROM check_in_out c JOIN students s ON c.student_id = s.id JOIN devices d ON c.device_id = d.id " +
@@ -75,10 +82,9 @@ public class DataStore {
         String historyQuery = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, d.device_brand, d.device_name, d.unique_code, c.status, " +
                 "TO_CHAR(c.check_in_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_in, TO_CHAR(c.check_out_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_out " +
                 "FROM check_in_out c JOIN students s ON c.student_id = s.id JOIN devices d ON c.device_id = d.id " +
-                "ORDER BY c.check_in_time DESC LIMIT 1500"; // Gets all time history
+                "ORDER BY c.check_in_time DESC LIMIT 1500";
 
         try (Connection conn = DatabaseHelper.getConnection()) {
-            // Load Today's Logs
             try(PreparedStatement pstmt1 = conn.prepareStatement(todayQuery); ResultSet rs = pstmt1.executeQuery()) {
                 while (rs.next()) {
                     String logId = String.valueOf(rs.getObject("log_id"));
@@ -91,7 +97,6 @@ public class DataStore {
                     }
                 }
             }
-            // Load All-Time Logs
             try(PreparedStatement pstmt2 = conn.prepareStatement(historyQuery); ResultSet rs = pstmt2.executeQuery()) {
                 while (rs.next()) {
                     String logId = String.valueOf(rs.getObject("log_id"));
@@ -108,7 +113,9 @@ public class DataStore {
     }
 
     private void loadStudentsFromDatabase() {
-        String query = "SELECT school_id, first_name, last_name, middle_initial, program_course, email_address, mobile_number, status FROM students";
+        // PERMANENT FIX: Hide archived students from the UI
+        String query = "SELECT school_id, first_name, last_name, middle_initial, program_course, email_address, mobile_number, status " +
+                "FROM students WHERE status IS NULL OR status != 'ARCHIVED'";
         try (Connection conn = DatabaseHelper.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query); ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
                 String mName = rs.getString("middle_initial");
@@ -119,8 +126,10 @@ public class DataStore {
     }
 
     private void loadDevicesFromDatabase() {
+        // PERMANENT FIX: Hide devices belonging to archived students
         String query = "SELECT s.school_id, s.first_name, s.last_name, s.middle_initial, d.device_type, d.device_brand, d.device_name, d.mac_address, d.unique_code, d.status " +
-                "FROM devices d JOIN students s ON d.student_id = s.id";
+                "FROM devices d JOIN students s ON d.student_id = s.id " +
+                "WHERE (s.status IS NULL OR s.status != 'ARCHIVED') AND (d.status IS NULL OR d.status != 'ARCHIVED')";
         try (Connection conn = DatabaseHelper.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query); ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
                 String mName = rs.getString("middle_initial");
@@ -144,7 +153,7 @@ public class DataStore {
                         rs.getString("location"), rs.getString("description")
                 ));
             }
-        } catch (Exception e) { /* Safely ignore if table doesn't exist yet */ }
+        } catch (Exception e) { /* Safely ignore */ }
     }
 
     public ObservableList<Student> getStudentsList() { return studentsList; }
