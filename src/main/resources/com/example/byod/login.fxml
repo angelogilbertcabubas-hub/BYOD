@@ -69,14 +69,12 @@
 
             <StackPane alignment="CENTER" GridPane.columnIndex="1">
                <children>
-
                   <VBox alignment="TOP_CENTER" maxHeight="680.0" maxWidth="450.0" spacing="16.0" style="-fx-background-color: rgba(255,255,255,0.96); -fx-background-radius: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 15, 0, 0, 10);">
                      <padding>
                         <Insets bottom="30.0" left="35.0" right="35.0" top="35.0" />
                      </padding>
 
                      <children>
-
                         <ImageView fitHeight="110.0" fitWidth="110.0" preserveRatio="true">
                            <image>
                               <Image url="@../../../images/endpoint_logo1.png" />
@@ -119,9 +117,13 @@
                                  </font>
                               </Label>
                               <StackPane>
-                                 <PasswordField fx:id="passwordField" prefHeight="45.0" promptText="Password" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 12;" />
-                                 <TextField fx:id="passwordVisible" prefHeight="45.0" managed="false" promptText="Password" visible="false" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 12;" />
-                                 <Button fx:id="eyeToggleBtn" onAction="#togglePasswordVisibility" style="-fx-background-color: transparent; -fx-cursor: hand;" text="Show" StackPane.alignment="CENTER_RIGHT" />
+                                 <PasswordField fx:id="passwordField" prefHeight="45.0" promptText="Password" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 45 0 12;" />
+                                 <TextField fx:id="passwordVisible" managed="false" prefHeight="45.0" promptText="Password" visible="false" style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-border-color: #D5D5D5; -fx-background-color: white; -fx-padding: 0 45 0 12;" />
+                                 <Button fx:id="eyeToggleBtn" onAction="#togglePasswordVisibility" style="-fx-background-color: transparent; -fx-cursor: hand; -fx-text-fill: #555555; -fx-font-weight: bold;" text="👁 Show" StackPane.alignment="CENTER_RIGHT">
+                                    <StackPane.margin>
+                                       <Insets right="5.0" />
+                                    </StackPane.margin>
+                                 </Button>
                               </StackPane>
                            </children>
                         </VBox>
@@ -157,10 +159,23 @@
                   </VBox>
                </children>
             </StackPane>
-            <StackPane fx:id="loadingOverlay" managed="false" style="-fx-background-color: rgba(0,0,0,0.35" visible="false">
-               <ProgressIndicator fx:id="loadingSpinner" prefHeight="60" prefWidth="60" StackPane.alignment="CENTER" />
-            </StackPane>
          </children>
       </GridPane>
+
+      <StackPane fx:id="loadingOverlay" managed="false" style="-fx-background-color: rgba(0,0,0,0.55);" visible="false">
+         <children>
+            <VBox alignment="CENTER" spacing="15.0">
+               <children>
+                  <ProgressIndicator fx:id="loadingSpinner" prefHeight="70.0" prefWidth="70.0" style="-fx-progress-color: #F2C76A;" />
+                  <Label text="Authenticating Secure Connection..." textFill="WHITE">
+                     <font>
+                        <Font name="System Bold" size="16.0" />
+                     </font>
+                  </Label>
+               </children>
+            </VBox>
+         </children>
+      </StackPane>
+
    </children>
 </StackPane>

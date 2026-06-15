@@ -72,7 +72,7 @@ public class CheckInOutController extends BaseSecurityController {
             this.model = (model != null) ? model : "Device";
             this.serial = (serial != null) ? serial : "N/A";
             this.accessCode = (accessCode != null) ? accessCode : "N/A";
-            this.photoPath = (photoPath != null && !photoPath.isEmpty()) ? photoPath : "default_device.png";
+            this.photoPath = (photoPath != null && !photoPath.isEmpty()) ? photoPath : "";
             this.status = (status != null) ? status : "ACTIVE";
         }
     }
@@ -108,6 +108,8 @@ public class CheckInOutController extends BaseSecurityController {
         studentDeviceList.clear();
         deviceContainer.getChildren().clear();
         deviceContainer.setDisable(false);
+
+        // --- PHASE 1 FIX: Clear the photo buffer immediately on start ---
         if(imgStudentPhoto != null) imgStudentPhoto.setImage(null);
 
         if (scannerThread != null) scannerThread.stopScanner();
@@ -146,7 +148,7 @@ public class CheckInOutController extends BaseSecurityController {
     @FXML
     private void handleSearch() {
         if (txtDeviceSearch.getText().trim().isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Please enter an Access Code or Student ID.");
+            showAlert(Alert.AlertType.WARNING, null, "Please enter an Access Code or Student ID.");
             return;
         }
         if (scannerThread != null) scannerThread.stopScanner();
@@ -172,7 +174,6 @@ public class CheckInOutController extends BaseSecurityController {
     }
 
     private void fetchStudentAndDeviceData(Connection conn, String identifier) throws SQLException {
-        // Query updated to fetch d.status
         String query = "SELECT s.id as student_db_id, s.school_id, s.first_name, s.last_name, s.program_course, s.section, s.photo_path as student_photo, " +
                 "d.id as device_id, d.device_brand, d.device_name, d.mac_address, d.unique_code, d.photo_path as device_photo, d.status as device_status " +
                 "FROM students s LEFT JOIN devices d ON s.id = d.student_id WHERE s.school_id = ? OR d.unique_code = ?";
@@ -203,10 +204,14 @@ public class CheckInOutController extends BaseSecurityController {
             }
         }
 
+        // --- PHASE 1 FIX: Access Verification Hard Stop ---
         if (fullName.isEmpty()) {
             Platform.runLater(() -> {
-                statusLabel.setText("Unregistered QR Code");
+                statusLabel.setText("ACCESS DENIED: Unregistered QR");
                 statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
+                showAlert(Alert.AlertType.ERROR, "SECURITY ALERT", "The scanned QR code is NOT registered in the system. Access Denied.");
+                handleClear();
+                startScanner(); // Forces the scanner to restart automatically after guard clicks OK
             });
             return;
         }
@@ -240,7 +245,6 @@ public class CheckInOutController extends BaseSecurityController {
                     ToggleButton card = createDeviceCard(d);
                     deviceContainer.getChildren().add(card);
 
-                    // Do not auto-select compromised devices
                     if (!"COMPROMISED".equalsIgnoreCase(d.status) && !"INACTIVE".equalsIgnoreCase(d.status) && selectedDeviceIds.isEmpty()) {
                         card.setSelected(true);
                     }
@@ -256,48 +260,46 @@ public class CheckInOutController extends BaseSecurityController {
     private ToggleButton createDeviceCard(DeviceRecord device) {
         ToggleButton btn = new ToggleButton();
 
-        // Maintains the large UI sizing for images
-        btn.setPrefSize(240, 260);
-        btn.setMinSize(240, 260);
-        btn.setMaxSize(240, 260);
+        // --- PHASE 1 FIX: Better UI Proportions for Device Cards ---
+        btn.setPrefSize(200, 240);
+        btn.setMinSize(200, 240);
+        btn.setMaxSize(200, 240);
 
-        VBox cardLayout = new VBox(12);
+        VBox cardLayout = new VBox(10);
         cardLayout.setAlignment(Pos.CENTER);
-        cardLayout.setPadding(new Insets(20));
-        cardLayout.setPrefSize(240, 260);
+        cardLayout.setPadding(new Insets(15));
+        cardLayout.setPrefSize(200, 240);
 
         ImageView img = new ImageView();
-        img.setFitWidth(180);
-        img.setFitHeight(150);
+        img.setFitWidth(140);
+        img.setFitHeight(120);
         img.setPreserveRatio(true);
         loadImageToView(img, device.photoPath);
 
         Label lblName = new Label();
         lblName.setWrapText(true);
         lblName.setTextAlignment(TextAlignment.CENTER);
-        lblName.setMaxHeight(60);
+        lblName.setMaxHeight(50);
 
         Label lblDetails = new Label("Token: " + device.accessCode);
-        lblDetails.setStyle("-fx-font-size: 12px; -fx-text-fill: #555555;");
+        lblDetails.setStyle("-fx-font-size: 11px; -fx-text-fill: #555555;");
 
         cardLayout.getChildren().addAll(img, lblName, lblDetails);
         btn.setGraphic(cardLayout);
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
 
-        // Styling variants
-        String defaultStyle = "-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 16; -fx-background-radius: 16; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);";
-        String selectedStyle = "-fx-background-color: #FEF0F0; -fx-border-color: #500A0E; -fx-border-width: 3; -fx-border-radius: 16; -fx-background-radius: 16; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.3), 12, 0, 0, 5);";
-        String compromisedStyle = "-fx-background-color: #FFCDD2; -fx-border-color: #B71C1C; -fx-border-width: 3; -fx-border-radius: 16; -fx-background-radius: 16;";
+        String defaultStyle = "-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 12; -fx-background-radius: 12; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);";
+        String selectedStyle = "-fx-background-color: #FEF0F0; -fx-border-color: #500A0E; -fx-border-width: 3; -fx-border-radius: 12; -fx-background-radius: 12; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.3), 12, 0, 0, 5);";
+        String compromisedStyle = "-fx-background-color: #FFCDD2; -fx-border-color: #B71C1C; -fx-border-width: 3; -fx-border-radius: 12; -fx-background-radius: 12;";
 
-        // Check the lock status
         if ("COMPROMISED".equalsIgnoreCase(device.status) || "INACTIVE".equalsIgnoreCase(device.status)) {
             lblName.setText("⚠️ LOCKED\n" + device.brand + " " + device.model);
-            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #B71C1C;");
+            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #B71C1C;");
             btn.setStyle(compromisedStyle);
-            btn.setDisable(true); // HARD LOCK
+            btn.setDisable(true);
         } else {
             lblName.setText(device.brand + " " + device.model);
-            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #222222;");
+            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #222222;");
             btn.setStyle(defaultStyle);
 
             btn.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
@@ -310,18 +312,26 @@ public class CheckInOutController extends BaseSecurityController {
                 updateSelectionLabels();
             });
         }
-
         return btn;
     }
 
+    // --- PHASE 1 FIX: The Doppelgänger Photo Wipe ---
     private void loadImageToView(ImageView imageView, String path) {
-        if (imageView == null || path == null || path.isEmpty()) return;
+        if (imageView == null) return;
+
+        // CRITICAL: Wipe the previous student's photo from the UI buffer first!
+        imageView.setImage(null);
+
+        if (path == null || path.isEmpty() || path.contains("default_")) return;
+
         try {
             if (path.startsWith("http")) {
                 imageView.setImage(new Image(path, true));
             } else {
                 File imgFile = new File("src/main/resources/" + path);
-                if (imgFile.exists()) imageView.setImage(new Image(imgFile.toURI().toString()));
+                if (imgFile.exists()) {
+                    imageView.setImage(new Image(imgFile.toURI().toString()));
+                }
             }
         } catch (Exception ignored) {}
     }
@@ -372,12 +382,11 @@ public class CheckInOutController extends BaseSecurityController {
                     }
                 }
 
-                // FIX: Refresh BOTH the Logs and Active Devices across the whole system!
                 DataStore.getInstance().refreshLogs();
                 DataStore.getInstance().refreshActiveDevices();
 
                 Platform.runLater(() -> {
-                    showAlert(Alert.AlertType.INFORMATION, (isCheckingOut ? "Check-Out" : "Check-In") + " logged successfully!");
+                    showAlert(Alert.AlertType.INFORMATION, "Success", (isCheckingOut ? "Check-Out" : "Check-In") + " logged successfully!");
                     handleClear();
                     startScanner();
                 });
@@ -386,7 +395,7 @@ public class CheckInOutController extends BaseSecurityController {
                     btnConfirm.setText("Confirm");
                     btnConfirm.setDisable(false);
                     deviceContainer.setDisable(false);
-                    showAlert(Alert.AlertType.ERROR, "Database error during transaction.");
+                    showAlert(Alert.AlertType.ERROR, "Database Error", "Database error during transaction.");
                 });
             }
         }).start();
@@ -415,10 +424,10 @@ public class CheckInOutController extends BaseSecurityController {
         if (scannerThread != null) scannerThread.stopScanner();
     }
 
-    private void showAlert(Alert.AlertType type, String message) {
+    private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
-        alert.setTitle("BYOD System");
-        alert.setHeaderText(null);
+        alert.setTitle("BYOD Security Module");
+        alert.setHeaderText(title);
         alert.setContentText(message);
         alert.showAndWait();
     }
