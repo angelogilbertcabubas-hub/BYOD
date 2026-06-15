@@ -11,6 +11,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import utils.DatabaseHelper;
@@ -46,25 +48,39 @@ public class LoginController {
         if (forgotPasswordLink != null) {
             forgotPasswordLink.setOnAction(this::handleForgotPassword);
         }
+
+        // Phase 1: Enter Key Login Support
+        usernameField.setOnKeyPressed(this::handleEnterKey);
+        passwordField.setOnKeyPressed(this::handleEnterKey);
+        passwordVisible.setOnKeyPressed(this::handleEnterKey);
+    }
+
+    private void handleEnterKey(KeyEvent event) {
+        if (event.getCode() == KeyCode.ENTER) {
+            // Trigger the login event using the source of the keypress
+            handleLogin(new ActionEvent(event.getSource(), event.getTarget()));
+        }
     }
 
     public void togglePasswordVisibility(ActionEvent event){
         isPasswordVisible = !isPasswordVisible;
 
         if(isPasswordVisible){
+            // Copy hidden text to visible field
             passwordVisible.setText(passwordField.getText());
             passwordVisible.setVisible(true);
             passwordVisible.setManaged(true);
             passwordField.setVisible(false);
             passwordField.setManaged(false);
-            eyeToggleBtn.setText("Show");
-        } else{
-            passwordVisible.setText(passwordField.getText());
+            eyeToggleBtn.setText("👁 Hide");
+        } else {
+            // Copy visible text back to hidden field
+            passwordField.setText(passwordVisible.getText());
             passwordField.setVisible(true);
             passwordField.setManaged(true);
             passwordVisible.setVisible(false);
             passwordVisible.setManaged(false);
-            eyeToggleBtn.setText("Hide");
+            eyeToggleBtn.setText("👁 Show");
         }
     }
 
