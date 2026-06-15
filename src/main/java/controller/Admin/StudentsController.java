@@ -34,6 +34,7 @@ public class StudentsController extends BaseAdminController {
     private FilteredList<Student> filteredStudents;
 
     @FXML
+    @SuppressWarnings("unchecked")
     public void initialize() {
         // Standard Columns
         colStudentName.setCellValueFactory(new PropertyValueFactory<>("fullName"));
@@ -44,7 +45,6 @@ public class StudentsController extends BaseAdminController {
 
         filteredStudents = new FilteredList<>(DataStore.getInstance().getStudentsList(), p -> true);
 
-        // Search Filter Logic
         searchBarField.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredStudents.setPredicate(student -> {
                 if(newValue == null || newValue.isBlank()) return true;
@@ -59,27 +59,40 @@ public class StudentsController extends BaseAdminController {
 
                 return false;
             });
-
             updateLabel(filteredStudents.size());
         });
 
-        // Phase 3: Injecting "Actions" column programmatically with Edit & Delete buttons
-        TableColumn<Student, Void> colActions = new TableColumn<>("Actions");
-        colActions.setPrefWidth(160);
-        colActions.setCellFactory(param -> new TableCell<>() {
+        // DUPLICATE FIX: Aggressively locate existing FXML ACTION column (case-insensitive)
+        TableColumn<Student, Void> actionColumn = null;
+        for (TableColumn<Student, ?> col : studentsTableView.getColumns()) {
+            if (col.getText() != null && col.getText().toLowerCase().contains("action")) {
+                actionColumn = (TableColumn<Student, Void>) col;
+                break;
+            }
+        }
+
+        // Failsafe: Only create it if the FXML one somehow goes missing
+        if (actionColumn == null) {
+            actionColumn = new TableColumn<>("ACTION");
+            actionColumn.setPrefWidth(160);
+            studentsTableView.getColumns().add(actionColumn);
+        }
+
+        // Inject the buttons directly into the identified column
+        actionColumn.setCellFactory(param -> new TableCell<>() {
             private final Button editBtn = new Button("Edit");
             private final Button deleteBtn = new Button("Delete");
             private final HBox pane = new HBox(10, editBtn, deleteBtn);
 
             {
-                // Styling the buttons for a clean, professional look
                 editBtn.setStyle("-fx-background-color: #27AE60; -fx-text-fill: white; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 5 15;");
                 deleteBtn.setStyle("-fx-background-color: #C0392B; -fx-text-fill: white; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 5 10;");
                 pane.setAlignment(Pos.CENTER);
 
+                // ROUTING FIX: Edit button now opens the Student Profile Modal
                 editBtn.setOnAction(event -> {
                     Student student = getTableView().getItems().get(getIndex());
-                    openEditStudentModal(student);
+                    openStudentProfileModal(student);
                 });
 
                 deleteBtn.setOnAction(event -> {
@@ -95,16 +108,11 @@ public class StudentsController extends BaseAdminController {
             }
         });
 
-        // Add the action column to the far right of the table
-        studentsTableView.getColumns().add(colActions);
-
         // Retain existing double-click profile behavior
         studentsTableView.setRowFactory(tv -> {
             TableRow<Student> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
-
-                    // Safe check to ensure we didn't double-click inside an action button
                     Node target = (Node) event.getTarget();
                     boolean clickedOnButton = false;
                     while (target != null) {
@@ -117,6 +125,7 @@ public class StudentsController extends BaseAdminController {
 
                     if (!clickedOnButton) {
                         Student selectedStudent = row.getItem();
+                        // Also uses Profile Modal
                         openStudentProfileModal(selectedStudent);
                     }
                 }
@@ -156,36 +165,6 @@ public class StudentsController extends BaseAdminController {
         }
     }
 
-    // Phase 3: Edit Student Modal Launcher
-    private void openEditStudentModal(Student student) {
-        try {
-            // Reusing the Add Student layout for the Edit overlay
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/byod/Admin/AddStudentModal.fxml"));
-            Parent root = loader.load();
-
-            AddStudentController dialogController = loader.getController();
-
-            Stage dialogStage = new Stage();
-            dialogStage.setTitle("Edit Student Record: " + student.getFullName());
-            dialogStage.initModality(Modality.WINDOW_MODAL);
-            dialogStage.initOwner(studentsTableView.getScene().getWindow());
-
-            // Retaining the window sizing fixes from Phase 1
-            dialogStage.setScene(new Scene(root, 650, 700));
-            dialogStage.setResizable(true);
-
-            dialogStage.showAndWait();
-
-            studentsTableView.refresh();
-            updateLabel(DataStore.getInstance().getStudentsList().size());
-
-        } catch (IOException e) {
-            System.err.println("CRITICAL ERROR: Could not load the Edit Student Modal.");
-            e.printStackTrace();
-        }
-    }
-
-    // Phase 3: Delete Student Logic with Confirmation Dialog
     private void handleDeleteStudent(Student student) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Deletion");
@@ -200,8 +179,6 @@ public class StudentsController extends BaseAdminController {
             if (type == confirmBtn) {
                 // Remove the student record from the local memory instance
                 DataStore.getInstance().getStudentsList().remove(student);
-
-                // Triggers table to redraw without the deleted row
                 studentsTableView.refresh();
                 updateLabel(filteredStudents.size());
             }
@@ -211,26 +188,24 @@ public class StudentsController extends BaseAdminController {
     @FXML
     private void handleAddStudent(ActionEvent event) {
         try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/byod/Admin/AddStudentModal.fxml"));
-            javafx.scene.Parent root = loader.load();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/byod/Admin/AddStudentModal.fxml"));
+            Parent root = loader.load();
 
             AddStudentController dialogController = loader.getController();
 
-            javafx.stage.Stage dialogStage = new javafx.stage.Stage();
+            Stage dialogStage = new Stage();
             dialogStage.setTitle("Add New Student");
-
-            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
-            dialogStage.initOwner(((javafx.scene.Node) event.getSource()).getScene().getWindow());
-
-            dialogStage.setScene(new javafx.scene.Scene(root, 650, 700));
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(((Node) event.getSource()).getScene().getWindow());
+            dialogStage.setScene(new Scene(root, 650, 700));
             dialogStage.setResizable(true);
 
             dialogStage.showAndWait();
 
-            int count = utils.DataStore.getInstance().getStudentsList().size();
+            int count = DataStore.getInstance().getStudentsList().size();
             statusSummaryLabel.setText("Showing 1 to " + count + " of " + count + " entries");
 
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             System.err.println("CRITICAL ERROR: Could not load the Add Student Modal.");
             e.printStackTrace();
         }
