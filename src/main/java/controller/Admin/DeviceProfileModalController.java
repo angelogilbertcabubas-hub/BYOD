@@ -1,6 +1,7 @@
 package controller.Admin;
 
 import com.example.byod.model.Device;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -17,6 +18,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Optional;
 
 public class DeviceProfileModalController {
 
@@ -46,6 +48,16 @@ public class DeviceProfileModalController {
         txtEditModel.setText(split.length > 1 ? split[1] : device.getBrandModel());
         txtEditMac.setText(device.getMacAddress());
 
+        // LOGICAL FIX: Lock down physical hardware identity so it cannot be altered
+        cmbEditType.setDisable(true);
+        txtEditModel.setEditable(false);
+        txtEditMac.setEditable(false);
+
+        // Optional: Keep text visually readable instead of completely grayed out
+        cmbEditType.setStyle("-fx-opacity: 1; -fx-background-color: #F0F0F0;");
+        txtEditModel.setStyle("-fx-background-color: #F0F0F0;");
+        txtEditMac.setStyle("-fx-background-color: #F0F0F0;");
+
         fetchExtendedDetails();
     }
 
@@ -54,75 +66,111 @@ public class DeviceProfileModalController {
                 "FROM devices d JOIN students s ON d.student_id = s.id " +
                 "WHERE d.unique_code = ?";
 
-        try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query)) {
+        new Thread(() -> {
+            try (Connection conn = DatabaseHelper.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(query)) {
 
-            ps.setString(1, focusedDevice.getAccessCode());
-            ResultSet rs = ps.executeQuery();
+                ps.setString(1, focusedDevice.getAccessCode());
+                ResultSet rs = ps.executeQuery();
 
-            if (rs.next()) {
-                currentCloudPhotoPath = rs.getString("photo_path");
+                if (rs.next()) {
+                    currentCloudPhotoPath = rs.getString("photo_path");
 
-                String ownerSummary = rs.getString("first_name") + " " + rs.getString("last_name") +
-                        " | ID: " + rs.getString("school_id") +
-                        " | Course: " + rs.getString("program_course");
-                lblStudentOwnerSummary.setText("Owner: " + ownerSummary);
+                    String ownerSummary = rs.getString("first_name") + " " + rs.getString("last_name") +
+                            " | ID: " + rs.getString("school_id") +
+                            " | Course: " + rs.getString("program_course");
 
-                loadCloudPhoto(currentCloudPhotoPath);
+                    Platform.runLater(() -> {
+                        lblStudentOwnerSummary.setText("Owner: " + ownerSummary);
+                        loadCloudPhoto(currentCloudPhotoPath);
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    // FIX: Robust photo loading logic with local fallback
+    private void loadCloudPhoto(String path) {
+        String defaultImage = "/images/icon-devices.png";
+
+        if (path == null || path.trim().isEmpty() || path.contains("default_")) {
+            setFallbackImage(defaultImage);
+            return;
+        }
+
+        try {
+            if (path.startsWith("http")) {
+                Image webImage = new Image(path, true); // true = load asynchronously
+                webImage.errorProperty().addListener((obs, oldVal, isError) -> {
+                    if (isError) setFallbackImage(defaultImage);
+                });
+                devicePhotoImageView.setImage(webImage);
+            } else {
+                File imgFile = new File("src/main/resources/" + path);
+                if (imgFile.exists()) {
+                    devicePhotoImageView.setImage(new Image(imgFile.toURI().toString()));
+                } else {
+                    setFallbackImage(defaultImage);
+                }
+            }
+        } catch (Exception ignored) {
+            setFallbackImage(defaultImage);
+        }
+    }
+
+    private void setFallbackImage(String resourcePath) {
+        try {
+            java.net.URL url = getClass().getResource(resourcePath);
+            if (url != null) {
+                devicePhotoImageView.setImage(new Image(url.toExternalForm()));
+            } else {
+                devicePhotoImageView.setImage(null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            devicePhotoImageView.setImage(null);
         }
     }
 
-    private void loadCloudPhoto(String url) {
-        if (url != null && url.startsWith("http")) {
-            devicePhotoImageView.setImage(new Image(url, true));
-        }
-    }
     @FXML
-    private void handleRemoveDevice(javafx.event.ActionEvent event) {
-        javafx.scene.control.Alert confirm = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.CONFIRMATION);
+    private void handleRemoveDevice(ActionEvent event) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Security Override");
         confirm.setHeaderText("Revoke Hardware Registration?");
         confirm.setContentText("Are you sure you want to permanently remove this device?\n\nThis will block it from passing the perimeter gates.");
 
-        java.util.Optional<javafx.scene.control.ButtonType> result = confirm.showAndWait();
+        Optional<ButtonType> result = confirm.showAndWait();
 
-        if (result.isPresent() && result.get() == javafx.scene.control.ButtonType.OK) {
+        if (result.isPresent() && result.get() == ButtonType.OK) {
             new Thread(() -> {
-                // Perform Soft Delete to preserve historical logs
                 String updateQuery = "UPDATE devices SET status = 'ARCHIVED' WHERE mac_address = ?";
-                try (java.sql.Connection conn = utils.DatabaseHelper.getConnection();
-                     java.sql.PreparedStatement pstmt = conn.prepareStatement(updateQuery)) {
+                try (Connection conn = DatabaseHelper.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement(updateQuery)) {
 
-                    // IMPORTANT: We use the MAC address from the text field to target the specific device
                     pstmt.setString(1, txtEditMac.getText());
                     pstmt.executeUpdate();
 
-                    javafx.application.Platform.runLater(() -> {
-                        // 1. Refresh the main dashboard table so it disappears instantly
-                        utils.DataStore.getInstance().refreshDevices();
-
-                        // 2. Close the modal
-                        javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+                    Platform.runLater(() -> {
+                        DataStore.getInstance().refreshDevices();
+                        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
                         stage.close();
 
-                        // 3. Show Success Message
-                        javafx.scene.control.Alert success = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION, "Device successfully unregistered.");
+                        Alert success = new Alert(Alert.AlertType.INFORMATION, "Device successfully unregistered.");
                         success.show();
                     });
 
                 } catch (Exception e) {
                     e.printStackTrace();
-                    javafx.application.Platform.runLater(() -> {
-                        javafx.scene.control.Alert err = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, "Database connection failed.");
+                    Platform.runLater(() -> {
+                        Alert err = new Alert(Alert.AlertType.ERROR, "Database connection failed.");
                         err.show();
                     });
                 }
             }).start();
         }
     }
+
     @FXML
     private void handleUpdatePhoto(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
@@ -132,57 +180,57 @@ public class DeviceProfileModalController {
         File file = fileChooser.showOpenDialog(stage);
 
         if (file != null) {
-            try {
-                // Instantly upload the new photo to the cloud
-                currentCloudPhotoPath = SupabaseStorageHelper.uploadImage(file, "DEV");
-                loadCloudPhoto(currentCloudPhotoPath);
-
-                showAlert(Alert.AlertType.INFORMATION, "Photo Updated", "The new cloud photo has been staged. Click Save to finalize.");
-            } catch (Exception e) {
-                showAlert(Alert.AlertType.ERROR, "Upload Error", "Could not beam photo to cloud.");
-            }
+            new Thread(() -> {
+                try {
+                    currentCloudPhotoPath = SupabaseStorageHelper.uploadImage(file, "DEV_" + System.currentTimeMillis());
+                    Platform.runLater(() -> {
+                        loadCloudPhoto(currentCloudPhotoPath);
+                        showAlert(Alert.AlertType.INFORMATION, "Photo Updated", "The new cloud photo has been staged. Click Save to finalize.");
+                    });
+                } catch (Exception e) {
+                    Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Upload Error", "Could not beam photo to cloud."));
+                }
+            }).start();
         }
     }
 
     @FXML
     private void handleCancel(ActionEvent event) {
-        // This retrieves the current window (Stage) and closes it
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         stage.close();
     }
 
     @FXML
     private void handleSaveChanges(ActionEvent event) {
-        String newType = cmbEditType.getValue();
-        String newModel = txtEditModel.getText().trim();
-        String newMac = txtEditMac.getText().trim();
+        // BUG 7 FIX: Add confirmation dialog before saving device edits
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Confirm Update");
+        confirm.setHeaderText("Save Device Photo?");
+        confirm.setContentText("Are you sure you want to update the visual profile for this device?");
 
-        if (newType == null || newModel.isEmpty() || newMac.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Invalid Data", "Fields cannot be empty.");
-            return;
-        }
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
 
-        String query = "UPDATE devices SET device_type = ?, device_name = ?, mac_address = ?, photo_path = ? WHERE unique_code = ?";
+            // LOGICAL FIX: ONLY update the photo path, protecting hardware identity
+            String query = "UPDATE devices SET photo_path = ? WHERE unique_code = ?";
 
-        try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement ps = conn.prepareStatement(query)) {
+            try (Connection conn = DatabaseHelper.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(query)) {
 
-            ps.setString(1, newType);
-            ps.setString(2, newModel); // Assuming brand is kept, or you can merge brand/model logic here
-            ps.setString(3, newMac);
-            ps.setString(4, currentCloudPhotoPath);
-            ps.setString(5, focusedDevice.getAccessCode());
+                ps.setString(1, currentCloudPhotoPath);
+                ps.setString(2, focusedDevice.getAccessCode());
 
-            ps.executeUpdate();
+                ps.executeUpdate();
 
-            DataStore.getInstance().refreshDevices();
-            showAlert(Alert.AlertType.INFORMATION, "Update Success", "Device parameters saved.");
+                DataStore.getInstance().refreshDevices();
+                showAlert(Alert.AlertType.INFORMATION, "Update Success", "Device photo successfully updated.");
 
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.close();
+                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                stage.close();
 
-        } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to update device: " + e.getMessage());
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to update device: " + e.getMessage());
+            }
         }
     }
 

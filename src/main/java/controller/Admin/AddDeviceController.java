@@ -36,9 +36,13 @@ public class AddDeviceController {
     @FXML private Button btnUploadDevicePhoto;
     @FXML private Label lblDevicePhotoName;
     @FXML private ImageView devicePhotoPreview;
+
     private String devicePhotoPath = "default_device.png";
+    private boolean isPhotoUpdated = false;
 
     private Device newDevice = null;
+    private Device editingDevice = null;
+
     private ObservableList<String> studentRecords;
     private final Pattern MAC_PATTERN = Pattern.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
 
@@ -72,6 +76,113 @@ public class AddDeviceController {
         });
     }
 
+    // Edit Mode Handoff
+    public void setDeviceForEdit(Device device) {
+        this.editingDevice = device;
+
+        Platform.runLater(() -> {
+            try {
+                // Populate Fields
+                if (device.getOwnerName() != null) {
+                    for (String studentStr : studentRecords) {
+                        if (studentStr.toLowerCase().contains(device.getOwnerName().toLowerCase())) {
+                            cmbOwnerName.getSelectionModel().select(studentStr);
+                            cmbOwnerName.getEditor().setText(studentStr);
+                            break;
+                        }
+                    }
+                }
+
+                if (device.getDeviceType() != null) cmbDeviceType.setValue(device.getDeviceType());
+                if (device.getModel() != null) txtModel.setText(device.getModel());
+                if (device.getMacAddress() != null) txtMacAddress.setText(device.getMacAddress());
+
+                // LOGICAL FIX: Lock down physical hardware details so they cannot be altered
+                cmbOwnerName.setDisable(true);
+                cmbDeviceType.setDisable(true);
+                txtModel.setDisable(true);
+                txtMacAddress.setDisable(true);
+
+                if (lblDevicePhotoName != null) {
+                    lblDevicePhotoName.setText("Loading Current Photo...");
+                }
+
+                // Fetch and load the existing device photo from the database
+                fetchAndLoadExistingPhoto(device.getToken());
+
+            } catch (Exception e) {
+                System.err.println("Failed to inject device data into form: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private void fetchAndLoadExistingPhoto(String deviceToken) {
+        new Thread(() -> {
+            String photoPath = "default_device.png";
+            String query = "SELECT photo_path FROM devices WHERE unique_code = ?";
+
+            try (Connection conn = DatabaseHelper.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, deviceToken);
+                ResultSet rs = stmt.executeQuery();
+                if (rs.next()) {
+                    String fetchedPath = rs.getString("photo_path");
+                    if (fetchedPath != null && !fetchedPath.isEmpty()) {
+                        photoPath = fetchedPath;
+                        devicePhotoPath = photoPath; // Retain existing path if no new upload occurs
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            final String finalPath = photoPath;
+            Platform.runLater(() -> {
+                loadImageToView(devicePhotoPreview, finalPath);
+                if (lblDevicePhotoName != null) lblDevicePhotoName.setText("Current Device Photo");
+            });
+        }).start();
+    }
+
+    private void loadImageToView(ImageView imageView, String path) {
+        if (imageView == null) return;
+        String defaultImage = "/images/icon-devices.png";
+
+        if (path == null || path.trim().isEmpty() || path.contains("default_")) {
+            setFallbackImage(imageView, defaultImage);
+            return;
+        }
+
+        try {
+            if (path.startsWith("http")) {
+                Image webImage = new Image(path, true); // Load async
+                webImage.errorProperty().addListener((obs, oldVal, isError) -> {
+                    if (isError) setFallbackImage(imageView, defaultImage);
+                });
+                imageView.setImage(webImage);
+            } else {
+                File imgFile = new File("src/main/resources/" + path);
+                if (imgFile.exists()) {
+                    imageView.setImage(new Image(imgFile.toURI().toString()));
+                } else {
+                    setFallbackImage(imageView, defaultImage);
+                }
+            }
+        } catch (Exception ignored) {
+            setFallbackImage(imageView, defaultImage);
+        }
+    }
+
+    private void setFallbackImage(ImageView imageView, String resourcePath) {
+        try {
+            java.net.URL url = getClass().getResource(resourcePath);
+            if (url != null) imageView.setImage(new Image(url.toExternalForm()));
+        } catch (Exception e) {
+            imageView.setImage(null);
+        }
+    }
+
     @FXML
     private void handleUploadDevicePhoto(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();
@@ -91,6 +202,7 @@ public class AddDeviceController {
                     String cloudUrl = SupabaseStorageHelper.uploadImage(file, "DEV_" + System.currentTimeMillis());
                     if (cloudUrl != null) {
                         devicePhotoPath = cloudUrl;
+                        isPhotoUpdated = true;
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -101,18 +213,56 @@ public class AddDeviceController {
 
     @FXML
     private void handleSave(ActionEvent event) {
-        if (!isInputValid()) return;
+        // If we are editing, we don't need to validate input since everything is locked.
+        if (editingDevice == null && !isInputValid()) return;
 
-        String rawSelection = cmbOwnerName.getEditor().getText();
-        String studentNumber = rawSelection.substring(rawSelection.indexOf("[") + 1, rawSelection.indexOf("]"));
-        String ownerName = rawSelection.substring(0, rawSelection.indexOf("[")).trim();
+        if (editingDevice != null) {
+            processDeviceUpdate(event);
+        } else {
+            String rawSelection = cmbOwnerName.getEditor().getText();
+            String studentNumber = rawSelection.substring(rawSelection.indexOf("[") + 1, rawSelection.indexOf("]"));
+            String ownerName = rawSelection.substring(0, rawSelection.indexOf("[")).trim();
 
-        String[] modelSplit = txtModel.getText().split(" ", 2);
-        String brand = modelSplit[0];
-        String modelStr = modelSplit.length > 1 ? modelSplit[1] : "Unknown";
+            String[] modelSplit = txtModel.getText().split(" ", 2);
+            String brand = modelSplit[0];
+            String modelStr = modelSplit.length > 1 ? modelSplit[1] : "Unknown";
 
+            processNewDeviceRegistration(event, studentNumber, ownerName, brand, modelStr);
+        }
+    }
+
+    private void processDeviceUpdate(ActionEvent event) {
+        if (!isPhotoUpdated) {
+            Platform.runLater(() -> {
+                showAlert(Alert.AlertType.INFORMATION, "No Changes", "No new photo was uploaded. The device profile remains unchanged.");
+                closeStage(event);
+            });
+            return;
+        }
+
+        // ONLY update the photo path, protecting hardware identity
+        String updateQuery = "UPDATE devices SET photo_path = ? WHERE unique_code = ?";
+
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement updateStmt = conn.prepareStatement(updateQuery)) {
+
+            updateStmt.setString(1, devicePhotoPath);
+            updateStmt.setString(2, editingDevice.getToken());
+            updateStmt.executeUpdate();
+
+            Platform.runLater(() -> {
+                showAlert(Alert.AlertType.INFORMATION, "Update Successful", "Device photo successfully updated.");
+                closeStage(event);
+            });
+
+        } catch (Exception e) {
+            showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to update device photo: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void processNewDeviceRegistration(ActionEvent event, String studentNumber, String ownerName, String brand, String modelStr) {
         String generatedToken = "TKN-" + (1000 + new Random().nextInt(9000));
-
         String getStudentIdQuery = "SELECT id FROM students WHERE school_id = ?";
         String insertQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
@@ -140,11 +290,7 @@ public class AddDeviceController {
                 DataStore.getInstance().refreshDevices();
 
                 Platform.runLater(() -> {
-                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-                    alert.setTitle("Success");
-                    alert.setHeaderText(null);
-                    alert.setContentText("Device successfully registered to cloud for " + ownerName);
-                    alert.showAndWait();
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "Device successfully registered to cloud for " + ownerName);
                     closeStage(event);
                 });
 
@@ -161,6 +307,7 @@ public class AddDeviceController {
     @FXML
     private void handleCancel(ActionEvent event) {
         newDevice = null;
+        editingDevice = null;
         closeStage(event);
     }
 

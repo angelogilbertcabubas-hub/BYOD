@@ -3,11 +3,21 @@ package controller.Admin;
 import com.example.byod.model.Device;
 import utils.DataStore;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.HBox;
+import javafx.scene.Node;
 import javafx.event.ActionEvent;
 import javafx.collections.transformation.FilteredList;
 import javafx.collections.transformation.SortedList;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+
+import java.io.IOException;
 
 public class DevicesController extends BaseAdminController {
 
@@ -24,6 +34,7 @@ public class DevicesController extends BaseAdminController {
     private FilteredList<Device> filteredDevices;
 
     @FXML
+    @SuppressWarnings("unchecked")
     public void initialize() {
         colOwner.setCellValueFactory(new PropertyValueFactory<>("ownerName"));
         colDeviceType.setCellValueFactory(new PropertyValueFactory<>("deviceType"));
@@ -51,19 +62,76 @@ public class DevicesController extends BaseAdminController {
             updateCountLabel();
         });
 
+        TableColumn<Device, Void> actionColumn = null;
+        for (TableColumn<Device, ?> col : devicesTableView.getColumns()) {
+            if (col.getText() != null && col.getText().equalsIgnoreCase("ACTION")) {
+                actionColumn = (TableColumn<Device, Void>) col;
+                break;
+            }
+        }
+
+        if (actionColumn == null) {
+            actionColumn = new TableColumn<>("ACTION");
+            actionColumn.setPrefWidth(160);
+            devicesTableView.getColumns().add(actionColumn);
+        }
+
+        // Inject the buttons directly into the identified column
+        actionColumn.setCellFactory(param -> new TableCell<>() {
+            private final Button editBtn = new Button("Edit");
+            private final Button deleteBtn = new Button("Delete");
+            private final HBox pane = new HBox(10, editBtn, deleteBtn);
+
+            {
+                editBtn.setStyle("-fx-background-color: #27AE60; -fx-text-fill: white; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 5 15;");
+                deleteBtn.setStyle("-fx-background-color: #C0392B; -fx-text-fill: white; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 5 10;");
+                pane.setAlignment(Pos.CENTER);
+
+                // FIX: Now routes directly to your DeviceProfileModal
+                editBtn.setOnAction(event -> {
+                    Device device = getTableView().getItems().get(getIndex());
+                    openDeviceProfileModal(device);
+                });
+
+                deleteBtn.setOnAction(event -> {
+                    Device device = getTableView().getItems().get(getIndex());
+                    handleDeleteDevice(device);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : pane);
+            }
+        });
+
         SortedList<Device> sortedDevices = new SortedList<>(filteredDevices);
         sortedDevices.comparatorProperty().bind(devicesTableView.comparatorProperty());
         devicesTableView.setItems(sortedDevices);
 
-        // NEW: Make rows clickable to open the Device Profile Modal
         devicesTableView.setRowFactory(tv -> {
             TableRow<Device> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
-                    Device clickedDevice = row.getItem();
-                    openDeviceProfileModal(clickedDevice, event);
+                    Node target = (Node) event.getTarget();
+                    boolean clickedOnButton = false;
+                    while (target != null) {
+                        if (target instanceof Button) {
+                            clickedOnButton = true;
+                            break;
+                        }
+                        target = target.getParent();
+                    }
+
+                    if (!clickedOnButton) {
+                        Device clickedDevice = row.getItem();
+                        // FIX: Uses the same method as the Edit button
+                        openDeviceProfileModal(clickedDevice);
+                    }
                 }
             });
+            row.setStyle("-fx-cursor: hand;");
             return row;
         });
 
@@ -73,44 +141,48 @@ public class DevicesController extends BaseAdminController {
     @FXML
     private void handleRegisterDevice(ActionEvent event) {
         try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/byod/Admin/AddDeviceModal.fxml"));
-            javafx.scene.Parent root = loader.load();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/byod/Admin/AddDeviceModal.fxml"));
+            Parent root = loader.load();
 
             AddDeviceController dialogController = loader.getController();
 
-            javafx.stage.Stage dialogStage = new javafx.stage.Stage();
+            Stage dialogStage = new Stage();
             dialogStage.setTitle("Register Student Hardware Asset Configuration");
 
-            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
-            dialogStage.initOwner(((javafx.scene.Node) event.getSource()).getScene().getWindow());
-            dialogStage.setScene(new javafx.scene.Scene(root));
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(((Node) event.getSource()).getScene().getWindow());
+            dialogStage.setScene(new Scene(root, 650, 700));
+            dialogStage.setResizable(true);
 
             dialogStage.showAndWait();
 
-            // FIXED: The "double-dip" manual list addition has been removed here!
             updateCountLabel();
 
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             System.err.println("CRITICAL FAULT: Unable to compile asset registry pop-up sub-context views.");
             e.printStackTrace();
         }
     }
 
-    // NEW: Method to launch the Device Profile Modal
-    private void openDeviceProfileModal(Device targetDevice, javafx.scene.input.MouseEvent event) {
+    // FIX: Refactored to act as the single source of truth for opening the Profile Modal
+    private void openDeviceProfileModal(Device targetDevice) {
         try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/example/byod/Admin/DeviceProfileModal.fxml"));
-            javafx.scene.Parent root = loader.load();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/byod/Admin/DeviceProfileModal.fxml"));
+            Parent root = loader.load();
 
             DeviceProfileModalController controller = loader.getController();
             controller.initData(targetDevice);
 
-            javafx.stage.Stage dialogStage = new javafx.stage.Stage();
+            Stage dialogStage = new Stage();
             dialogStage.setTitle("Hardware Asset Profile");
-            dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
-            dialogStage.initOwner(((javafx.scene.Node) event.getSource()).getScene().getWindow());
-            dialogStage.setScene(new javafx.scene.Scene(root));
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(devicesTableView.getScene().getWindow());
+            dialogStage.setScene(new Scene(root));
             dialogStage.showAndWait();
+
+            // Refresh table when modal is closed to reflect any edits or deletions
+            devicesTableView.refresh();
+            updateCountLabel();
 
         } catch (Exception e) {
             System.err.println("Failed to load Device Profile Modal.");
@@ -118,8 +190,33 @@ public class DevicesController extends BaseAdminController {
         }
     }
 
+    // Device Deletion Logic with Confirmation
+    private void handleDeleteDevice(Device device) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Confirm Deletion");
+        alert.setHeaderText("Delete Hardware Asset Record");
+        alert.setContentText("Are you sure you want to permanently remove this " + device.getDeviceType() + " (" + device.getModel() + ") belonging to " + device.getOwnerName() + "?\n\nThis action cannot be undone.");
+
+        ButtonType confirmBtn = new ButtonType("Delete", ButtonBar.ButtonData.OK_DONE);
+        ButtonType cancelBtn = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+        alert.getButtonTypes().setAll(confirmBtn, cancelBtn);
+
+        alert.showAndWait().ifPresent(type -> {
+            if (type == confirmBtn) {
+                DataStore.getInstance().getDevicesList().remove(device);
+                devicesTableView.refresh();
+                updateCountLabel();
+            }
+        });
+    }
+
     private void updateCountLabel() {
-        int count = DataStore.getInstance().getDevicesList().size();
-        statusSummaryLabel.setText("Showing 1 to " + count + " of " + count + " hardware entries");
+        int filtered = filteredDevices.size();
+        int total = DataStore.getInstance().getDevicesList().size();
+        if (filtered == total) {
+            statusSummaryLabel.setText("Showing 1 to " + total + " of " + total + " hardware entries");
+        } else {
+            statusSummaryLabel.setText("Showing " + filtered + " of " + total + " hardware entries");
+        }
     }
 }
