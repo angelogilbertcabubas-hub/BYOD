@@ -36,10 +36,9 @@ public class QRScannerThread extends Thread {
     }
 
     public void stopScanner() {
+        // Phase 2 Fix: Signal the loop to stop.
+        // The actual closure is now safely handled in the 'finally' block below.
         isScanning = false;
-        if (webcam != null && webcam.isOpen()) {
-            webcam.close();
-        }
     }
 
     @Override
@@ -55,48 +54,52 @@ public class QRScannerThread extends Thread {
         int frameSkipCounter = 0;
         System.out.println("[SCANNER START] QR Video stream capturing active. Awaiting matrix target...");
 
-        while (isScanning && webcam.isOpen()) {
-            BufferedImage image = webcam.getImage();
-            if (image == null) continue;
+        try {
+            while (isScanning && webcam.isOpen()) {
+                BufferedImage image = webcam.getImage();
+                if (image == null) continue;
 
-            Platform.runLater(() -> viewfinder.setImage(SwingFXUtils.toFXImage(image, null)));
+                Platform.runLater(() -> viewfinder.setImage(SwingFXUtils.toFXImage(image, null)));
 
-            if (frameSkipCounter++ % 3 == 0) {
-                try {
-                    LuminanceSource source = new BufferedImageLuminanceSource(image);
-                    BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+                if (frameSkipCounter++ % 3 == 0) {
+                    try {
+                        LuminanceSource source = new BufferedImageLuminanceSource(image);
+                        BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
-                    Result result = reader.decode(bitmap);
-                    String rawQrContent = result.getText();
+                        Result result = reader.decode(bitmap);
+                        String rawQrContent = result.getText();
 
-                    // Diagnostic Console Output to verify exactly what text is hiding in the QR image
-                    System.out.println("[SCANNER CAPTURE] Decoded data stream payload: " + rawQrContent);
-                    java.awt.Toolkit.getDefaultToolkit().beep();
+                        System.out.println("[SCANNER CAPTURE] Decoded data stream payload: " + rawQrContent);
+                        java.awt.Toolkit.getDefaultToolkit().beep();
 
-                    // FIX 1: Safely isolate the Student Number if the QR code packs a composite string format
-                    final String cleanStudentNumber;
-                    if (rawQrContent.contains("\n")) {
-                        cleanStudentNumber = rawQrContent.split("\n")[0].trim();
-                    } else if (rawQrContent.contains(",")) {
-                        cleanStudentNumber = rawQrContent.split(",")[0].trim();
-                    } else {
-                        cleanStudentNumber = rawQrContent.trim();
+                        final String cleanStudentNumber;
+                        if (rawQrContent.contains("\n")) {
+                            cleanStudentNumber = rawQrContent.split("\n")[0].trim();
+                        } else if (rawQrContent.contains(",")) {
+                            cleanStudentNumber = rawQrContent.split(",")[0].trim();
+                        } else {
+                            cleanStudentNumber = rawQrContent.trim();
+                        }
+
+                        Platform.runLater(() -> {
+                            onQrDecoded.accept(cleanStudentNumber);
+                        });
+
+                        isScanning = false;
+
+                    } catch (NotFoundException ignored) {
+                        // QR Code matrix profile not detected on this specific video frame slice
+                    } catch (Exception e) {
+                        System.err.println("[SCANNER CRITICAL ERROR] Failure processing hardware decode routing: " + e.getMessage());
+                        e.printStackTrace();
                     }
-
-                    // FIX 2: Prevent Thread Silent Termination Crash!
-                    // Force the callback controller execution routine back onto the main JavaFX Application Thread.
-                    Platform.runLater(() -> {
-                        onQrDecoded.accept(cleanStudentNumber);
-                    });
-
-                    isScanning = false;
-
-                } catch (NotFoundException ignored) {
-                    // QR Code matrix profile not detected on this specific video frame slice
-                } catch (Exception e) {
-                    System.err.println("[SCANNER CRITICAL ERROR] Failure processing hardware decode routing: " + e.getMessage());
-                    e.printStackTrace();
                 }
+            }
+        } finally {
+            // Phase 2 Fix: GUARANTEED hardware resource release to prevent memory leaks and camera lockups
+            if (webcam != null && webcam.isOpen()) {
+                System.out.println("[SCANNER STOP] Releasing webcam hardware resources safely...");
+                webcam.close();
             }
         }
     }

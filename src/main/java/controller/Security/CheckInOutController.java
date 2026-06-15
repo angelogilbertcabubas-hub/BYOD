@@ -93,6 +93,22 @@ public class CheckInOutController extends BaseSecurityController {
         startScanner();
     }
 
+    // --- Phase 2: Intercepting Navigation to Kill Camera Memory Leak ---
+    @FXML @Override public void goToDashboard()      { shutdown(); super.goToDashboard(); }
+    @FXML @Override public void goToCheckInOut()     { shutdown(); super.goToCheckInOut(); }
+    @FXML @Override public void goToMonitoringLogs() { shutdown(); super.goToMonitoringLogs(); }
+    @FXML @Override public void goToActiveDevices()  { shutdown(); super.goToActiveDevices(); }
+    @FXML @Override public void goToReports()        { shutdown(); super.goToReports(); }
+    @FXML @Override public void handleLogout()       { shutdown(); super.handleLogout(); }
+
+    @Override public void goToDashboard(javafx.event.Event e)      { shutdown(); super.goToDashboard(e); }
+    @Override public void goToCheckInOut(javafx.event.Event e)     { shutdown(); super.goToCheckInOut(e); }
+    @Override public void goToMonitoringLogs(javafx.event.Event e) { shutdown(); super.goToMonitoringLogs(e); }
+    @Override public void goToActiveDevices(javafx.event.Event e)  { shutdown(); super.goToActiveDevices(e); }
+    @Override public void goToReports(javafx.event.Event e)        { shutdown(); super.goToReports(e); }
+    @Override public void handleLogout(javafx.event.Event e)       { shutdown(); super.handleLogout(e); }
+    // --------------------------------------------------------------------
+
     private void updateDateTime() {
         lblDateTime.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy  hh:mm a")));
     }
@@ -224,7 +240,10 @@ public class CheckInOutController extends BaseSecurityController {
             lblStudentName.setText(fName);
             lblStudentID.setText(fNum);
             lblCourseSection.setText(fCourse);
+
+            // Photo logic triggers here
             loadImageToView(imgStudentPhoto, fPhoto);
+
             deviceContainer.getChildren().clear();
             selectedDeviceIds.clear();
 
@@ -260,25 +279,24 @@ public class CheckInOutController extends BaseSecurityController {
         });
     }
 
-    // THE FIX: Increased card sizes massively for clear visibility
+    // Phase 2 Fix: Reduced Device Card layout constraints to remove UI clutter
     private ToggleButton createDeviceCard(DeviceRecord device) {
         ToggleButton btn = new ToggleButton();
-        btn.setPrefSize(180, 230);
-        btn.setMinSize(180, 230);
-        btn.setMaxSize(180, 230);
+        btn.setPrefSize(140, 180);
+        btn.setMinSize(140, 180);
+        btn.setMaxSize(140, 180);
 
-        VBox cardLayout = new VBox(8);
+        VBox cardLayout = new VBox(6);
         cardLayout.setAlignment(Pos.CENTER);
         cardLayout.setPadding(new Insets(10));
-        cardLayout.setPrefSize(180, 230);
 
         StackPane imgContainer = new StackPane();
         imgContainer.setStyle("-fx-border-color: #DDDDDD; -fx-border-radius: 8; -fx-background-color: white; -fx-padding: 5;");
-        imgContainer.setMaxSize(140, 140); // Massive 140x140 boundary
+        imgContainer.setMaxSize(80, 80);
 
         ImageView img = new ImageView();
-        img.setFitWidth(130); // Giant 130x130 image preview
-        img.setFitHeight(130);
+        img.setFitWidth(70);
+        img.setFitHeight(70);
         img.setPreserveRatio(true);
         loadImageToView(img, device.photoPath);
         imgContainer.getChildren().add(img);
@@ -286,13 +304,13 @@ public class CheckInOutController extends BaseSecurityController {
         Label lblName = new Label();
         lblName.setWrapText(true);
         lblName.setTextAlignment(TextAlignment.CENTER);
-        lblName.setMaxHeight(40);
+        lblName.setMaxHeight(35);
 
         Label lblDetails = new Label("Token: " + device.accessCode);
-        lblDetails.setStyle("-fx-font-size: 11px; -fx-text-fill: #777777;");
+        lblDetails.setStyle("-fx-font-size: 10px; -fx-text-fill: #777777;");
 
         Label lblCheck = new Label("⚪");
-        lblCheck.setStyle("-fx-text-fill: #DDDDDD; -fx-font-size: 16px;");
+        lblCheck.setStyle("-fx-text-fill: #DDDDDD; -fx-font-size: 14px;");
 
         cardLayout.getChildren().addAll(imgContainer, lblName, lblDetails, lblCheck);
         btn.setGraphic(cardLayout);
@@ -304,18 +322,18 @@ public class CheckInOutController extends BaseSecurityController {
 
         if ("COMPROMISED".equalsIgnoreCase(device.status) || "INACTIVE".equalsIgnoreCase(device.status)) {
             lblName.setText("⚠️ LOCKED\n" + device.brand);
-            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #B71C1C;");
+            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #B71C1C;");
             btn.setStyle(compromisedStyle);
             btn.setDisable(true);
         } else {
             lblName.setText(device.brand + "\n" + device.model);
-            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #222222;");
+            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #222222;");
             btn.setStyle(defaultStyle);
 
             btn.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
                 btn.setStyle(isNowSelected ? selectedStyle : defaultStyle);
                 lblCheck.setText(isNowSelected ? "🔴" : "⚪");
-                lblCheck.setStyle(isNowSelected ? "-fx-text-fill: #500A0E; -fx-font-size: 16px;" : "-fx-text-fill: #DDDDDD; -fx-font-size: 16px;");
+                lblCheck.setStyle(isNowSelected ? "-fx-text-fill: #500A0E; -fx-font-size: 14px;" : "-fx-text-fill: #DDDDDD; -fx-font-size: 14px;");
                 if (isNowSelected) {
                     if (!selectedDeviceIds.contains(device.id)) selectedDeviceIds.add(device.id);
                 } else {
@@ -327,22 +345,50 @@ public class CheckInOutController extends BaseSecurityController {
         return btn;
     }
 
+    // Phase 2 Fix: Asynchronous Cloud Image Handling & Fallbacks
     private void loadImageToView(ImageView imageView, String path) {
         if (imageView == null) return;
         imageView.setImage(null);
 
-        if (path == null || path.isEmpty() || path.contains("default_")) return;
+        boolean isStudentPhoto = (imageView == imgStudentPhoto);
+        String defaultImage = isStudentPhoto ? "/images/default_avatar.png" : "/images/icon-devices.png";
+
+        if (path == null || path.trim().isEmpty() || path.contains("default_")) {
+            setFallbackImage(imageView, defaultImage);
+            return;
+        }
 
         try {
             if (path.startsWith("http")) {
-                imageView.setImage(new Image(path, true));
+                Image webImage = new Image(path, true); // true = load asynchronously
+                webImage.errorProperty().addListener((obs, oldVal, isError) -> {
+                    if (isError) setFallbackImage(imageView, defaultImage);
+                });
+                imageView.setImage(webImage);
             } else {
                 File imgFile = new File("src/main/resources/" + path);
                 if (imgFile.exists()) {
                     imageView.setImage(new Image(imgFile.toURI().toString()));
+                } else {
+                    setFallbackImage(imageView, defaultImage);
                 }
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            setFallbackImage(imageView, defaultImage);
+        }
+    }
+
+    private void setFallbackImage(ImageView imageView, String resourcePath) {
+        try {
+            java.net.URL url = getClass().getResource(resourcePath);
+            if (url != null) {
+                imageView.setImage(new Image(url.toExternalForm()));
+            } else {
+                imageView.setImage(null);
+            }
+        } catch (Exception e) {
+            imageView.setImage(null);
+        }
     }
 
     private void updateSelectionLabels() {

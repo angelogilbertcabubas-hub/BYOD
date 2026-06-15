@@ -7,9 +7,11 @@
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.*?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="768.0" prefWidth="1024.0" style="-fx-background-color: #500A0E;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Security.CheckInOutController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="768.0" prefWidth="1024.0" style="-fx-background-color: #500A0E;"
+            xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Security.CheckInOutController">
     <left>
-        <VBox prefHeight="768.0" prefWidth="220.0" spacing="3.0" style="-fx-background-color: #500A0E; -fx-padding: 20 0 20 0;" BorderPane.alignment="CENTER">
+        <VBox prefHeight="768.0" prefWidth="220.0" spacing="3.0" style="-fx-background-color: #500A0E; -fx-padding: 20 0 20 0;"
+              BorderPane.alignment="CENTER">
             <children>
                 <VBox alignment="CENTER" prefHeight="140.0" prefWidth="220.0" spacing="8.0">
                     <children>
@@ -30,7 +32,7 @@
 
                 <HBox alignment="CENTER_LEFT" onMouseClicked="#goToDashboard" prefHeight="40.0" spacing="15.0" style="-fx-padding: 0 0 0 20; -fx-cursor: hand;">
                     <children>
-                        <Label text="📊" textFill="#C9A4A7"><font><Font size="14.0" /></font></Label>
+                        <Label text="🏠" textFill="#C9A4A7"><font><Font size="14.0" /></font></Label>
                         <Label text="Dashboard" textFill="#C9A4A7"><font><Font name="System Bold" size="13.0" /></font></Label>
                     </children>
                 </HBox>
@@ -51,14 +53,14 @@
 
                 <HBox alignment="CENTER_LEFT" onMouseClicked="#goToActiveDevices" prefHeight="40.0" spacing="15.0" style="-fx-padding: 0 0 0 20; -fx-cursor: hand;">
                     <children>
-                        <Label text="💻" textFill="#C9A4A7"><font><Font size="14.0" /></font></Label>
+                        <Label text="📱" textFill="#C9A4A7"><font><Font size="14.0" /></font></Label>
                         <Label text="Active Devices" textFill="#C9A4A7"><font><Font name="System Bold" size="13.0" /></font></Label>
                     </children>
                 </HBox>
 
                 <HBox alignment="CENTER_LEFT" onMouseClicked="#goToReports" prefHeight="40.0" spacing="15.0" style="-fx-padding: 0 0 0 20; -fx-cursor: hand;">
                     <children>
-                        <Label text="📄" textFill="#C9A4A7"><font><Font size="14.0" /></font></Label>
+                        <Label text="📈" textFill="#C9A4A7"><font><Font size="14.0" /></font></Label>
                         <Label text="Reports" textFill="#C9A4A7"><font><Font name="System Bold" size="13.0" /></font></Label>
                     </children>
                 </HBox>
@@ -78,11 +80,11 @@
     <center>
         <ScrollPane fitToWidth="true" style="-fx-background-color: #F4F0F0; -fx-background: #F4F0F0; -fx-border-color: transparent;">
             <content>
-                <VBox spacing="25" style="-fx-padding: 30; -fx-background-color: #F4F0F0;">
+                <VBox spacing="20" style="-fx-padding: 25; -fx-background-color: #F4F0F0;">
 
-                    <HBox alignment="CENTER_LEFT" style="-fx-background-color: #FFFFFF; -fx-background-radius: 12; -fx-padding: 15 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 4);">
+                    <HBox alignment="CENTER_LEFT" style="-fx-background-color: #FFFFFF; -fx-background-radius: 10; -fx-padding: 15 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);">
                         <VBox HBox.hgrow="ALWAYS">
-                            <Label text="Check-In / Check-Out" textFill="#222222"><font><Font name="System Bold" size="22.0" /></font></Label>
+                            <Label text="Check-In / Check-Out" textFill="#222222"><font><Font name="System Bold" size="20.0" /></font></Label>
                             <Label text="Verify and log device entry or exit" textFill="#777777"><font><Font size="12.0" /></font></Label>
                         </VBox>
                         <HBox alignment="CENTER" spacing="12.0">
@@ -94,114 +96,112 @@
                         </HBox>
                     </HBox>
 
-                    <HBox spacing="25">
-
-                        <VBox spacing="15" HBox.hgrow="NEVER" prefWidth="380" style="-fx-background-color: #FFFFFF; -fx-background-radius: 12; -fx-padding: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 4);">
-                            <Label text="Device Verification" textFill="#500A0E"><font><Font name="System Bold" size="16.0" /></font></Label>
+                    <HBox spacing="20">
+                        <VBox spacing="15" HBox.hgrow="NEVER" prefWidth="360" style="-fx-background-color: #FFFFFF; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);">
+                            <Label text="Device Verification" textFill="#500A0E"><font><Font name="System Bold" size="15.0" /></font></Label>
                             <Separator/>
 
-                            <VBox alignment="CENTER" spacing="10" style="-fx-background-color: #111111; -fx-background-radius: 12; -fx-padding: 15; -fx-border-color: #333; -fx-border-radius: 12; -fx-border-width: 4;">
-                                <ImageView fx:id="cameraView" fitHeight="240" fitWidth="320" preserveRatio="true" />
+                            <VBox alignment="CENTER" spacing="10" style="-fx-background-color: #111111; -fx-background-radius: 10; -fx-padding: 10; -fx-border-color: #333; -fx-border-radius: 10; -fx-border-width: 3;">
+                                <ImageView fx:id="cameraView" fitHeight="220" fitWidth="300" preserveRatio="true" />
                             </VBox>
 
                             <HBox alignment="CENTER">
-                                <Label fx:id="statusLabel" text="Initializing Camera..." style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #E67E22;" />
+                                <Label fx:id="statusLabel" text="Initializing Camera..." style="-fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: #E67E22;" />
                             </HBox>
 
-                            <Button onAction="#restartScanner" maxWidth="Infinity" style="-fx-cursor: hand; -fx-background-color: #F4F0F0; -fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 13px; -fx-padding: 10; -fx-background-radius: 8;" text="Restart Scanner" />
+                            <Button onAction="#restartScanner" maxWidth="Infinity" style="-fx-cursor: hand; -fx-background-color: #F4F0F0; -fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 12px; -fx-padding: 8; -fx-background-radius: 6;" text="Restart Scanner" />
 
                             <Label text="Or search manually:" textFill="#777777" style="-fx-font-size: 12px; -fx-padding: 10 0 0 0;" />
                             <HBox spacing="10">
-                                <TextField fx:id="txtDeviceSearch" promptText="Student ID / Code..." HBox.hgrow="ALWAYS" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDDDDD; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 10; -fx-font-size: 13px;" />
-                                <Button fx:id="btnSearch" onAction="#handleSearch" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 20;" text="SEARCH" />
+                                <TextField fx:id="txtDeviceSearch" promptText="Student ID / Code..." HBox.hgrow="ALWAYS" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDDDDD; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 8; -fx-font-size: 12px;" />
+                                <Button fx:id="btnSearch" onAction="#handleSearch" style="-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;" text="SEARCH" />
                             </HBox>
                         </VBox>
 
-                        <VBox spacing="25" HBox.hgrow="ALWAYS">
-
-                            <VBox fx:id="resultsCard" spacing="15" style="-fx-background-color: #FFFFFF; -fx-background-radius: 12; -fx-padding: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 4);">
-                                <Label text="Target Profile" textFill="#500A0E"><font><Font name="System Bold" size="16.0" /></font></Label>
+                        <VBox spacing="20" HBox.hgrow="ALWAYS">
+                            <VBox fx:id="resultsCard" spacing="15" style="-fx-background-color: #FFFFFF; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);">
+                                <Label text="Target Profile" textFill="#500A0E"><font><Font name="System Bold" size="15.0" /></font></Label>
                                 <Separator/>
 
-                                <HBox spacing="20" alignment="CENTER_LEFT">
-                                    <StackPane style="-fx-border-color: #DDDDDD; -fx-border-radius: 50; -fx-background-radius: 50; -fx-background-color: #F9F9F9; -fx-padding: 5;">
-                                        <ImageView fx:id="imgStudentPhoto" fitHeight="80.0" fitWidth="80.0" preserveRatio="false">
-                                            <clip><Circle centerX="40.0" centerY="40.0" radius="40.0" /></clip>
+                                <HBox spacing="15" alignment="CENTER_LEFT">
+                                    <StackPane style="-fx-border-color: #DDDDDD; -fx-border-radius: 40; -fx-background-radius: 40; -fx-background-color: #F9F9F9; -fx-padding: 3;">
+                                        <ImageView fx:id="imgStudentPhoto" fitHeight="65.0" fitWidth="65.0" preserveRatio="false">
+                                            <clip><Circle centerX="32.5" centerY="32.5" radius="32.5" /></clip>
                                         </ImageView>
                                     </StackPane>
 
-                                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <VBox spacing="2" HBox.hgrow="ALWAYS">
                                         <Label text="STUDENT DETAILS" style="-fx-font-size: 10px; -fx-text-fill: #999999; -fx-font-weight: bold;" />
-                                        <Label fx:id="lblStudentName" text="---" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #222222;" />
-                                        <HBox spacing="15">
-                                            <Label fx:id="lblStudentID" text="---" style="-fx-text-fill: #666666; -fx-font-weight: bold;" />
+                                        <Label fx:id="lblStudentName" text="---" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #222222;" />
+                                        <HBox spacing="10">
+                                            <Label fx:id="lblStudentID" text="---" style="-fx-text-fill: #666666; -fx-font-weight: bold; -fx-font-size: 12px;" />
                                             <Label text="|" style="-fx-text-fill: #CCCCCC;" />
-                                            <Label fx:id="lblCourseSection" text="---" style="-fx-text-fill: #666666; -fx-font-weight: bold;" />
+                                            <Label fx:id="lblCourseSection" text="---" style="-fx-text-fill: #666666; -fx-font-weight: bold; -fx-font-size: 12px;" />
                                         </HBox>
                                     </VBox>
                                 </HBox>
 
-                                <Label text="Registered Devices:" style="-fx-font-size: 13px; -fx-text-fill: #777777; -fx-font-weight: bold; -fx-padding: 10 0 0 0;" />
+                                <Label text="Registered Devices:" style="-fx-font-size: 12px; -fx-text-fill: #777777; -fx-font-weight: bold; -fx-padding: 5 0 0 0;" />
 
-                                <ScrollPane fitToHeight="true" vbarPolicy="NEVER" hbarPolicy="AS_NEEDED" prefHeight="270" minHeight="270" maxHeight="270" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;">
+                                <ScrollPane fitToHeight="true" vbarPolicy="NEVER" hbarPolicy="AS_NEEDED" prefHeight="200" minHeight="200" maxHeight="200" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;">
                                     <content>
-                                        <HBox fx:id="deviceContainer" spacing="15" style="-fx-padding: 5 5 15 5;" />
+                                        <HBox fx:id="deviceContainer" spacing="12" style="-fx-padding: 5 5 10 5;" />
                                     </content>
                                 </ScrollPane>
 
-                                <GridPane hgap="15" vgap="8" style="-fx-background-color: #F9F9F9; -fx-padding: 15; -fx-background-radius: 8; -fx-border-color: #EEEEEE; -fx-border-radius: 8;">
+                                <GridPane hgap="15" vgap="6" style="-fx-background-color: #F9F9F9; -fx-padding: 12; -fx-background-radius: 6; -fx-border-color: #EEEEEE; -fx-border-radius: 6;">
                                     <columnConstraints>
                                         <ColumnConstraints prefWidth="100" />
                                         <ColumnConstraints hgrow="ALWAYS" />
                                     </columnConstraints>
-                                    <Label text="Selected Devices:" GridPane.columnIndex="0" GridPane.rowIndex="0" style="-fx-text-fill: #777777; -fx-font-size: 12px;"/>
-                                    <Label fx:id="lblSerialNumber" text="" GridPane.columnIndex="1" GridPane.rowIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #222; -fx-font-size: 13px;"/>
+                                    <Label text="Selected Devices:" GridPane.columnIndex="0" GridPane.rowIndex="0" style="-fx-text-fill: #777777; -fx-font-size: 11px;"/>
+                                    <Label fx:id="lblSerialNumber" text="" GridPane.columnIndex="1" GridPane.rowIndex="0" style="-fx-font-weight: bold; -fx-text-fill: #222; -fx-font-size: 12px;"/>
 
-                                    <Label text="Access Code:" GridPane.columnIndex="0" GridPane.rowIndex="1" style="-fx-text-fill: #777777; -fx-font-size: 12px;"/>
-                                    <Label fx:id="lblAccessCode" text="" GridPane.columnIndex="1" GridPane.rowIndex="1" style="-fx-font-weight: bold; -fx-text-fill: #222; -fx-font-size: 13px;"/>
+                                    <Label text="Access Code:" GridPane.columnIndex="0" GridPane.rowIndex="1" style="-fx-text-fill: #777777; -fx-font-size: 11px;"/>
+                                    <Label fx:id="lblAccessCode" text="" GridPane.columnIndex="1" GridPane.rowIndex="1" style="-fx-font-weight: bold; -fx-text-fill: #222; -fx-font-size: 12px;"/>
 
-                                    <Label text="Current Status:" GridPane.columnIndex="0" GridPane.rowIndex="2" style="-fx-text-fill: #777777; -fx-font-size: 12px;"/>
-                                    <Label fx:id="lblCurrentStatus" text="" GridPane.columnIndex="1" GridPane.rowIndex="2" style="-fx-font-weight: bold; -fx-text-fill: #222; -fx-font-size: 13px;"/>
+                                    <Label text="Current Status:" GridPane.columnIndex="0" GridPane.rowIndex="2" style="-fx-text-fill: #777777; -fx-font-size: 11px;"/>
+                                    <Label fx:id="lblCurrentStatus" text="" GridPane.columnIndex="1" GridPane.rowIndex="2" style="-fx-font-weight: bold; -fx-text-fill: #222; -fx-font-size: 12px;"/>
                                 </GridPane>
                             </VBox>
 
-                            <VBox fx:id="transactionCard" spacing="15" style="-fx-background-color: #FFFFFF; -fx-background-radius: 12; -fx-padding: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 4);">
-                                <Label text="Log Entry Configuration" textFill="#500A0E"><font><Font name="System Bold" size="16.0" /></font></Label>
+                            <VBox fx:id="transactionCard" spacing="12" style="-fx-background-color: #FFFFFF; -fx-background-radius: 10; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);">
+                                <Label text="Log Entry Configuration" textFill="#500A0E"><font><Font name="System Bold" size="15.0" /></font></Label>
                                 <Separator/>
 
-                                <GridPane hgap="20.0" vgap="15.0">
+                                <GridPane hgap="15.0" vgap="12.0">
                                     <columnConstraints>
                                         <ColumnConstraints percentWidth="50.0" />
                                         <ColumnConstraints percentWidth="50.0" />
                                     </columnConstraints>
-                                    <VBox spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                                        <Label text="Action" style="-fx-text-fill: #777; -fx-font-size: 12px;"/>
-                                        <ComboBox fx:id="cmbAction" maxWidth="Infinity" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 6; -fx-padding: 4;" />
+                                    <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                        <Label text="Action" style="-fx-text-fill: #777; -fx-font-size: 11px;"/>
+                                        <ComboBox fx:id="cmbAction" maxWidth="Infinity" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 4; -fx-padding: 3;" />
                                     </VBox>
-                                    <VBox spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                                        <Label text="Date &amp; Time" style="-fx-text-fill: #777; -fx-font-size: 12px;"/>
-                                        <HBox alignment="CENTER_LEFT" spacing="8.0" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 6; -fx-padding: 7 10;">
-                                            <Label text="📅" />
-                                            <Label fx:id="lblDateTime" style="-fx-font-weight: bold; -fx-text-fill: #333;" />
+                                    <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                        <Label text="Date &amp; Time" style="-fx-text-fill: #777; -fx-font-size: 11px;"/>
+                                        <HBox alignment="CENTER_LEFT" spacing="6.0" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 4; -fx-padding: 5 8;">
+                                            <Label text="🕒" />
+                                            <Label fx:id="lblDateTime" style="-fx-font-weight: bold; -fx-text-fill: #333; -fx-font-size: 11px;" />
                                         </HBox>
                                     </VBox>
-                                    <VBox spacing="6" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                                        <Label text="Location" style="-fx-text-fill: #777; -fx-font-size: 12px;"/>
-                                        <ComboBox fx:id="cmbLocation" maxWidth="Infinity" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 6; -fx-padding: 4;" />
+                                    <VBox spacing="4" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                        <Label text="Location" style="-fx-text-fill: #777; -fx-font-size: 11px;"/>
+                                        <ComboBox fx:id="cmbLocation" maxWidth="Infinity" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 4; -fx-padding: 3;" />
                                     </VBox>
-                                    <VBox spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                                        <Label text="Guard Duty" style="-fx-text-fill: #777; -fx-font-size: 12px;"/>
-                                        <ComboBox fx:id="cmbGuard" maxWidth="Infinity" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 6; -fx-padding: 4;" />
+                                    <VBox spacing="4" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                        <Label text="Guard Duty" style="-fx-text-fill: #777; -fx-font-size: 11px;"/>
+                                        <ComboBox fx:id="cmbGuard" maxWidth="Infinity" style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 4; -fx-padding: 3;" />
                                     </VBox>
-                                    <VBox spacing="6" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="2">
-                                        <Label text="Remarks (Optional)" style="-fx-text-fill: #777; -fx-font-size: 12px;"/>
-                                        <TextArea fx:id="txtRemarks" prefRowCount="2" promptText="Add any necessary notes..." style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 6; -fx-padding: 4;" />
+                                    <VBox spacing="4" GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="2">
+                                        <Label text="Remarks (Optional)" style="-fx-text-fill: #777; -fx-font-size: 11px;"/>
+                                        <TextArea fx:id="txtRemarks" prefRowCount="2" promptText="Add any necessary notes..." style="-fx-background-color: #F9F9F9; -fx-border-color: #DDD; -fx-border-radius: 4; -fx-padding: 3;" />
                                     </VBox>
                                 </GridPane>
 
-                                <HBox spacing="15.0" style="-fx-padding: 10 0 0 0;">
-                                    <Button fx:id="btnClear" onAction="#handleClear" maxWidth="Infinity" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-text-fill: #555555; -fx-font-weight: bold; -fx-border-color: #CCCCCC; -fx-border-radius: 8; -fx-padding: 12; -fx-cursor: hand;" text="CLEAR FORM" />
-                                    <Button fx:id="btnConfirm" onAction="#handleConfirm" disable="true" maxWidth="Infinity" HBox.hgrow="ALWAYS" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 12; -fx-effect: dropshadow(three-pass-box, rgba(46,125,50,0.4), 10, 0, 0, 4); -fx-cursor: hand;" text="CONFIRM &amp; LOG ACTIVITY" />
+                                <HBox spacing="12.0" style="-fx-padding: 5 0 0 0;">
+                                    <Button fx:id="btnClear" onAction="#handleClear" maxWidth="Infinity" HBox.hgrow="ALWAYS" style="-fx-background-color: transparent; -fx-text-fill: #555555; -fx-font-weight: bold; -fx-border-color: #CCCCCC; -fx-border-radius: 6; -fx-padding: 10; -fx-cursor: hand;" text="CLEAR FORM" />
+                                    <Button fx:id="btnConfirm" onAction="#handleConfirm" disable="true" maxWidth="Infinity" HBox.hgrow="ALWAYS" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 10; -fx-effect: dropshadow(three-pass-box, rgba(46,125,50,0.4), 8, 0, 0, 2); -fx-cursor: hand;" text="CONFIRM &amp; LOG ACTIVITY" />
                                 </HBox>
                             </VBox>
                         </VBox>
