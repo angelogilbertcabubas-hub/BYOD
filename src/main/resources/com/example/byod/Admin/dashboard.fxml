@@ -90,6 +90,14 @@
                                     </children>
                                 </HBox>
 
+                                <HBox alignment="CENTER" maxHeight="34.0" onMouseClicked="#handleRefresh" style="-fx-background-color: #500A0E; -fx-border-radius: 17; -fx-background-radius: 17; -fx-padding: 0 16 0 16; -fx-cursor: hand;">
+                                    <children>
+                                        <Label fx:id="lblRefreshBtn" text="⟳ Refresh" textFill="WHITE">
+                                            <font><Font name="System Bold" size="11.0" /></font>
+                                        </Label>
+                                    </children>
+                                </HBox>
+
                                 <HBox alignment="CENTER" maxHeight="34.0" onMouseClicked="#handleLogout" style="-fx-background-color: transparent; -fx-border-color: #DDDDDD; -fx-border-radius: 17; -fx-padding: 0 16 0 16; -fx-cursor: hand;">
                                     <children>
                                         <Label text="Logout" textFill="#777777"><font><Font name="System Bold" size="11.0" /></font></Label>

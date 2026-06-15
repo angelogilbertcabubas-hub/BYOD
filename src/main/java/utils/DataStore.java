@@ -38,6 +38,14 @@ public class DataStore {
         return instance;
     }
 
+    public void refreshAll(){
+        refreshStudents();
+        refreshDevices();
+        refreshLogs();
+        refreshActiveDevices();
+        refreshIncidents();
+    }
+
     public void refreshStudents() { studentsList.clear(); loadStudentsFromDatabase(); }
     public void refreshDevices() { devicesList.clear(); loadDevicesFromDatabase(); }
     public void refreshLogs() {
