@@ -116,7 +116,10 @@ public class StudentsController extends BaseAdminController {
 
             dialogStage.initModality(javafx.stage.Modality.WINDOW_MODAL);
             dialogStage.initOwner(((javafx.scene.Node) event.getSource()).getScene().getWindow());
-            dialogStage.setScene(new javafx.scene.Scene(root));
+
+            // Phase 1 Fix: Adjusted explicit sizing and configured the modal to be resizable
+            dialogStage.setScene(new javafx.scene.Scene(root, 650, 700));
+            dialogStage.setResizable(true);
 
             dialogStage.showAndWait();
 
