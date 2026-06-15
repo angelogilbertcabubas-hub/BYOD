@@ -1,12 +1,16 @@
 package controller.Admin;
 
 import com.example.byod.LogEntry;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseEvent;
+import javafx.util.Duration;
 import utils.DataStore;
 
 public class Active_DevicesController extends BaseAdminController {
@@ -19,6 +23,8 @@ public class Active_DevicesController extends BaseAdminController {
     @FXML private TableColumn<LogEntry, String> colTimeIn;
     @FXML private TableColumn<LogEntry, String> colLocation;
 
+    private Timeline autoRefreshTimeline;
+
     @FXML
     public void initialize() {
         colStudentName.setCellValueFactory(new PropertyValueFactory<>("studentName"));
@@ -28,9 +34,6 @@ public class Active_DevicesController extends BaseAdminController {
         colTimeIn.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
         colLocation.setCellValueFactory(new PropertyValueFactory<>("location"));
 
-        // --- BATCH 2: UI/UX SECURITY ENHANCEMENTS ---
-
-        // 1. Row Highlighting: Turns the entire row faint red if a compromised device is inside the campus!
         activeDevicesTableView.setRowFactory(tv -> new TableRow<LogEntry>() {
             @Override
             protected void updateItem(LogEntry item, boolean empty) {
@@ -39,15 +42,14 @@ public class Active_DevicesController extends BaseAdminController {
                     setStyle("");
                 } else {
                     if ("COMPROMISED".equalsIgnoreCase(item.getStatus())) {
-                        setStyle("-fx-background-color: #FFEBEE;"); // Faint red alert background
+                        setStyle("-fx-background-color: #FFEBEE;");
                     } else {
-                        setStyle(""); // Default background
+                        setStyle("");
                     }
                 }
             }
         });
 
-        // 2. Cell Badging: Injects the 🚨 emoji and bold red text into the Device column
         colDevice.setCellFactory(column -> new TableCell<LogEntry, String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -68,10 +70,29 @@ public class Active_DevicesController extends BaseAdminController {
             }
         });
 
-        // --------------------------------------------
-
-        // By linking to the DataStore, the Admin page instantly updates
-        // whenever the Security guard performs a check-in/out!
         activeDevicesTableView.setItems(DataStore.getInstance().getActiveDevicesList());
+        startAutoRefresh();
     }
+
+    private void startAutoRefresh() {
+        autoRefreshTimeline = new Timeline(new KeyFrame(Duration.seconds(5), event -> {
+            new Thread(() -> DataStore.getInstance().refreshActiveDevices()).start();
+        }));
+        autoRefreshTimeline.setCycleCount(Timeline.INDEFINITE);
+        autoRefreshTimeline.play();
+    }
+
+    private void stopAutoRefresh() {
+        if (autoRefreshTimeline != null) autoRefreshTimeline.stop();
+    }
+
+    // NAVIGATION OVERRIDES (Now correctly matching the methods in BaseAdminController)
+    @Override public void handleDashboard(MouseEvent e)      { stopAutoRefresh(); super.handleDashboard(e); }
+    @Override public void handleStudents(MouseEvent e)       { stopAutoRefresh(); super.handleStudents(e); }
+    @Override public void handleDevices(MouseEvent e)        { stopAutoRefresh(); super.handleDevices(e); }
+    @Override public void handleMonitoringLogs(MouseEvent e)  { stopAutoRefresh(); super.handleMonitoringLogs(e); }
+    @Override public void handleActiveDevices(MouseEvent e)   { stopAutoRefresh(); super.handleActiveDevices(e); }
+    @Override public void handleReports(MouseEvent e)         { stopAutoRefresh(); super.handleReports(e); }
+    @Override public void handleUserManagement(MouseEvent e)  { stopAutoRefresh(); super.handleUserManagement(e); }
+    @Override public void handleLogout(MouseEvent e)          { stopAutoRefresh(); super.handleLogout(e); }
 }

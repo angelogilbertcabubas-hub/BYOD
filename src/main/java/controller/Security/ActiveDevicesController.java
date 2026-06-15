@@ -1,10 +1,14 @@
 package controller.Security;
 
 import com.example.byod.LogEntry;
-import utils.DataStore;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.util.Duration;
+import utils.DataStore;
 
 public class ActiveDevicesController extends BaseSecurityController {
 
@@ -25,6 +29,8 @@ public class ActiveDevicesController extends BaseSecurityController {
     private int currentPage = 1;
     private static final int TOTAL_PAGES = 3;
 
+    private Timeline autoRefreshTimeline;
+
     @FXML
     public void initialize() {
         colStudentName.setCellValueFactory(new PropertyValueFactory<>("studentName"));
@@ -36,7 +42,6 @@ public class ActiveDevicesController extends BaseSecurityController {
 
         // --- BATCH 3: UI/UX SECURITY ENHANCEMENTS ---
 
-        // 1. Row Highlighting: Turns the entire row faint red if a compromised device is inside the campus!
         activeDevicesTable.setRowFactory(tv -> new TableRow<LogEntry>() {
             @Override
             protected void updateItem(LogEntry item, boolean empty) {
@@ -53,7 +58,6 @@ public class ActiveDevicesController extends BaseSecurityController {
             }
         });
 
-        // 2. Cell Badging: Injects the 🚨 emoji and bold red text into the Device column
         colDevice.setCellFactory(column -> new TableCell<LogEntry, String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -77,9 +81,49 @@ public class ActiveDevicesController extends BaseSecurityController {
         // --------------------------------------------
 
         activeDevicesTable.setItems(DataStore.getInstance().getActiveDevicesList());
+        updateTotalCount();
 
-        lblTotalCount.setText(String.valueOf(DataStore.getInstance().getActiveDevicesList().size()));
+        // BUG 3 FIX: Start the auto-refresh loop (runs every 5 seconds)
+        startAutoRefresh();
     }
+
+    private void startAutoRefresh() {
+        autoRefreshTimeline = new Timeline(new KeyFrame(Duration.seconds(5), event -> {
+            new Thread(() -> {
+                DataStore.getInstance().refreshActiveDevices();
+                Platform.runLater(this::updateTotalCount);
+            }).start();
+        }));
+        autoRefreshTimeline.setCycleCount(Timeline.INDEFINITE);
+        autoRefreshTimeline.play();
+    }
+
+    private void stopAutoRefresh() {
+        if (autoRefreshTimeline != null) {
+            autoRefreshTimeline.stop();
+        }
+    }
+
+    private void updateTotalCount() {
+        if (lblTotalCount != null) {
+            lblTotalCount.setText(String.valueOf(DataStore.getInstance().getActiveDevicesList().size()));
+        }
+    }
+
+    // Intercept sidebar navigation to stop the background loop
+    @FXML @Override public void goToDashboard()      { stopAutoRefresh(); super.goToDashboard(); }
+    @FXML @Override public void goToCheckInOut()     { stopAutoRefresh(); super.goToCheckInOut(); }
+    @FXML @Override public void goToMonitoringLogs() { stopAutoRefresh(); super.goToMonitoringLogs(); }
+    @FXML @Override public void goToActiveDevices()  { stopAutoRefresh(); super.goToActiveDevices(); }
+    @FXML @Override public void goToReports()        { stopAutoRefresh(); super.goToReports(); }
+    @FXML @Override public void handleLogout()       { stopAutoRefresh(); super.handleLogout(); }
+
+    @Override public void goToDashboard(javafx.event.Event e)      { stopAutoRefresh(); super.goToDashboard(e); }
+    @Override public void goToCheckInOut(javafx.event.Event e)     { stopAutoRefresh(); super.goToCheckInOut(e); }
+    @Override public void goToMonitoringLogs(javafx.event.Event e) { stopAutoRefresh(); super.goToMonitoringLogs(e); }
+    @Override public void goToActiveDevices(javafx.event.Event e)  { stopAutoRefresh(); super.goToActiveDevices(e); }
+    @Override public void goToReports(javafx.event.Event e)        { stopAutoRefresh(); super.goToReports(e); }
+    @Override public void handleLogout(javafx.event.Event e)       { stopAutoRefresh(); super.handleLogout(e); }
 
     @FXML private void handleSearch() { System.out.println("Searching: " + txtSearch.getText()); }
     @FXML private void handleFilter() { showAlert("Filter logic processing..."); }
