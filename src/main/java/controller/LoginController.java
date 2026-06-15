@@ -136,16 +136,12 @@ public class LoginController {
         dialog.initOwner(((Node) event.getSource()).getScene().getWindow());
         dialog.initStyle(StageStyle.TRANSPARENT);
 
-
         Label keyIconGfx = new Label("🔑");
         keyIconGfx.setAlignment(Pos.CENTER);
         keyIconGfx.setPrefSize(50, 50);
         keyIconGfx.setMinSize(50, 50);
         keyIconGfx.setMaxSize(50, 50);
-        keyIconGfx.setStyle("-fx-background-color: #C49A45; " +
-                "-fx-background-radius: 25; " +
-                "-fx-font-size: 25px; " +
-                "-fx-text-fill: white;");
+        keyIconGfx.setStyle("-fx-background-color: #C49A45; -fx-background-radius: 25; -fx-font-size: 25px; -fx-text-fill: white;");
         Label titleLabel = new Label("Account Recovery");
         titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #500A0E;");
         Label subTitleLabel = new Label("Password Reset Request");
@@ -209,7 +205,7 @@ public class LoginController {
             URL dashboardUrl = getClass().getResource(fxmlPath);
             if (dashboardUrl == null) {
                 ((Node) event.getSource()).getScene().setCursor(Cursor.DEFAULT);
-                showCustomAlert("Navigation Error", "Cannot find the FXML file.");
+                showCustomAlert("Navigation Error", "Cannot find the FXML file: " + fxmlPath);
                 return;
             }
             FXMLLoader loader = new FXMLLoader(dashboardUrl);
@@ -220,7 +216,18 @@ public class LoginController {
             stage.centerOnScreen();
             stage.show();
         } catch (Exception e) {
-            showCustomAlert("UI Load Failure", "An error occurred while building the view.");
+            e.printStackTrace(); // Logs it to your console
+            ((Node) event.getSource()).getScene().setCursor(Cursor.DEFAULT);
+
+            // Extract the actual root cause of the JavaFX crash
+            Throwable cause = e.getCause();
+            if (cause != null && cause.getCause() != null) {
+                cause = cause.getCause();
+            }
+            String errorMsg = (cause != null) ? cause.toString() : e.getMessage();
+
+            // Displays the explicit technical error on your screen
+            showCustomAlert("System Crash Log", "Error: " + errorMsg);
         }
     }
 
@@ -229,34 +236,28 @@ public class LoginController {
         alertStage.initModality(Modality.APPLICATION_MODAL);
         alertStage.initStyle(StageStyle.TRANSPARENT);
 
-        // Title
         Label titleLabel = new Label(title);
         titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #500A0E;");
 
-        // Message with wrapping enabled
         Label msgLabel = new Label(message);
         msgLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #333333;");
         msgLabel.setWrapText(true);
-        msgLabel.setMaxWidth(300); // Prevents text from pushing the window too wide
+        msgLabel.setMaxWidth(350);
 
-        // Styled OK Button
         Button btnOk = new Button("OK");
         btnOk.setPrefWidth(90);
         btnOk.setStyle("-fx-background-color: #500A0E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-padding: 6;");
         btnOk.setOnAction(e -> alertStage.close());
 
-        // Layout
         VBox box = new VBox(15, titleLabel, msgLabel, btnOk);
         box.setAlignment(Pos.CENTER);
         box.setPadding(new Insets(20));
         box.setStyle("-fx-background-color: white; -fx-border-color: #500A0E; -fx-border-width: 2; -fx-background-radius: 15; -fx-border-radius: 15;");
 
-        // Setting dimensions to be compact
         Scene scene = new Scene(box);
         scene.setFill(Color.TRANSPARENT);
         alertStage.setScene(scene);
 
-        // Precise Centering Logic
         alertStage.setOnShown(e -> {
             javafx.stage.Screen screen = javafx.stage.Screen.getPrimary();
             javafx.geometry.Rectangle2D bounds = screen.getVisualBounds();

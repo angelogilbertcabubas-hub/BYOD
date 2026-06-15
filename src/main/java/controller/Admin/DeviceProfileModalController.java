@@ -80,7 +80,49 @@ public class DeviceProfileModalController {
             devicePhotoImageView.setImage(new Image(url, true));
         }
     }
+    @FXML
+    private void handleRemoveDevice(javafx.event.ActionEvent event) {
+        javafx.scene.control.Alert confirm = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Security Override");
+        confirm.setHeaderText("Revoke Hardware Registration?");
+        confirm.setContentText("Are you sure you want to permanently remove this device?\n\nThis will block it from passing the perimeter gates.");
 
+        java.util.Optional<javafx.scene.control.ButtonType> result = confirm.showAndWait();
+
+        if (result.isPresent() && result.get() == javafx.scene.control.ButtonType.OK) {
+            new Thread(() -> {
+                // Perform Soft Delete to preserve historical logs
+                String updateQuery = "UPDATE devices SET status = 'ARCHIVED' WHERE mac_address = ?";
+                try (java.sql.Connection conn = utils.DatabaseHelper.getConnection();
+                     java.sql.PreparedStatement pstmt = conn.prepareStatement(updateQuery)) {
+
+                    // IMPORTANT: We use the MAC address from the text field to target the specific device
+                    pstmt.setString(1, txtEditMac.getText());
+                    pstmt.executeUpdate();
+
+                    javafx.application.Platform.runLater(() -> {
+                        // 1. Refresh the main dashboard table so it disappears instantly
+                        utils.DataStore.getInstance().refreshDevices();
+
+                        // 2. Close the modal
+                        javafx.stage.Stage stage = (javafx.stage.Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
+                        stage.close();
+
+                        // 3. Show Success Message
+                        javafx.scene.control.Alert success = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION, "Device successfully unregistered.");
+                        success.show();
+                    });
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    javafx.application.Platform.runLater(() -> {
+                        javafx.scene.control.Alert err = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR, "Database connection failed.");
+                        err.show();
+                    });
+                }
+            }).start();
+        }
+    }
     @FXML
     private void handleUpdatePhoto(ActionEvent event) {
         FileChooser fileChooser = new FileChooser();

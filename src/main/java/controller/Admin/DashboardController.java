@@ -11,11 +11,12 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.VBox;
-import javafx.scene.chart.BarChart;
+import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import utils.DatabaseHelper;
 
 import java.sql.Connection;
-import  java.sql.PreparedStatement;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -51,18 +52,100 @@ public class DashboardController extends BaseAdminController {
         colMiniAction.setCellValueFactory(new PropertyValueFactory<>("operation"));
         colMiniTime.setCellValueFactory(new PropertyValueFactory<>("timestamp"));
 
+        // --- UI/UX UPGRADE: OVERRIDING COLUMN WIDTHS ---
+        colMiniTime.setMinWidth(95);
+        colMiniTime.setPrefWidth(100);
+        colMiniAction.setMinWidth(65);
+        colMiniAction.setPrefWidth(70);
+
+        // --- UI/UX UPGRADE: COMPACT DATA STACKING ---
+
+        // 1. Name Column: Stacks Student Name over the Device Model
         colMiniName.setCellFactory(column -> new TableCell<LogEntry, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null || getTableRow() == null || getTableRow().getItem() == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    LogEntry log = getTableRow().getItem();
+
+                    Label lblName = new Label(item);
+                    lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #222222;");
+                    // FIX: Removed setWrapText(true) so the row heights stay compact!
+
+                    Label lblDevice = new Label(log.getDeviceModel() != null ? log.getDeviceModel() : "Unknown Device");
+                    lblDevice.setStyle("-fx-font-size: 9px; -fx-text-fill: #888888;");
+                    // FIX: Removed setWrapText(true) here as well
+
+                    VBox vbox = new VBox(2, lblName, lblDevice);
+                    vbox.setAlignment(Pos.CENTER_LEFT);
+                    setGraphic(vbox);
+                    setText(null);
+                }
+            }
+        });
+
+        // 2. Action Column: Converts text into colored CSS Badges (IN/OUT)
+        colMiniAction.setCellFactory(column -> new TableCell<LogEntry, String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
+                    setGraphic(null);
                 } else {
-                    setText(item);
-                    setStyle("-fx-alignment: CENTER_LEFT;");
+                    Label badge = new Label();
+                    if (item.equalsIgnoreCase("Check-In")) {
+                        badge.setText("IN");
+                        badge.setStyle("-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 6; -fx-font-size: 10px;");
+                    } else if (item.equalsIgnoreCase("Check-Out")) {
+                        badge.setText("OUT");
+                        badge.setStyle("-fx-background-color: #FFF3E0; -fx-text-fill: #E65100; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 6; -fx-font-size: 10px;");
+                    } else { // Handles Security Alerts
+                        badge.setText(item.toUpperCase());
+                        badge.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #C62828; -fx-font-weight: bold; -fx-padding: 3 8; -fx-background-radius: 6; -fx-font-size: 9px;");
+                    }
+                    setGraphic(badge);
+                    setText(null);
+                    setStyle("-fx-alignment: CENTER;");
                 }
             }
         });
+
+        // 3. Time Column: Stacks Date (small) on top of Time (Bold) with extra padding
+        colMiniTime.setCellFactory(column -> new TableCell<LogEntry, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    String[] parts = item.split(" ", 2);
+                    if (parts.length == 2) {
+                        Label lblDate = new Label(parts[0]);
+                        lblDate.setStyle("-fx-font-size: 9px; -fx-text-fill: #999999;");
+                        Label lblTime = new Label(parts[1]);
+                        lblTime.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: #444444;");
+
+                        VBox vbox = new VBox(2, lblDate, lblTime);
+                        vbox.setAlignment(Pos.CENTER);
+                        vbox.setPadding(new Insets(0, 5, 0, 5));
+
+                        setGraphic(vbox);
+                        setText(null);
+                    } else {
+                        setText(item);
+                        setGraphic(null);
+                        setStyle("-fx-alignment: CENTER; -fx-font-size: 11px;");
+                    }
+                }
+            }
+        });
+
+        // ----------------------------------------------------
 
         Thread dataLoadThread = new Thread(() -> {
             DataStore store = DataStore.getInstance();
@@ -100,8 +183,8 @@ public class DashboardController extends BaseAdminController {
 
         new Thread(() -> {
             try(Connection connection = DatabaseHelper.getConnection();
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
-            ResultSet rs = preparedStatement.executeQuery()){
+                PreparedStatement preparedStatement = connection.prepareStatement(query);
+                ResultSet rs = preparedStatement.executeQuery()){
                 boolean hasData = false;
 
                 while (rs.next()){
@@ -147,7 +230,7 @@ public class DashboardController extends BaseAdminController {
             }
         }).start();
     }
-    
+
     private void startChartAutoRefresh(){
         Executors.newSingleThreadScheduledExecutor(r -> {
             Thread thread = new Thread(r);

@@ -29,7 +29,9 @@ public class Device {
         this.accessCode = accessCode;
         this.status = "ACTIVE";
     }
-
+    public void setStatus(String status) {
+        this.status = status;
+    }
     public String getStudentNumber() { return studentNumber; }
     public String getOwnerName() { return ownerName; }
     public String getDeviceType() { return deviceType; }
