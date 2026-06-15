@@ -18,9 +18,51 @@ public class EmailHelper {
     private static final String SENDER_EMAIL = "pup.endpoint.byod@gmail.com";
     private static final String SENDER_PASS = "gvna zass qwce rskc";
 
-    public static void sendQRCode(String toEmail, String studentName, String studentId, Image qrImage){
+    // Validates if credentials are set so DatabaseHelper doesn't crash
+    public static boolean isConfigured() {
+        return SENDER_EMAIL != null && !SENDER_EMAIL.isEmpty();
+    }
+
+    // Generic method to send warning emails
+    public static void sendEmail(String toEmail, String subject, String bodyText) {
+        // Safety check to prevent crashing if the email is invalid
+        if (toEmail == null || toEmail.isEmpty() || !toEmail.contains("@")) {
+            System.err.println("[EMAIL ERROR] Invalid recipient email address: " + toEmail);
+            return;
+        }
+
         new Thread(() -> {
-            try{
+            try {
+                Properties properties = new Properties();
+                properties.put("mail.smtp.auth", "true");
+                properties.put("mail.smtp.starttls.enable", "true");
+                properties.put("mail.smtp.host", SMTP_HOST);
+                properties.put("mail.smtp.port", SMTP_PORT);
+
+                Session session = Session.getInstance(properties, new Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(SENDER_EMAIL, SENDER_PASS);
+                    }
+                });
+
+                Message msg = new MimeMessage(session);
+                msg.setFrom(new InternetAddress(SENDER_EMAIL));
+                msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
+                msg.setSubject(subject);
+                msg.setText(bodyText);
+
+                Transport.send(msg);
+                System.out.println("[EMAIL] Notification sent to: " + toEmail);
+            } catch (Exception e) {
+                System.err.println("[EMAIL ERROR] Failed to send notification to " + toEmail);
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    public static void sendQRCode(String toEmail, String studentName, String studentId, Image qrImage) {
+        new Thread(() -> {
+            try {
                 BufferedImage buffered = SwingFXUtils.fromFXImage(qrImage, null);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ImageIO.write(buffered, "png", baos);
@@ -33,7 +75,7 @@ public class EmailHelper {
                 properties.put("mail.smtp.port", SMTP_PORT);
 
                 Session session = Session.getInstance(properties, new Authenticator() {
-                    protected PasswordAuthentication getPasswordAuthentication(){
+                    protected PasswordAuthentication getPasswordAuthentication() {
                         return new PasswordAuthentication(SENDER_EMAIL, SENDER_PASS);
                     }
                 });
@@ -65,7 +107,7 @@ public class EmailHelper {
 
                 Transport.send(msg);
                 System.out.println("[EMAIL] QR sent to: " + toEmail);
-            } catch (Exception e){
+            } catch (Exception e) {
                 System.err.println("[EMAIL ERROR] Failed to send QR to " + toEmail);
                 e.printStackTrace();
             }

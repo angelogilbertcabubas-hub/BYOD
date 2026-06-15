@@ -20,10 +20,12 @@
                         <Label fx:id="lblStudentNumberSub" style="-fx-text-fill: #777777; -fx-font-size: 12px;" text="Student Account Profile Management Node" />
                     </children>
                 </VBox>
-                <Button mnemonicParsing="false" onAction="#handleRemoveStudent" style="-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;" text="❌ REMOVE STUDENT" />
+                <HBox spacing="10.0">
+                    <Button fx:id="btnClearSanctions" mnemonicParsing="false" onAction="#handleClearSanctions" style="-fx-background-color: #E67E22; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;" text="🔄 LIFT RESTRICTION" />
+                    <Button mnemonicParsing="false" onAction="#handleRemoveStudent" style="-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;" text="❌ REMOVE STUDENT" />
+                </HBox>
             </children>
         </HBox>
-
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;" VBox.vgrow="ALWAYS">
             <content>
                 <VBox spacing="15.0">

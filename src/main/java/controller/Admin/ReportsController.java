@@ -41,12 +41,12 @@ public class ReportsController extends BaseAdminController {
     @FXML private TableColumn<IncidentReport, String> colIncDate, colIncTime, colIncStudent, colIncDevice, colIncType, colIncLocation;
     @FXML private ComboBox<String> cmbIncidentFilter;
 
-    // Store generated logs in memory so we can export them later
     private List<LogEntry> currentReportLogs = new ArrayList<>();
 
     @FXML
     public void initialize() {
-        cmbReportType.getItems().addAll("Daily Summary", "Weekly Summary", "Monthly Summary", "Custom Range");
+        // ADDED: "Unverified Exits" category
+        cmbReportType.getItems().addAll("Daily Summary", "Weekly Summary", "Monthly Summary", "Unverified Exits", "Custom Range");
         cmbReportType.getSelectionModel().selectFirst();
 
         String todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"));
@@ -79,9 +79,9 @@ public class ReportsController extends BaseAdminController {
     private void refreshMetrics() {
         new Thread(() -> {
             String query = "SELECT " +
-                    "COUNT(CASE WHEN status = 'CHECKED_IN' AND check_out_time IS NULL THEN 1 END) as active_now, " +
-                    "COUNT(CASE WHEN status IN ('CHECKED_IN', 'CHECKED_OUT') THEN 1 END) as total_ins, " +
-                    "COUNT(CASE WHEN check_out_time IS NOT NULL THEN 1 END) as total_outs " +
+                    "COUNT(CASE WHEN status = 'CHECKED_IN' THEN 1 END) as active_now, " +
+                    "COUNT(id) as total_ins, " +
+                    "COUNT(CASE WHEN status = 'CHECKED_OUT' THEN 1 END) as total_outs " +
                     "FROM check_in_out";
             try (Connection conn = DatabaseHelper.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
                 ResultSet rs = pstmt.executeQuery();
@@ -115,41 +115,61 @@ public class ReportsController extends BaseAdminController {
             java.sql.Date sqlFrom = java.sql.Date.valueOf(fromDate);
             java.sql.Date sqlTo = java.sql.Date.valueOf(toDate);
 
+            boolean isUnverifiedOnly = cmbReportType.getValue().equals("Unverified Exits");
+
             new Thread(() -> {
                 String statsQuery = "SELECT " +
-                        "COUNT(CASE WHEN status IN ('CHECKED_IN', 'CHECKED_OUT') THEN 1 END) as in_count, " +
-                        "COUNT(CASE WHEN check_out_time IS NOT NULL THEN 1 END) as out_count, " +
-                        "COUNT(CASE WHEN status = 'CHECKED_IN' AND check_out_time IS NULL THEN 1 END) as active_count " +
+                        "COUNT(id) as total_entries, " +
+                        "COUNT(CASE WHEN status = 'CHECKED_OUT' THEN 1 END) as out_count, " +
+                        "COUNT(CASE WHEN status = 'UNVERIFIED_EXIT' THEN 1 END) as unverified_count, " +
+                        "COUNT(CASE WHEN status = 'CHECKED_IN' THEN 1 END) as active_count " +
                         "FROM check_in_out WHERE DATE(check_in_time) BETWEEN ? AND ?";
 
                 String logsQuery = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, d.device_brand, d.device_name, d.unique_code, c.status, " +
                         "TO_CHAR(c.check_in_time, 'MM/DD/YYYY HH12:MI AM') as time_in " +
                         "FROM check_in_out c JOIN students s ON c.student_id = s.id JOIN devices d ON c.device_id = d.id " +
-                        "WHERE DATE(c.check_in_time) BETWEEN ? AND ? ORDER BY c.check_in_time DESC";
+                        "WHERE DATE(c.check_in_time) BETWEEN ? AND ? " +
+                        (isUnverifiedOnly ? "AND c.status = 'UNVERIFIED_EXIT' " : "") +
+                        "ORDER BY c.check_in_time DESC";
 
-                long checkIns = 0, checkOuts = 0; int active = 0;
-                currentReportLogs.clear(); // Reset the memory state for export
+                long checkIns = 0, checkOuts = 0, unverified = 0; int active = 0;
+                currentReportLogs.clear();
 
                 try (Connection conn = DatabaseHelper.getConnection()) {
                     try(PreparedStatement ps1 = conn.prepareStatement(statsQuery)){
                         ps1.setDate(1, sqlFrom); ps1.setDate(2, sqlTo);
                         ResultSet rs1 = ps1.executeQuery();
-                        if (rs1.next()) { checkIns = rs1.getLong("in_count"); checkOuts = rs1.getLong("out_count"); active = rs1.getInt("active_count"); }
+                        if (rs1.next()) {
+                            checkIns = rs1.getLong("total_entries");
+                            checkOuts = rs1.getLong("out_count");
+                            unverified = rs1.getLong("unverified_count");
+                            active = rs1.getInt("active_count");
+                        }
                     }
                     try(PreparedStatement ps2 = conn.prepareStatement(logsQuery)){
                         ps2.setDate(1, sqlFrom); ps2.setDate(2, sqlTo);
                         ResultSet rs2 = ps2.executeQuery();
                         while(rs2.next()){
-                            String id = String.valueOf(rs2.getObject("log_id")) + "-IN";
+                            String rawStatus = rs2.getString("status");
+                            String opLabel = "Check-In";
+
+                            // FIXED: Dynamically map the actual status for the log entry
+                            if ("UNVERIFIED_EXIT".equalsIgnoreCase(rawStatus)) {
+                                opLabel = "Auto-Closed";
+                            } else if ("CHECKED_OUT".equalsIgnoreCase(rawStatus)) {
+                                opLabel = "Check-Out";
+                            }
+
+                            String id = String.valueOf(rs2.getObject("log_id"));
                             String name = rs2.getString("first_name") + " " + rs2.getString("last_name");
                             String dev = rs2.getString("device_brand") + " " + rs2.getString("device_name");
                             String time = rs2.getString("time_in");
                             String code = rs2.getString("unique_code") != null ? rs2.getString("unique_code") : "N/A";
-                            currentReportLogs.add(new LogEntry(id, name, rs2.getString("school_id"), dev, code, "Check-In", time, "Main Gate"));
+                            currentReportLogs.add(new LogEntry(id, name, rs2.getString("school_id"), dev, code, opLabel, time, "Main Gate"));
                         }
                     }
-                    final int fActive = active; final long fIn = checkIns; final long fOut = checkOuts;
-                    Platform.runLater(() -> renderReportDialog(fActive, fIn, fOut, currentReportLogs));
+                    final int fActive = active; final long fIn = checkIns; final long fOut = checkOuts; final long fUnv = unverified;
+                    Platform.runLater(() -> renderReportDialog(fActive, fIn, fOut, fUnv, currentReportLogs));
                 } catch (Exception ex) {
                     Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to compile the report context."));
                 }
@@ -159,13 +179,12 @@ public class ReportsController extends BaseAdminController {
         }
     }
 
-    private void renderReportDialog(int active, long checkIns, long checkOuts, List<LogEntry> reportLogs) {
+    private void renderReportDialog(int active, long checkIns, long checkOuts, long unverified, List<LogEntry> reportLogs) {
         Dialog<ButtonType> reportDialog = new Dialog<>();
         reportDialog.setTitle("System Report Viewer");
 
-        // Take a 15-item sample for the visual UI so the screen doesn't lag
         List<LogEntry> sampleLogs = reportLogs.size() > 15 ? reportLogs.subList(0, 15) : reportLogs;
-        ScrollPane dialogLayout = buildStylizedReportUI(active, checkIns, checkOuts, sampleLogs);
+        ScrollPane dialogLayout = buildStylizedReportUI(active, checkIns, checkOuts, unverified, sampleLogs);
 
         DialogPane dialogPane = reportDialog.getDialogPane();
         dialogPane.setContent(dialogLayout);
@@ -183,12 +202,12 @@ public class ReportsController extends BaseAdminController {
                 showAlert(Alert.AlertType.INFORMATION, "Printer Status", "Routed to the printer queue.");
             }
             else if (result.get() == btnTypeSave) {
-                handleExport(); // Trigger the real export
+                handleExport();
             }
         }
     }
 
-    private ScrollPane buildStylizedReportUI(int active, long checkIns, long checkOuts, List<LogEntry> logs) {
+    private ScrollPane buildStylizedReportUI(int active, long checkIns, long checkOuts, long unverified, List<LogEntry> logs) {
         VBox container = new VBox(20);
         container.setPadding(new Insets(25)); container.setPrefWidth(720);
         container.setStyle("-fx-background-color: #E5E1E2;");
@@ -210,6 +229,7 @@ public class ReportsController extends BaseAdminController {
         metricsGrid.add(createMetricRow("Total Check-Ins:", String.valueOf(checkIns)), 0, 0);
         metricsGrid.add(createMetricRow("Total Check-Outs:", String.valueOf(checkOuts)), 1, 0);
         metricsGrid.add(createMetricRow("Devices Inside Campus:", String.valueOf(active)), 0, 1);
+        metricsGrid.add(createMetricRow("Unverified Exits (Auto-Closed):", String.valueOf(unverified)), 1, 1);
         metricsCard.getChildren().addAll(lblSectionTraffic, metricsGrid);
 
         VBox logsCard = new VBox(12);
@@ -230,7 +250,20 @@ public class ReportsController extends BaseAdminController {
 
                 Label lblTime = new Label("[" + log.getTimestamp() + "]"); lblTime.setStyle("-fx-font-family: 'Consolas'; -fx-text-fill: #777777;"); lblTime.setPrefWidth(140);
                 Label lblName = new Label(log.getStudentName()); lblName.setFont(Font.font("System", FontWeight.BOLD, 12)); lblName.setPrefWidth(180);
-                Label lblOp = new Label(log.getOperation().toUpperCase()); lblOp.setFont(Font.font("System", FontWeight.BOLD, 10)); lblOp.setTextFill(javafx.scene.paint.Color.web("#2E7D32")); lblOp.setPrefWidth(80);
+
+                Label lblOp = new Label(log.getOperation().toUpperCase());
+                lblOp.setFont(Font.font("System", FontWeight.BOLD, 10));
+                lblOp.setPrefWidth(90);
+
+                // Color Code the specific operations for the presentation
+                if(log.getOperation().equalsIgnoreCase("Auto-Closed")) {
+                    lblOp.setTextFill(javafx.scene.paint.Color.web("#E67E22")); // Orange
+                } else if(log.getOperation().equalsIgnoreCase("Check-Out")) {
+                    lblOp.setTextFill(javafx.scene.paint.Color.web("#C0392B")); // Red
+                } else {
+                    lblOp.setTextFill(javafx.scene.paint.Color.web("#27AE60")); // Green
+                }
+
                 Label lblToken = new Label(log.getAccessToken()); lblToken.setStyle("-fx-font-family: 'Consolas'; -fx-text-fill: #555555;");
 
                 row.getChildren().addAll(lblTime, lblName, lblOp, lblToken);
@@ -253,7 +286,6 @@ public class ReportsController extends BaseAdminController {
         box.getChildren().addAll(lblTitle, lblValue); return box;
     }
 
-    // --- PHASE 4 FIX: The Real Export Engine (Writes to CSV) ---
     @FXML
     private void handleExport() {
         if (currentReportLogs == null || currentReportLogs.isEmpty()) {
@@ -271,10 +303,8 @@ public class ReportsController extends BaseAdminController {
 
         if (selectedFile != null) {
             try (FileWriter writer = new FileWriter(selectedFile)) {
-                // Write CSV Header
                 writer.append("Timestamp,Student Name,Student ID,Device Model,Access Token,Operation\n");
 
-                // Write Data Rows
                 for (LogEntry log : currentReportLogs) {
                     writer.append(escapeCSV(log.getTimestamp())).append(",")
                             .append(escapeCSV(log.getStudentName())).append(",")
@@ -291,7 +321,6 @@ public class ReportsController extends BaseAdminController {
         }
     }
 
-    // Helper method to prevent commas in names from breaking the CSV layout
     private String escapeCSV(String data) {
         if (data == null) return "";
         if (data.contains(",") || data.contains("\"") || data.contains("\n")) {

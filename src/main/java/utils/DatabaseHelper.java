@@ -5,14 +5,14 @@ import com.zaxxer.hikari.HikariDataSource;
 import io.github.cdimascio.dotenv.Dotenv;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class DatabaseHelper {
 
-    // This object holds our pool of open, ready-to-use connections
     private static HikariDataSource dataSource;
 
-    // The static block runs once the moment the application starts
     static {
         try {
             Dotenv dotenv = Dotenv.load();
@@ -22,26 +22,22 @@ public class DatabaseHelper {
             String password = dotenv.get("DB_PASSWORD");
 
             if (url == null || user == null || password == null) {
-                System.err.println("CRITICAL: Database credentials are missing in the ..env file.");
+                System.err.println("CRITICAL: Database credentials are missing in the .env file.");
             }
 
-            // Configure the connection pool
             HikariConfig config = new HikariConfig();
             config.setJdbcUrl(url);
             config.setUsername(user);
             config.setPassword(password);
 
-            // Pool Settings for optimal speed
-            config.setMaximumPoolSize(10); // Keep up to 10 connections open
-            config.setMinimumIdle(2);      // Always keep at least 2 connections ready
-            config.setConnectionTimeout(30000); // 30 seconds wait before timing out
+            config.setMaximumPoolSize(10);
+            config.setMinimumIdle(2);
+            config.setConnectionTimeout(30000);
 
-            // PostgreSQL/Supabase specific speed optimizations
             config.addDataSourceProperty("cachePrepStmts", "true");
             config.addDataSourceProperty("prepStmtCacheSize", "250");
             config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
-            // Initialize the pool
             dataSource = new HikariDataSource(config);
             System.out.println("HikariCP Connection Pool initialized successfully.");
 
@@ -51,26 +47,94 @@ public class DatabaseHelper {
         }
     }
 
-    /**
-     * Instantly returns an already-open connection from the pool.
-     */
     public static Connection getConnection() throws SQLException {
         if (dataSource == null) {
             throw new SQLException("Connection pool is not initialized.");
         }
-        return dataSource.getConnection(); // Grabs a ready connection (0.01 seconds)
+        return dataSource.getConnection();
     }
 
-    /**
-     * Tests the database connection on application startup.
-     */
     public static void initializeDatabase() {
         try (Connection conn = getConnection()) {
             System.out.println("Successfully tested connection to the Supabase Cloud Database!");
         } catch (SQLException e) {
             System.err.println("Critical Error: Could not connect to Supabase.");
-            System.err.println("Please check your internet connection and ..env file.");
+            System.err.println("Please check your internet connection and .env file.");
             System.err.println("Error details: " + e.getMessage());
+        }
+    }
+
+    public static int getInfractionCount(String schoolId) {
+        String query = "SELECT infraction_count FROM students WHERE school_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, schoolId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("infraction_count");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public static boolean isStudentRestricted(String schoolId) {
+        String query = "SELECT status FROM students WHERE school_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setString(1, schoolId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return "RESTRICTED".equalsIgnoreCase(rs.getString("status"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static void incrementInfraction(String studentDbId) {
+        String querySelect = "SELECT infraction_count, email FROM students WHERE id = ?";
+        String queryUpdate = "UPDATE students SET infraction_count = ?, status = ? WHERE id = ?";
+
+        try (Connection conn = getConnection();
+             PreparedStatement pstmtSelect = conn.prepareStatement(querySelect)) {
+
+            pstmtSelect.setString(1, studentDbId);
+            try (ResultSet rs = pstmtSelect.executeQuery()) {
+                if (rs.next()) {
+                    int currentCount = rs.getInt("infraction_count");
+                    String studentEmail = rs.getString("email");
+                    int newCount = currentCount + 1;
+                    String newStatus = "ACTIVE";
+
+                    if (newCount == 2) {
+                        newStatus = "WARNING";
+                        if (EmailHelper.isConfigured()) {
+                            EmailHelper.sendEmail(studentEmail, "BYOD Final Warning", "You failed to check out your device. This is your final warning.");
+                        }
+                    } else if (newCount >= 3) {
+                        newStatus = "RESTRICTED";
+                        if (EmailHelper.isConfigured()) {
+                            EmailHelper.sendEmail(studentEmail, "BYOD Disciplinary Hold", "You failed to check out your device 3 times. Please secure clearance from the Dean of Student Affairs.");
+                        }
+                    }
+
+                    try (PreparedStatement pstmtUpdate = conn.prepareStatement(queryUpdate)) {
+                        pstmtUpdate.setInt(1, newCount);
+                        pstmtUpdate.setString(2, newStatus);
+                        pstmtUpdate.setString(3, studentDbId);
+                        pstmtUpdate.executeUpdate();
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 }

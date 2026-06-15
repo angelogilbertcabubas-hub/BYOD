@@ -57,6 +57,7 @@ public class StudentProfileModalController {
     @FXML private TextField quickModelField;
     @FXML private TextField quickMacField;
 
+    @FXML private Button btnClearSanctions;
     @FXML private Button btnEditToggle;
     @FXML private Button btnSaveEdit;
     @FXML private Button btnCancelEdit;
@@ -117,6 +118,15 @@ public class StudentProfileModalController {
 
         if (editStudentIdField != null) {
             editStudentIdField.setText(targetStudent.getStudentId());
+        }
+
+        // Only show the "Lift Restriction" button if they have infractions or hold
+        if (targetStudent.getInfractionCount() > 0 || "RESTRICTED".equalsIgnoreCase(targetStudent.getStatus())) {
+            btnClearSanctions.setVisible(true);
+            btnClearSanctions.setManaged(true);
+        } else {
+            btnClearSanctions.setVisible(false);
+            btnClearSanctions.setManaged(false);
         }
 
         fetchStudentCloudPhoto();
@@ -187,7 +197,6 @@ public class StudentProfileModalController {
         devicePhotoMap.clear();
 
         String fetchUuidSql = "SELECT id FROM students WHERE school_id = ?";
-        // ONLY fetch devices that are NOT archived!
         String fetchDevicesSql = "SELECT device_type, device_brand, device_name, mac_address, unique_code, photo_path FROM devices WHERE student_id = ? AND (status IS NULL OR status != 'ARCHIVED')";
 
         try (Connection conn = DatabaseHelper.getConnection();
@@ -305,7 +314,6 @@ public class StudentProfileModalController {
         }
 
         try (Connection conn = DatabaseHelper.getConnection()) {
-            // SOFT DELETE: Update status to ARCHIVED instead of physically deleting
             String archiveSql = "UPDATE devices SET status = 'ARCHIVED' WHERE unique_code = ?";
             try (PreparedStatement ps = conn.prepareStatement(archiveSql)) {
                 ps.setString(1, selectedDevice.getAccessCode());
@@ -367,42 +375,69 @@ public class StudentProfileModalController {
         dialog.showAndWait();
     }
 
-    // PHASE 4 FIX: Safe Soft Deletion (Archiving) ensures logs are never corrupted
     private void performStudentDeletion(ActionEvent event) {
         try (Connection conn = DatabaseHelper.getConnection()) {
 
-            // 1: If they are currently inside campus, force a check-out immediately
             String forceOut = "UPDATE check_in_out SET check_out_time = CURRENT_TIMESTAMP, status = 'CHECKED_OUT' WHERE student_id = ? AND status = 'CHECKED_IN'";
             try (PreparedStatement ps = conn.prepareStatement(forceOut)) {
                 ps.setObject(1, databaseStudentUuid);
                 ps.executeUpdate();
             }
 
-            // 2: Soft Delete (Archive) all their devices
             String archiveDev = "UPDATE devices SET status = 'ARCHIVED' WHERE student_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(archiveDev)) {
                 ps.setObject(1, databaseStudentUuid);
                 ps.executeUpdate();
             }
 
-            // 3: Soft Delete (Archive) the student
             String archiveStud = "UPDATE students SET status = 'ARCHIVED' WHERE id = ?";
             try (PreparedStatement ps = conn.prepareStatement(archiveStud)) {
                 ps.setObject(1, databaseStudentUuid);
                 ps.executeUpdate();
             }
 
-            // Refresh the UI to make them "disappear" from the active lists
             DataStore.getInstance().getStudentsList().remove(focusedStudent);
             DataStore.getInstance().refreshStudents();
             DataStore.getInstance().refreshDevices();
             DataStore.getInstance().refreshActiveDevices();
 
-            // NOTE: We deliberately do NOT refresh the logs here, so the Admin history stays completely intact!
-
             handleCloseModal(event);
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Archive Failed", "Could not archive record: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleClearSanctions(ActionEvent event) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Lift Restriction");
+        confirm.setHeaderText("Clear Disciplinary Hold");
+        confirm.setContentText("Are you sure you want to wipe all infractions for " + focusedStudent.getFullName() + "? They will be allowed to bring devices on campus immediately.");
+
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try (Connection conn = DatabaseHelper.getConnection()) {
+
+                String sql = "UPDATE students SET infraction_count = 0, status = 'ACTIVE' WHERE school_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, focusedStudent.getStudentId());
+                    ps.executeUpdate();
+                }
+
+                focusedStudent.setInfractionCount(0);
+                focusedStudent.setStatus("ACTIVE");
+                focusedStudent.setByodStatus("ACTIVE");
+
+                DataStore.getInstance().refreshStudents();
+
+                showAlert(Alert.AlertType.INFORMATION, "Sanctions Cleared", "The student's disciplinary hold has been fully reset.");
+
+                btnClearSanctions.setVisible(false);
+                btnClearSanctions.setManaged(false);
+
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to clear sanctions: " + e.getMessage());
+            }
         }
     }
 

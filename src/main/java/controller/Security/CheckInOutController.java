@@ -9,11 +9,16 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
+import javafx.stage.Modality;
+import javafx.stage.StageStyle;
+import javafx.scene.Scene;
+import javafx.scene.Cursor;
+import javafx.scene.paint.Color;
+import javafx.scene.effect.DropShadow;
 import utils.DataStore;
 import utils.DatabaseHelper;
 import utils.QRScannerThread;
@@ -93,7 +98,6 @@ public class CheckInOutController extends BaseSecurityController {
         startScanner();
     }
 
-    // --- Phase 2: Intercepting Navigation to Kill Camera Memory Leak ---
     @FXML @Override public void goToDashboard()      { shutdown(); super.goToDashboard(); }
     @FXML @Override public void goToCheckInOut()     { shutdown(); super.goToCheckInOut(); }
     @FXML @Override public void goToMonitoringLogs() { shutdown(); super.goToMonitoringLogs(); }
@@ -107,7 +111,6 @@ public class CheckInOutController extends BaseSecurityController {
     @Override public void goToActiveDevices(javafx.event.Event e)  { shutdown(); super.goToActiveDevices(e); }
     @Override public void goToReports(javafx.event.Event e)        { shutdown(); super.goToReports(e); }
     @Override public void handleLogout(javafx.event.Event e)       { shutdown(); super.handleLogout(e); }
-    // --------------------------------------------------------------------
 
     private void updateDateTime() {
         lblDateTime.setText(LocalDateTime.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy  hh:mm a")));
@@ -192,12 +195,13 @@ public class CheckInOutController extends BaseSecurityController {
     }
 
     private void fetchStudentAndDeviceData(Connection conn, String identifier) throws SQLException {
-        String query = "SELECT s.id as student_db_id, s.school_id, s.first_name, s.last_name, s.program_course, s.section, s.photo_path as student_photo, " +
+        String query = "SELECT s.id as student_db_id, s.school_id, s.first_name, s.last_name, s.program_course, s.section, s.photo_path as student_photo, s.infraction_count, s.status as student_status, " +
                 "d.id as device_id, d.device_brand, d.device_name, d.mac_address, d.unique_code, d.photo_path as device_photo, d.status as device_status " +
                 "FROM students s LEFT JOIN devices d ON s.id = d.student_id WHERE s.school_id = ? OR d.unique_code = ?";
 
         List<DeviceRecord> foundDevices = new ArrayList<>();
-        String fullName = "", studentNum = "", courseSection = "", studentPhoto = "";
+        String fullName = "", studentNum = "", courseSection = "", studentPhoto = "", studentStatus = "ACTIVE";
+        int infractions = 0;
 
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, identifier);
@@ -211,6 +215,8 @@ public class CheckInOutController extends BaseSecurityController {
                     studentNum = rs.getString("school_id");
                     courseSection = rs.getString("program_course") + " - " + rs.getString("section");
                     studentPhoto = rs.getString("student_photo");
+                    studentStatus = rs.getString("student_status");
+                    infractions = rs.getInt("infraction_count");
                 }
                 if (rs.getObject("device_id") != null) {
                     foundDevices.add(new DeviceRecord(
@@ -234,14 +240,23 @@ public class CheckInOutController extends BaseSecurityController {
         }
 
         studentDeviceList = foundDevices;
-        final String fName = fullName, fNum = studentNum, fCourse = courseSection, fPhoto = studentPhoto;
+        final String fName = fullName, fNum = studentNum, fCourse = courseSection, fPhoto = studentPhoto, fStatus = studentStatus;
+        final int fInfractions = infractions;
 
         Platform.runLater(() -> {
+            if ("RESTRICTED".equalsIgnoreCase(fStatus)) {
+                statusLabel.setText("ACCESS DENIED: Disciplinary Hold");
+                statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
+                showAlert(Alert.AlertType.ERROR, "ENTRY DENIED", "Disciplinary Hold. Student must secure clearance from the Dean of Student Affairs.");
+                handleClear();
+                startScanner();
+                return;
+            }
+
             lblStudentName.setText(fName);
             lblStudentID.setText(fNum);
             lblCourseSection.setText(fCourse);
 
-            // Photo logic triggers here
             loadImageToView(imgStudentPhoto, fPhoto);
 
             deviceContainer.getChildren().clear();
@@ -263,6 +278,13 @@ public class CheckInOutController extends BaseSecurityController {
                 lblCurrentStatus.setText("Currently OUTSIDE");
                 lblCurrentStatus.setStyle("-fx-text-fill: #2E7D32; -fx-font-weight: bold;");
                 cmbAction.getSelectionModel().select("Check-In");
+
+                if (fInfractions > 0) {
+                    // Modernized Warning Alert instead of the default Windows popup
+                    showAlert(Alert.AlertType.WARNING, "Unverified Exit Warning",
+                            "This student has " + fInfractions + " unverified exit(s) on record. Please remind them to properly check out their device today.");
+                }
+
                 for (DeviceRecord d : foundDevices) {
                     ToggleButton card = createDeviceCard(d);
                     deviceContainer.getChildren().add(card);
@@ -279,7 +301,6 @@ public class CheckInOutController extends BaseSecurityController {
         });
     }
 
-    // Phase 2 Fix: Reduced Device Card layout constraints to remove UI clutter
     private ToggleButton createDeviceCard(DeviceRecord device) {
         ToggleButton btn = new ToggleButton();
         btn.setPrefSize(140, 180);
@@ -345,7 +366,6 @@ public class CheckInOutController extends BaseSecurityController {
         return btn;
     }
 
-    // Phase 2 Fix: Asynchronous Cloud Image Handling & Fallbacks
     private void loadImageToView(ImageView imageView, String path) {
         if (imageView == null) return;
         imageView.setImage(null);
@@ -360,7 +380,7 @@ public class CheckInOutController extends BaseSecurityController {
 
         try {
             if (path.startsWith("http")) {
-                Image webImage = new Image(path, true); // true = load asynchronously
+                Image webImage = new Image(path, true);
                 webImage.errorProperty().addListener((obs, oldVal, isError) -> {
                     if (isError) setFallbackImage(imageView, defaultImage);
                 });
@@ -441,7 +461,7 @@ public class CheckInOutController extends BaseSecurityController {
                 DataStore.getInstance().refreshActiveDevices();
 
                 Platform.runLater(() -> {
-                    showAlert(Alert.AlertType.INFORMATION, "Success", (isCheckingOut ? "Check-Out" : "Check-In") + " logged successfully!");
+                    showAlert(Alert.AlertType.INFORMATION, "Activity Logged", (isCheckingOut ? "Check-Out" : "Check-In") + " recorded successfully.");
                     handleClear();
                     startScanner();
                 });
@@ -450,7 +470,7 @@ public class CheckInOutController extends BaseSecurityController {
                     btnConfirm.setText("CONFIRM & LOG ACTIVITY");
                     btnConfirm.setDisable(false);
                     deviceContainer.setDisable(false);
-                    showAlert(Alert.AlertType.ERROR, "Database Error", "Database error during transaction.");
+                    showAlert(Alert.AlertType.ERROR, "Database Error", "A secure connection error occurred during transaction.");
                 });
             }
         }).start();
@@ -479,11 +499,73 @@ public class CheckInOutController extends BaseSecurityController {
         if (scannerThread != null) scannerThread.stopScanner();
     }
 
+    // --- MODERNIZED CUSTOM POPUP REPLACING THE DEFAULT JAVAFX ALERT ---
     private void showAlert(Alert.AlertType type, String title, String message) {
-        Alert alert = new Alert(type);
-        alert.setTitle("BYOD Security Module");
-        alert.setHeaderText(title);
-        alert.setContentText(message);
-        alert.showAndWait();
+        Stage alertStage = new Stage();
+        alertStage.initModality(Modality.APPLICATION_MODAL);
+        alertStage.initStyle(StageStyle.TRANSPARENT);
+
+        // Dynamic styling based on the type of alert
+        String iconEmoji = "ℹ️";
+        String themeColor = "#500A0E"; // Base System Color
+        String bgColor = "#FFFFFF";
+
+        if (type == Alert.AlertType.ERROR) {
+            iconEmoji = "🛑";
+            themeColor = "#B71C1C"; // Crimson Red for Disciplinary Holds
+            bgColor = "#FFEBEE";
+        } else if (type == Alert.AlertType.WARNING) {
+            iconEmoji = "⚠️";
+            themeColor = "#E67E22"; // Deep Orange for Unverified Exits
+            bgColor = "#FFF3E0";
+        } else if (type == Alert.AlertType.INFORMATION) {
+            iconEmoji = "✅";
+            themeColor = "#27AE60"; // Emerald Green for Success
+            bgColor = "#E8F8F5";
+        }
+
+        Label icon = new Label(iconEmoji);
+        icon.setStyle("-fx-font-size: 32px;");
+
+        Label titleLabel = new Label(title);
+        titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: " + themeColor + ";");
+
+        Label msgLabel = new Label(message);
+        msgLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #333333;");
+        msgLabel.setWrapText(true);
+        msgLabel.setTextAlignment(TextAlignment.CENTER);
+        msgLabel.setMaxWidth(300);
+
+        Button btnOk = new Button("ACKNOWLEDGE");
+        btnOk.setCursor(Cursor.HAND);
+        btnOk.setStyle("-fx-background-color: " + themeColor + "; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8 20;");
+        btnOk.setOnAction(e -> alertStage.close());
+
+        VBox box = new VBox(10, icon, titleLabel, msgLabel, btnOk);
+        box.setAlignment(Pos.CENTER);
+        box.setPadding(new Insets(25));
+
+        // Adds rounded corners and a colored border to match the specific alert type
+        box.setStyle("-fx-background-color: " + bgColor + "; -fx-border-color: " + themeColor + "; -fx-border-width: 2; -fx-background-radius: 12; -fx-border-radius: 12;");
+
+        // Creates a sleek drop shadow behind the popup
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.color(0, 0, 0, 0.3));
+        shadow.setRadius(15);
+        box.setEffect(shadow);
+
+        Scene scene = new Scene(box);
+        scene.setFill(Color.TRANSPARENT); // Makes the square corners of the stage invisible
+        alertStage.setScene(scene);
+
+        // Centers the popup perfectly on the screen
+        alertStage.setOnShown(e -> {
+            javafx.stage.Screen screen = javafx.stage.Screen.getPrimary();
+            javafx.geometry.Rectangle2D bounds = screen.getVisualBounds();
+            alertStage.setX(bounds.getMinX() + (bounds.getWidth() - alertStage.getWidth()) / 2);
+            alertStage.setY(bounds.getMinY() + (bounds.getHeight() - alertStage.getHeight()) / 2);
+        });
+
+        alertStage.showAndWait();
     }
 }

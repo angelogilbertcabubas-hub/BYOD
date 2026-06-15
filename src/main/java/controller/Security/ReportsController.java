@@ -44,7 +44,7 @@ public class ReportsController extends BaseSecurityController {
 
     @FXML
     public void initialize() {
-        cmbReportType.getItems().addAll("Daily Summary", "Weekly Summary", "Monthly Summary", "Custom Range");
+        cmbReportType.getItems().addAll("Daily Summary", "Weekly Summary", "Monthly Summary", "Unverified Exits", "Custom Range");
         cmbReportType.getSelectionModel().selectFirst();
 
         String todayStr = LocalDate.now().format(DateTimeFormatter.ofPattern("MM/dd/yyyy"));
@@ -82,9 +82,9 @@ public class ReportsController extends BaseSecurityController {
     private void refreshMetrics() {
         new Thread(() -> {
             String query = "SELECT " +
-                    "COUNT(CASE WHEN status = 'CHECKED_IN' AND check_out_time IS NULL THEN 1 END) as active_now, " +
-                    "COUNT(CASE WHEN status IN ('CHECKED_IN', 'CHECKED_OUT') THEN 1 END) as total_ins, " +
-                    "COUNT(CASE WHEN check_out_time IS NOT NULL THEN 1 END) as total_outs " +
+                    "COUNT(CASE WHEN status = 'CHECKED_IN' THEN 1 END) as active_now, " +
+                    "COUNT(id) as total_ins, " +
+                    "COUNT(CASE WHEN status = 'CHECKED_OUT' THEN 1 END) as total_outs " +
                     "FROM check_in_out";
             try (Connection conn = DatabaseHelper.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
                 ResultSet rs = pstmt.executeQuery();
@@ -118,41 +118,60 @@ public class ReportsController extends BaseSecurityController {
             java.sql.Date sqlFrom = java.sql.Date.valueOf(fromDate);
             java.sql.Date sqlTo = java.sql.Date.valueOf(toDate);
 
+            boolean isUnverifiedOnly = cmbReportType.getValue().equals("Unverified Exits");
+
             new Thread(() -> {
                 String statsQuery = "SELECT " +
-                        "COUNT(CASE WHEN status IN ('CHECKED_IN', 'CHECKED_OUT') THEN 1 END) as in_count, " +
-                        "COUNT(CASE WHEN check_out_time IS NOT NULL THEN 1 END) as out_count, " +
-                        "COUNT(CASE WHEN status = 'CHECKED_IN' AND check_out_time IS NULL THEN 1 END) as active_count " +
+                        "COUNT(id) as total_entries, " +
+                        "COUNT(CASE WHEN status = 'CHECKED_OUT' THEN 1 END) as out_count, " +
+                        "COUNT(CASE WHEN status = 'UNVERIFIED_EXIT' THEN 1 END) as unverified_count, " +
+                        "COUNT(CASE WHEN status = 'CHECKED_IN' THEN 1 END) as active_count " +
                         "FROM check_in_out WHERE DATE(check_in_time) BETWEEN ? AND ?";
 
                 String logsQuery = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, d.device_brand, d.device_name, d.unique_code, c.status, " +
                         "TO_CHAR(c.check_in_time, 'MM/DD/YYYY HH12:MI AM') as time_in " +
                         "FROM check_in_out c JOIN students s ON c.student_id = s.id JOIN devices d ON c.device_id = d.id " +
-                        "WHERE DATE(c.check_in_time) BETWEEN ? AND ? ORDER BY c.check_in_time DESC LIMIT 15";
+                        "WHERE DATE(c.check_in_time) BETWEEN ? AND ? " +
+                        (isUnverifiedOnly ? "AND c.status = 'UNVERIFIED_EXIT' " : "") +
+                        "ORDER BY c.check_in_time DESC LIMIT 15";
 
-                long checkIns = 0, checkOuts = 0; int active = 0;
+                long checkIns = 0, checkOuts = 0, unverified = 0; int active = 0;
                 List<LogEntry> reportLogs = new ArrayList<>();
 
                 try (Connection conn = DatabaseHelper.getConnection()) {
                     try(PreparedStatement ps1 = conn.prepareStatement(statsQuery)){
                         ps1.setDate(1, sqlFrom); ps1.setDate(2, sqlTo);
                         ResultSet rs1 = ps1.executeQuery();
-                        if (rs1.next()) { checkIns = rs1.getLong("in_count"); checkOuts = rs1.getLong("out_count"); active = rs1.getInt("active_count"); }
+                        if (rs1.next()) {
+                            checkIns = rs1.getLong("total_entries");
+                            checkOuts = rs1.getLong("out_count");
+                            unverified = rs1.getLong("unverified_count");
+                            active = rs1.getInt("active_count");
+                        }
                     }
                     try(PreparedStatement ps2 = conn.prepareStatement(logsQuery)){
                         ps2.setDate(1, sqlFrom); ps2.setDate(2, sqlTo);
                         ResultSet rs2 = ps2.executeQuery();
                         while(rs2.next()){
-                            String id = String.valueOf(rs2.getObject("log_id")) + "-IN";
+                            String rawStatus = rs2.getString("status");
+                            String opLabel = "Check-In";
+
+                            if ("UNVERIFIED_EXIT".equalsIgnoreCase(rawStatus)) {
+                                opLabel = "Auto-Closed";
+                            } else if ("CHECKED_OUT".equalsIgnoreCase(rawStatus)) {
+                                opLabel = "Check-Out";
+                            }
+
+                            String id = String.valueOf(rs2.getObject("log_id"));
                             String name = rs2.getString("first_name") + " " + rs2.getString("last_name");
                             String dev = rs2.getString("device_brand") + " " + rs2.getString("device_name");
                             String time = rs2.getString("time_in");
                             String code = rs2.getString("unique_code") != null ? rs2.getString("unique_code") : "N/A";
-                            reportLogs.add(new LogEntry(id, name, rs2.getString("school_id"), dev, code, "Check-In", time, "Main Gate"));
+                            reportLogs.add(new LogEntry(id, name, rs2.getString("school_id"), dev, code, opLabel, time, "Main Gate"));
                         }
                     }
-                    final int fActive = active; final long fIn = checkIns; final long fOut = checkOuts;
-                    Platform.runLater(() -> renderReportDialog(fActive, fIn, fOut, reportLogs));
+                    final int fActive = active; final long fIn = checkIns; final long fOut = checkOuts; final long fUnv = unverified;
+                    Platform.runLater(() -> renderReportDialog(fActive, fIn, fOut, fUnv, reportLogs));
                 } catch (Exception ex) {
                     Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Database Error", "Failed to compile the report context."));
                 }
@@ -162,10 +181,10 @@ public class ReportsController extends BaseSecurityController {
         }
     }
 
-    private void renderReportDialog(int active, long checkIns, long checkOuts, List<LogEntry> reportLogs) {
+    private void renderReportDialog(int active, long checkIns, long checkOuts, long unverified, List<LogEntry> reportLogs) {
         Dialog<ButtonType> reportDialog = new Dialog<>();
         reportDialog.setTitle("Security Report Viewer");
-        ScrollPane dialogLayout = buildStylizedReportUI(active, checkIns, checkOuts, reportLogs);
+        ScrollPane dialogLayout = buildStylizedReportUI(active, checkIns, checkOuts, unverified, reportLogs);
         DialogPane dialogPane = reportDialog.getDialogPane();
         dialogPane.setContent(dialogLayout);
         dialogPane.setStyle("-fx-background-color: #E5E1E2;");
@@ -181,13 +200,13 @@ public class ReportsController extends BaseSecurityController {
         if (result.isPresent()) {
             if (result.get() == btnTypePrint) handlePrintAction(cmbReportType.getValue());
             else if (result.get() == btnTypeSave) {
-                String fallbackTxtContent = generateFlatTextFallback(active, checkIns, checkOuts, reportLogs);
+                String fallbackTxtContent = generateFlatTextFallback(active, checkIns, checkOuts, unverified, reportLogs);
                 handleSaveCopyAction(fallbackTxtContent);
             }
         }
     }
 
-    private ScrollPane buildStylizedReportUI(int active, long checkIns, long checkOuts, List<LogEntry> logs) {
+    private ScrollPane buildStylizedReportUI(int active, long checkIns, long checkOuts, long unverified, List<LogEntry> logs) {
         VBox container = new VBox(20);
         container.setPadding(new Insets(25)); container.setPrefWidth(720);
         container.setStyle("-fx-background-color: #E5E1E2;");
@@ -209,7 +228,7 @@ public class ReportsController extends BaseSecurityController {
         metricsGrid.add(createMetricRow("Total Check-Ins:", String.valueOf(checkIns)), 0, 0);
         metricsGrid.add(createMetricRow("Total Check-Outs:", String.valueOf(checkOuts)), 1, 0);
         metricsGrid.add(createMetricRow("Devices Inside Campus:", String.valueOf(active)), 0, 1);
-        metricsGrid.add(createMetricRow("Generated By:", "Security Guard Personnel (Terminal 01)"), 1, 1);
+        metricsGrid.add(createMetricRow("Unverified Exits (Auto-Closed):", String.valueOf(unverified)), 1, 1);
         metricsCard.getChildren().addAll(lblSectionTraffic, metricsGrid);
 
         VBox logsCard = new VBox(12);
@@ -230,7 +249,19 @@ public class ReportsController extends BaseSecurityController {
 
                 Label lblTime = new Label("[" + log.getTimestamp() + "]"); lblTime.setStyle("-fx-font-family: 'Consolas'; -fx-text-fill: #777777;"); lblTime.setPrefWidth(140);
                 Label lblName = new Label(log.getStudentName()); lblName.setFont(Font.font("System", FontWeight.BOLD, 12)); lblName.setPrefWidth(180);
-                Label lblOp = new Label(log.getOperation().toUpperCase()); lblOp.setFont(Font.font("System", FontWeight.BOLD, 10)); lblOp.setTextFill(javafx.scene.paint.Color.web("#2E7D32")); lblOp.setPrefWidth(80);
+
+                Label lblOp = new Label(log.getOperation().toUpperCase());
+                lblOp.setFont(Font.font("System", FontWeight.BOLD, 10));
+                lblOp.setPrefWidth(90);
+
+                if(log.getOperation().equalsIgnoreCase("Auto-Closed")) {
+                    lblOp.setTextFill(javafx.scene.paint.Color.web("#E67E22"));
+                } else if(log.getOperation().equalsIgnoreCase("Check-Out")) {
+                    lblOp.setTextFill(javafx.scene.paint.Color.web("#C0392B"));
+                } else {
+                    lblOp.setTextFill(javafx.scene.paint.Color.web("#27AE60"));
+                }
+
                 Label lblToken = new Label(log.getAccessToken()); lblToken.setStyle("-fx-font-family: 'Consolas'; -fx-text-fill: #555555;");
 
                 row.getChildren().addAll(lblTime, lblName, lblOp, lblToken);
@@ -259,7 +290,7 @@ public class ReportsController extends BaseSecurityController {
         Button btnClose = (Button) dialogPane.lookupButton(close); if (btnClose != null) btnClose.setStyle("-fx-background-color: #F4F4F4; -fx-text-fill: #555555; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 15;");
     }
 
-    private String generateFlatTextFallback(int active, long checkIns, long checkOuts, List<LogEntry> logs) {
+    private String generateFlatTextFallback(int active, long checkIns, long checkOuts, long unverified, List<LogEntry> logs) {
         StringBuilder content = new StringBuilder();
         content.append("======================================================================\n")
                 .append("                     SECURITY GATE ACTIVITY REPORT\n")
@@ -271,13 +302,14 @@ public class ReportsController extends BaseSecurityController {
                 .append("GATEWAY TRAFFIC SUMMARY:\n")
                 .append("- Total Check-Ins        : ").append(checkIns).append("\n")
                 .append("- Total Check-Outs       : ").append(checkOuts).append("\n")
+                .append("- Unverified Exits       : ").append(unverified).append("\n")
                 .append("- Devices Inside Campus  : ").append(active).append("\n\n")
                 .append("RECENT ACTIVITY LOGS:\n");
 
         for (LogEntry l : logs) {
             content.append("[").append(l.getTimestamp()).append("] ")
                     .append(String.format("%-22s", l.getStudentName())).append(" | ")
-                    .append(String.format("%-9s", l.getOperation())).append(" | ")
+                    .append(String.format("%-11s", l.getOperation())).append(" | ")
                     .append(l.getAccessToken()).append("\n");
         }
         content.append("\n*** END OF SECURE REPORT ***");
