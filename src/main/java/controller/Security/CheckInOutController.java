@@ -8,7 +8,10 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.TextAlignment;
 import utils.DataStore;
@@ -38,7 +41,7 @@ public class CheckInOutController extends BaseSecurityController {
     @FXML private Label lblCourseSection;
     @FXML private ImageView imgStudentPhoto;
 
-    @FXML private FlowPane deviceContainer;
+    @FXML private HBox deviceContainer;
 
     @FXML private Label lblSerialNumber;
     @FXML private Label lblAccessCode;
@@ -96,9 +99,9 @@ public class CheckInOutController extends BaseSecurityController {
 
     private void startScanner() {
         btnConfirm.setDisable(true);
-        btnConfirm.setText("Confirm");
+        btnConfirm.setText("CONFIRM & LOG ACTIVITY");
         statusLabel.setText("Scanning for QR...");
-        statusLabel.setStyle("-fx-text-fill: #333333;");
+        statusLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;");
         currentScannedStudent = null;
         currentDbStudentId = null;
         isCheckingOut = false;
@@ -109,7 +112,6 @@ public class CheckInOutController extends BaseSecurityController {
         deviceContainer.getChildren().clear();
         deviceContainer.setDisable(false);
 
-        // --- PHASE 1 FIX: Clear the photo buffer immediately on start ---
         if(imgStudentPhoto != null) imgStudentPhoto.setImage(null);
 
         if (scannerThread != null) scannerThread.stopScanner();
@@ -128,7 +130,7 @@ public class CheckInOutController extends BaseSecurityController {
         currentScannedStudent = studentNumber;
         Platform.runLater(() -> {
             statusLabel.setText("QR Detected! Fetching Data...");
-            statusLabel.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;");
+            statusLabel.setStyle("-fx-text-fill: #27AE60; -fx-font-weight: bold;");
             txtDeviceSearch.setText(studentNumber);
         });
 
@@ -148,7 +150,7 @@ public class CheckInOutController extends BaseSecurityController {
     @FXML
     private void handleSearch() {
         if (txtDeviceSearch.getText().trim().isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, null, "Please enter an Access Code or Student ID.");
+            showAlert(Alert.AlertType.WARNING, "System Warning", "Please enter an Access Code or Student ID.");
             return;
         }
         if (scannerThread != null) scannerThread.stopScanner();
@@ -204,14 +206,13 @@ public class CheckInOutController extends BaseSecurityController {
             }
         }
 
-        // --- PHASE 1 FIX: Access Verification Hard Stop ---
         if (fullName.isEmpty()) {
             Platform.runLater(() -> {
                 statusLabel.setText("ACCESS DENIED: Unregistered QR");
                 statusLabel.setStyle("-fx-text-fill: #C0392B; -fx-font-weight: bold;");
                 showAlert(Alert.AlertType.ERROR, "SECURITY ALERT", "The scanned QR code is NOT registered in the system. Access Denied.");
                 handleClear();
-                startScanner(); // Forces the scanner to restart automatically after guard clicks OK
+                startScanner();
             });
             return;
         }
@@ -229,6 +230,7 @@ public class CheckInOutController extends BaseSecurityController {
 
             if (isCheckingOut) {
                 lblCurrentStatus.setText("Currently INSIDE");
+                lblCurrentStatus.setStyle("-fx-text-fill: #E67E22; -fx-font-weight: bold;");
                 cmbAction.getSelectionModel().select("Check-Out");
                 for (DeviceRecord d : foundDevices) {
                     if (devicesInsideIds.contains(d.id)) {
@@ -240,6 +242,7 @@ public class CheckInOutController extends BaseSecurityController {
                 }
             } else {
                 lblCurrentStatus.setText("Currently OUTSIDE");
+                lblCurrentStatus.setStyle("-fx-text-fill: #2E7D32; -fx-font-weight: bold;");
                 cmbAction.getSelectionModel().select("Check-In");
                 for (DeviceRecord d : foundDevices) {
                     ToggleButton card = createDeviceCard(d);
@@ -257,53 +260,62 @@ public class CheckInOutController extends BaseSecurityController {
         });
     }
 
+    // THE FIX: Increased card sizes massively for clear visibility
     private ToggleButton createDeviceCard(DeviceRecord device) {
         ToggleButton btn = new ToggleButton();
+        btn.setPrefSize(180, 230);
+        btn.setMinSize(180, 230);
+        btn.setMaxSize(180, 230);
 
-        // --- PHASE 1 FIX: Better UI Proportions for Device Cards ---
-        btn.setPrefSize(200, 240);
-        btn.setMinSize(200, 240);
-        btn.setMaxSize(200, 240);
-
-        VBox cardLayout = new VBox(10);
+        VBox cardLayout = new VBox(8);
         cardLayout.setAlignment(Pos.CENTER);
-        cardLayout.setPadding(new Insets(15));
-        cardLayout.setPrefSize(200, 240);
+        cardLayout.setPadding(new Insets(10));
+        cardLayout.setPrefSize(180, 230);
+
+        StackPane imgContainer = new StackPane();
+        imgContainer.setStyle("-fx-border-color: #DDDDDD; -fx-border-radius: 8; -fx-background-color: white; -fx-padding: 5;");
+        imgContainer.setMaxSize(140, 140); // Massive 140x140 boundary
 
         ImageView img = new ImageView();
-        img.setFitWidth(140);
-        img.setFitHeight(120);
+        img.setFitWidth(130); // Giant 130x130 image preview
+        img.setFitHeight(130);
         img.setPreserveRatio(true);
         loadImageToView(img, device.photoPath);
+        imgContainer.getChildren().add(img);
 
         Label lblName = new Label();
         lblName.setWrapText(true);
         lblName.setTextAlignment(TextAlignment.CENTER);
-        lblName.setMaxHeight(50);
+        lblName.setMaxHeight(40);
 
         Label lblDetails = new Label("Token: " + device.accessCode);
-        lblDetails.setStyle("-fx-font-size: 11px; -fx-text-fill: #555555;");
+        lblDetails.setStyle("-fx-font-size: 11px; -fx-text-fill: #777777;");
 
-        cardLayout.getChildren().addAll(img, lblName, lblDetails);
+        Label lblCheck = new Label("⚪");
+        lblCheck.setStyle("-fx-text-fill: #DDDDDD; -fx-font-size: 16px;");
+
+        cardLayout.getChildren().addAll(imgContainer, lblName, lblDetails, lblCheck);
         btn.setGraphic(cardLayout);
         btn.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
 
-        String defaultStyle = "-fx-background-color: #FFFFFF; -fx-border-color: #DDDDDD; -fx-border-radius: 12; -fx-background-radius: 12; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 4);";
-        String selectedStyle = "-fx-background-color: #FEF0F0; -fx-border-color: #500A0E; -fx-border-width: 3; -fx-border-radius: 12; -fx-background-radius: 12; -fx-cursor: hand; -fx-effect: dropshadow(three-pass-box, rgba(80,10,14,0.3), 12, 0, 0, 5);";
-        String compromisedStyle = "-fx-background-color: #FFCDD2; -fx-border-color: #B71C1C; -fx-border-width: 3; -fx-border-radius: 12; -fx-background-radius: 12;";
+        String defaultStyle = "-fx-background-color: #F9F9F9; -fx-border-color: #DDDDDD; -fx-border-radius: 8; -fx-background-radius: 8; -fx-cursor: hand;";
+        String selectedStyle = "-fx-background-color: #FEF0F0; -fx-border-color: #500A0E; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8; -fx-cursor: hand;";
+        String compromisedStyle = "-fx-background-color: #FFCDD2; -fx-border-color: #B71C1C; -fx-border-width: 2; -fx-border-radius: 8; -fx-background-radius: 8;";
 
         if ("COMPROMISED".equalsIgnoreCase(device.status) || "INACTIVE".equalsIgnoreCase(device.status)) {
-            lblName.setText("⚠️ LOCKED\n" + device.brand + " " + device.model);
-            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #B71C1C;");
+            lblName.setText("⚠️ LOCKED\n" + device.brand);
+            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 12px; -fx-text-fill: #B71C1C;");
             btn.setStyle(compromisedStyle);
             btn.setDisable(true);
         } else {
-            lblName.setText(device.brand + " " + device.model);
-            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #222222;");
+            lblName.setText(device.brand + "\n" + device.model);
+            lblName.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #222222;");
             btn.setStyle(defaultStyle);
 
             btn.selectedProperty().addListener((obs, wasSelected, isNowSelected) -> {
                 btn.setStyle(isNowSelected ? selectedStyle : defaultStyle);
+                lblCheck.setText(isNowSelected ? "🔴" : "⚪");
+                lblCheck.setStyle(isNowSelected ? "-fx-text-fill: #500A0E; -fx-font-size: 16px;" : "-fx-text-fill: #DDDDDD; -fx-font-size: 16px;");
                 if (isNowSelected) {
                     if (!selectedDeviceIds.contains(device.id)) selectedDeviceIds.add(device.id);
                 } else {
@@ -315,11 +327,8 @@ public class CheckInOutController extends BaseSecurityController {
         return btn;
     }
 
-    // --- PHASE 1 FIX: The Doppelgänger Photo Wipe ---
     private void loadImageToView(ImageView imageView, String path) {
         if (imageView == null) return;
-
-        // CRITICAL: Wipe the previous student's photo from the UI buffer first!
         imageView.setImage(null);
 
         if (path == null || path.isEmpty() || path.contains("default_")) return;
@@ -392,7 +401,7 @@ public class CheckInOutController extends BaseSecurityController {
                 });
             } catch (SQLException e) {
                 Platform.runLater(() -> {
-                    btnConfirm.setText("Confirm");
+                    btnConfirm.setText("CONFIRM & LOG ACTIVITY");
                     btnConfirm.setDisable(false);
                     deviceContainer.setDisable(false);
                     showAlert(Alert.AlertType.ERROR, "Database Error", "Database error during transaction.");
@@ -406,9 +415,9 @@ public class CheckInOutController extends BaseSecurityController {
         if (scannerThread != null) scannerThread.stopScanner();
         txtDeviceSearch.clear();
         txtRemarks.clear();
-        lblStudentName.setText("");
-        lblStudentID.setText("");
-        lblCourseSection.setText("");
+        lblStudentName.setText("---");
+        lblStudentID.setText("---");
+        lblCourseSection.setText("---");
         deviceContainer.getChildren().clear();
         selectedDeviceIds.clear();
         lblSerialNumber.setText("");

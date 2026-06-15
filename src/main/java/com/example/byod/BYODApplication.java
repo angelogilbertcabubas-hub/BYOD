@@ -17,6 +17,10 @@ public class BYODApplication extends Application {
             throw new RuntimeException("Critical Error: login.fxml layout could not be found in the resource path!");
         }
 
+        // --- PHASE 3 FIX: Boot the Database Cache & Automation Engine ---
+        utils.DataStore.getInstance();
+        utils.MidnightResetService.initialize();
+
         FXMLLoader loader = new FXMLLoader(fxmlLocation);
         Scene scene = new Scene(loader.load());
 
@@ -25,6 +29,13 @@ public class BYODApplication extends Application {
         stage.setWidth(1200);
         stage.setHeight(700);
         stage.show();
+    }
+
+    // --- PHASE 3 FIX: Safely terminate the background engine when the app closes ---
+    @Override
+    public void stop() throws Exception {
+        utils.MidnightResetService.shutdown();
+        super.stop();
     }
 
     public static void main(String[] args) {

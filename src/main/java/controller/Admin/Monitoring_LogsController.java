@@ -74,7 +74,8 @@ public class Monitoring_LogsController extends BaseAdminController {
 
         // --------------------------------------------
 
-        filteredMonitorLogs = new FilteredList<>(DataStore.getInstance().getMonitoringLogsList(), p -> true);
+        // --- PHASE 3 FIX: Fetching permanent history instead of daily logs ---
+        filteredMonitorLogs = new FilteredList<>(DataStore.getInstance().getAllHistoricalLogsList(), p -> true);
 
         // FIX: Removed the trailing semicolons so the search actually works!
         searchBarField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -104,7 +105,8 @@ public class Monitoring_LogsController extends BaseAdminController {
     }
 
     private void updateCountLabel(){
-        int total = DataStore.getInstance().getMonitoringLogsList().size();
+        // --- PHASE 3 FIX: Update counter to reflect historical log size ---
+        int total = DataStore.getInstance().getAllHistoricalLogsList().size();
         int filtered = filteredMonitorLogs.size();
         if(filtered == total){
             statusSummaryLabel.setText("Showing 1 to " + total + " of " + total + " logged streams");

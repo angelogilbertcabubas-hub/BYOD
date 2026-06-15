@@ -18,7 +18,8 @@ public class DataStore {
 
     private ObservableList<Student> studentsList = FXCollections.observableArrayList();
     private ObservableList<Device> devicesList = FXCollections.observableArrayList();
-    private ObservableList<LogEntry> monitoringLogsList = FXCollections.observableArrayList();
+    private ObservableList<LogEntry> monitoringLogsList = FXCollections.observableArrayList(); // TODAY ONLY (Security & Dashboards)
+    private ObservableList<LogEntry> allHistoricalLogsList = FXCollections.observableArrayList(); // ALL TIME (Admin History)
     private ObservableList<LogEntry> activeDevicesList = FXCollections.observableArrayList();
     private ObservableList<Report> reportsList = FXCollections.observableArrayList();
     private ObservableList<SystemUser> usersList = FXCollections.observableArrayList();
@@ -39,7 +40,11 @@ public class DataStore {
 
     public void refreshStudents() { studentsList.clear(); loadStudentsFromDatabase(); }
     public void refreshDevices() { devicesList.clear(); loadDevicesFromDatabase(); }
-    public void refreshLogs() { monitoringLogsList.clear(); loadLogsFromDatabase(); }
+    public void refreshLogs() {
+        monitoringLogsList.clear();
+        allHistoricalLogsList.clear();
+        loadLogsFromDatabase();
+    }
     public void refreshActiveDevices() { activeDevicesList.clear(); loadActiveDevicesFromDatabase(); }
     public void refreshIncidents() { incidentReportsList.clear(); loadIncidentReportsFromDatabase(); }
 
@@ -61,20 +66,42 @@ public class DataStore {
     }
 
     private void loadLogsFromDatabase() {
-        String query = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, d.device_brand, d.device_name, d.unique_code, c.status, " +
+        // --- PHASE 3 FIX: Split Queries for Security (Today) vs Admin (All-Time) ---
+        String todayQuery = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, d.device_brand, d.device_name, d.unique_code, c.status, " +
                 "TO_CHAR(c.check_in_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_in, TO_CHAR(c.check_out_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_out " +
                 "FROM check_in_out c JOIN students s ON c.student_id = s.id JOIN devices d ON c.device_id = d.id " +
                 "WHERE DATE(c.check_in_time) = CURRENT_DATE ORDER BY c.check_in_time DESC LIMIT 150";
-        try (Connection conn = DatabaseHelper.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query); ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                String logId = String.valueOf(rs.getObject("log_id"));
-                String studentName = rs.getString("first_name") + " " + rs.getString("last_name");
-                String deviceModel = rs.getString("device_brand") + " " + rs.getString("device_name");
-                String accessToken = rs.getString("unique_code") != null ? rs.getString("unique_code") : "N/A";
 
-                monitoringLogsList.add(new LogEntry(logId + "-IN", studentName, rs.getString("school_id"), deviceModel, accessToken, "Check-In", rs.getString("formatted_time_in"), "Main Gate"));
-                if ("CHECKED_OUT".equals(rs.getString("status")) && rs.getString("formatted_time_out") != null) {
-                    monitoringLogsList.add(new LogEntry(logId + "-OUT", studentName, rs.getString("school_id"), deviceModel, accessToken, "Check-Out", rs.getString("formatted_time_out"), "Main Gate"));
+        String historyQuery = "SELECT c.id AS log_id, s.first_name, s.last_name, s.school_id, d.device_brand, d.device_name, d.unique_code, c.status, " +
+                "TO_CHAR(c.check_in_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_in, TO_CHAR(c.check_out_time, 'MM/DD/YYYY HH12:MI AM') as formatted_time_out " +
+                "FROM check_in_out c JOIN students s ON c.student_id = s.id JOIN devices d ON c.device_id = d.id " +
+                "ORDER BY c.check_in_time DESC LIMIT 1500"; // Gets all time history
+
+        try (Connection conn = DatabaseHelper.getConnection()) {
+            // Load Today's Logs
+            try(PreparedStatement pstmt1 = conn.prepareStatement(todayQuery); ResultSet rs = pstmt1.executeQuery()) {
+                while (rs.next()) {
+                    String logId = String.valueOf(rs.getObject("log_id"));
+                    String studentName = rs.getString("first_name") + " " + rs.getString("last_name");
+                    String deviceModel = rs.getString("device_brand") + " " + rs.getString("device_name");
+                    String accessToken = rs.getString("unique_code") != null ? rs.getString("unique_code") : "N/A";
+                    monitoringLogsList.add(new LogEntry(logId + "-IN", studentName, rs.getString("school_id"), deviceModel, accessToken, "Check-In", rs.getString("formatted_time_in"), "Main Gate"));
+                    if ("CHECKED_OUT".equals(rs.getString("status")) && rs.getString("formatted_time_out") != null) {
+                        monitoringLogsList.add(new LogEntry(logId + "-OUT", studentName, rs.getString("school_id"), deviceModel, accessToken, "Check-Out", rs.getString("formatted_time_out"), "Main Gate"));
+                    }
+                }
+            }
+            // Load All-Time Logs
+            try(PreparedStatement pstmt2 = conn.prepareStatement(historyQuery); ResultSet rs = pstmt2.executeQuery()) {
+                while (rs.next()) {
+                    String logId = String.valueOf(rs.getObject("log_id"));
+                    String studentName = rs.getString("first_name") + " " + rs.getString("last_name");
+                    String deviceModel = rs.getString("device_brand") + " " + rs.getString("device_name");
+                    String accessToken = rs.getString("unique_code") != null ? rs.getString("unique_code") : "N/A";
+                    allHistoricalLogsList.add(new LogEntry(logId + "-IN", studentName, rs.getString("school_id"), deviceModel, accessToken, "Check-In", rs.getString("formatted_time_in"), "Main Gate"));
+                    if ("CHECKED_OUT".equals(rs.getString("status")) && rs.getString("formatted_time_out") != null) {
+                        allHistoricalLogsList.add(new LogEntry(logId + "-OUT", studentName, rs.getString("school_id"), deviceModel, accessToken, "Check-Out", rs.getString("formatted_time_out"), "Main Gate"));
+                    }
                 }
             }
         } catch (Exception e) { e.printStackTrace(); }
@@ -92,18 +119,14 @@ public class DataStore {
     }
 
     private void loadDevicesFromDatabase() {
-        // NEW: Now fetches d.status so the system knows if the device is locked
         String query = "SELECT s.school_id, s.first_name, s.last_name, s.middle_initial, d.device_type, d.device_brand, d.device_name, d.mac_address, d.unique_code, d.status " +
                 "FROM devices d JOIN students s ON d.student_id = s.id";
         try (Connection conn = DatabaseHelper.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query); ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
                 String mName = rs.getString("middle_initial");
                 String ownerName = rs.getString("first_name") + " " + (mName != null && !mName.isEmpty() ? mName + " " : "") + rs.getString("last_name");
-
-                // Make sure to catch null statuses from older database entries
                 String status = rs.getString("status");
                 if (status == null) status = "ACTIVE";
-
                 devicesList.add(new Device(rs.getString("school_id"), ownerName, rs.getString("device_type"),
                         rs.getString("device_brand") + " " + rs.getString("device_name"),
                         rs.getString("mac_address"), rs.getString("unique_code"), status));
@@ -126,7 +149,8 @@ public class DataStore {
 
     public ObservableList<Student> getStudentsList() { return studentsList; }
     public ObservableList<Device> getDevicesList() { return devicesList; }
-    public ObservableList<LogEntry> getMonitoringLogsList() { return monitoringLogsList; }
+    public ObservableList<LogEntry> getMonitoringLogsList() { return monitoringLogsList; } // Today
+    public ObservableList<LogEntry> getAllHistoricalLogsList() { return allHistoricalLogsList; } // All-Time
     public ObservableList<LogEntry> getActiveDevicesList() { return activeDevicesList; }
     public ObservableList<Report> getReportsList() { return reportsList; }
     public ObservableList<SystemUser> getUsersList() { return usersList; }
