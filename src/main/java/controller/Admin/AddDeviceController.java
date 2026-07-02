@@ -46,7 +46,7 @@ public class AddDeviceController {
 
     @FXML
     public void initialize() {
-        cmbDeviceType.getItems().addAll("Smartphone", "Laptop", "Tablet", "Speaker", "Projector", "Smart Watch", "Others");
+        cmbDeviceType.getItems().addAll( "Laptop", "Speaker", "Projector", "Rice Cooker", "Electric Fan", "Others");
 
         if (lblDevicePhotoName != null) {
             lblDevicePhotoName.setText("No file selected");
