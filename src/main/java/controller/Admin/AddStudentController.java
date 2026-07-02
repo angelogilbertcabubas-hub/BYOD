@@ -162,8 +162,24 @@ public class AddStudentController {
         typeBox.setPrefHeight(38);
         typeBox.setMaxWidth(Double.MAX_VALUE);
         typeBox.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2DDD9; -fx-border-radius: 6;");
-        typeContainer.getChildren().addAll(typeLabel, typeBox);
+
+        TextField otherTypeField = new TextField();
+        otherTypeField.setPromptText("Specify device type...");
+        otherTypeField.setPrefHeight(38);
+        otherTypeField.setMaxWidth(Double.MAX_VALUE);
+        otherTypeField.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2DDD9; -fx-border-radius: 6;");
+        otherTypeField.setVisible(false);
+        otherTypeField.setManaged(false);
+
+        typeBox.getSelectionModel().selectedItemProperty().addListener(((observable, oldValue, newValue) -> {
+            boolean isOther = "Others".equals(newValue);
+            otherTypeField.setVisible(isOther);
+            otherTypeField.setManaged(isOther);
+            if (!isOther) otherTypeField.clear();
+        }));
+        typeContainer.getChildren().addAll(typeLabel, typeBox, otherTypeField);
         layoutGrid.add(typeContainer, 0, 0);
+
 
         VBox modelContainer = new VBox(5);
         Label modelLabel = new Label("BRAND & MODEL DESCRIPTION");
