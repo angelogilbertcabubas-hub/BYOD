@@ -51,6 +51,7 @@
                 <VBox spacing="5.0" GridPane.columnIndex="0">
                     <Label text="Device Type *" textFill="#500A0E"><font><Font name="System Bold" size="11.0" /></font></Label>
                     <ComboBox fx:id="cmbDeviceType" prefHeight="35.0" prefWidth="Infinity" promptText="Select Type" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                    <TextField fx:id="txtOtherType" prefHeight="35.0" promptText="Specify device type..." style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" visible="false" managed="false" />
                 </VBox>
                 <VBox spacing="5.0" GridPane.columnIndex="1">
                     <Label text="Serial Number" textFill="#500A0E"><font><Font name="System Bold" size="11.0" /></font></Label>

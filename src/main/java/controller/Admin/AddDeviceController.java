@@ -31,6 +31,8 @@ public class AddDeviceController {
     @FXML private ComboBox<String> cmbDeviceType;
     @FXML private TextField txtModel;
     @FXML private TextField txtSerialNumber;
+    @FXML private TextField txtOtherType;
+
 
     @FXML private Button btnUploadDevicePhoto;
     @FXML private Label lblDevicePhotoName;
@@ -47,6 +49,13 @@ public class AddDeviceController {
     @FXML
     public void initialize() {
         cmbDeviceType.getItems().addAll( "Laptop", "Speaker", "Projector", "Rice Cooker", "Electric Fan", "Others");
+
+        cmbDeviceType.getSelectionModel().selectedItemProperty().addListener(((observable, oldValue, newValue) -> {
+            boolean isOther = "Others".equals(newValue);
+            txtOtherType.setVisible(isOther);
+            txtOtherType.setManaged(isOther);
+            if(!isOther) txtOtherType.clear();
+        }));
 
         if (lblDevicePhotoName != null) {
             lblDevicePhotoName.setText("No file selected");
@@ -275,8 +284,9 @@ public class AddDeviceController {
                 UUID dbStudentId = (UUID) rs.getObject("id");
 
                 try (PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
+                    String devFinalType = "Others".equals(cmbDeviceType.getValue()) ? txtOtherType.getText().trim() : cmbDeviceType.getValue();
                     insertStmt.setObject(1, dbStudentId);
-                    insertStmt.setString(2, cmbDeviceType.getValue());
+                    insertStmt.setString(2, devFinalType);
                     insertStmt.setString(3, brand);
                     insertStmt.setString(4, modelStr);
                     insertStmt.setString(5, txtSerialNumber.getText().trim());
@@ -326,6 +336,11 @@ public class AddDeviceController {
         }
 
         if (errorBuilder.length() == 0) return true;
+
+        if ("Others".equals(cmbDeviceType.getValue()) &&
+                (txtOtherType.getText() == null || txtOtherType.getText().trim().isEmpty())) {
+            errorBuilder.append("Please specify the device type. \n");
+        }
 
         showAlert(Alert.AlertType.WARNING, "Validation Error", "Please correct the following:\n\n" + errorBuilder.toString());
         return false;
