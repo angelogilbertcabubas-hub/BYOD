@@ -5,38 +5,40 @@ public class Device {
     private String ownerName;
     private String deviceType;
     private String brandModel;
-    private String macAddress;
+    private String serialNumber;
     private String accessCode;
     private String status; // NEW: Security Flag
 
-    public Device(String studentNumber, String ownerName, String deviceType, String brandModel, String macAddress, String accessCode, String status) {
+    public Device(String studentNumber, String ownerName, String deviceType, String brandModel, String serialNumber, String accessCode, String status) {
         this.studentNumber = studentNumber;
         this.ownerName = ownerName;
         this.deviceType = deviceType;
         this.brandModel = brandModel;
-        this.macAddress = macAddress;
+        this.serialNumber = serialNumber;
         this.accessCode = accessCode;
         this.status = (status != null) ? status : "ACTIVE";
     }
 
     // Legacy Support Constructor
-    public Device(String ownerName, String deviceType, String brandModel, String macAddress, String accessCode) {
+    public Device(String ownerName, String deviceType, String brandModel, String serialNumber, String accessCode) {
         this.studentNumber = "N/A";
         this.ownerName = ownerName;
         this.deviceType = deviceType;
         this.brandModel = brandModel;
-        this.macAddress = macAddress;
+        this.serialNumber = serialNumber;
         this.accessCode = accessCode;
         this.status = "ACTIVE";
     }
+
     public void setStatus(String status) {
         this.status = status;
     }
+
     public String getStudentNumber() { return studentNumber; }
     public String getOwnerName() { return ownerName; }
     public String getDeviceType() { return deviceType; }
     public String getBrandModel() { return brandModel; }
-    public String getMacAddress() { return macAddress; }
+    public String getSerialNumber() { return serialNumber; }
     public String getAccessCode() { return accessCode; }
     public String getStatus() { return status; }
 

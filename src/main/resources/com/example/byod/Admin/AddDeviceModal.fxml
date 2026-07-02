@@ -7,12 +7,14 @@
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.*?>
 
-<VBox alignment="TOP_CENTER" prefWidth="480.0" spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-padding: 30; -fx-background-radius: 12; -fx-border-color: #E2DDD9; -fx-border-radius: 12;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.AddDeviceController">
+<VBox alignment="TOP_CENTER" prefWidth="480.0" spacing="15.0" style="-fx-background-color: #FFFFFF; -fx-padding: 30; -fx-background-radius: 12; -fx-border-color: #E2DDD9; -fx-border-radius: 12;"
+      xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.Admin.AddDeviceController">
 
     <Label text="Register Hardware Asset" textFill="#500A0E">
         <font><Font name="System Bold" size="20.0" /></font>
     </Label>
-    <Label prefHeight="34.0" prefWidth="351.0" text="Map a new device to an existing enrolled student. Photo previews are required for security logging." textAlignment="CENTER" textFill="#777777" wrapText="true">
+    <Label prefHeight="34.0" prefWidth="351.0" text="Map a new device to an existing enrolled student. Photo previews are required for security logging."
+           textAlignment="CENTER" textFill="#777777" wrapText="true">
         <font><Font size="12.0" /></font>
         <VBox.margin><Insets bottom="10.0" /></VBox.margin>
     </Label>
@@ -26,8 +28,10 @@
             </ImageView>
         </StackPane>
 
-        <Button mnemonicParsing="false" onAction="#handleUploadDevicePhoto" style="-fx-background-color: #E67E22; -fx-text-fill: white; -fx-background-radius: 6; -fx-cursor: hand; -fx-font-weight: bold; -fx-padding: 6 12;" text="Browse Photo" />
-        <Label fx:id="lblDevicePhotoName" style="-fx-font-size: 10px; -fx-text-fill: #777777;" text="No file selected" />
+        <Button mnemonicParsing="false" onAction="#handleUploadDevicePhoto" style="-fx-background-color: #E67E22; -fx-text-fill: white; -fx-background-radius: 6; -fx-cursor: hand; -fx-font-weight: bold; -fx-padding: 6 12;"
+                text="Browse Photo" />
+        <Label fx:id="lblDevicePhotoName" style="-fx-font-size: 10px; -fx-text-fill: #777777;"
+               text="No file selected" />
     </VBox>
 
     <Separator prefWidth="200.0" />
@@ -49,13 +53,13 @@
                     <ComboBox fx:id="cmbDeviceType" prefHeight="35.0" prefWidth="Infinity" promptText="Select Type" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
                 </VBox>
                 <VBox spacing="5.0" GridPane.columnIndex="1">
-                    <Label text="MAC Address" textFill="#500A0E"><font><Font name="System Bold" size="11.0" /></font></Label>
-                    <TextField fx:id="txtMacAddress" prefHeight="35.0" promptText="00:1B:44:11:3A:B7 or N/A" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
+                    <Label text="Serial Number" textFill="#500A0E"><font><Font name="System Bold" size="11.0" /></font></Label>
+                    <TextField fx:id="txtSerialNumber" prefHeight="35.0" promptText="e.g. SN123456789 or N/A" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 6;" />
                 </VBox>
             </children>
-         <rowConstraints>
-            <RowConstraints />
-         </rowConstraints>
+            <rowConstraints>
+                <RowConstraints />
+            </rowConstraints>
         </GridPane>
 
         <VBox spacing="5.0">

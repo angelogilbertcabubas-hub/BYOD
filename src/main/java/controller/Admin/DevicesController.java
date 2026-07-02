@@ -28,7 +28,10 @@ public class DevicesController extends BaseAdminController {
     @FXML private TableColumn<Device, String> colOwner;
     @FXML private TableColumn<Device, String> colDeviceType;
     @FXML private TableColumn<Device, String> colModel;
-    @FXML private TableColumn<Device, String> colMAC;
+
+    // FIX: Updated the column ID to match the FXML change
+    @FXML private TableColumn<Device, String> colSerialNumber;
+
     @FXML private TableColumn<Device, String> colToken;
 
     private FilteredList<Device> filteredDevices;
@@ -39,7 +42,10 @@ public class DevicesController extends BaseAdminController {
         colOwner.setCellValueFactory(new PropertyValueFactory<>("ownerName"));
         colDeviceType.setCellValueFactory(new PropertyValueFactory<>("deviceType"));
         colModel.setCellValueFactory(new PropertyValueFactory<>("model"));
-        colMAC.setCellValueFactory(new PropertyValueFactory<>("macAddress"));
+
+        // FIX: Bound it to the "serialNumber" property of the Device class
+        colSerialNumber.setCellValueFactory(new PropertyValueFactory<>("serialNumber"));
+
         colToken.setCellValueFactory(new PropertyValueFactory<>("token"));
 
         filteredDevices = new FilteredList<>(DataStore.getInstance().getDevicesList(), p -> true);
@@ -53,7 +59,10 @@ public class DevicesController extends BaseAdminController {
                 if (device.getOwnerName() != null && device.getOwnerName().toLowerCase().contains(keyword)) return true;
                 if (device.getDeviceType() != null && device.getDeviceType().toLowerCase().contains(keyword)) return true;
                 if (device.getModel() != null && device.getModel().toLowerCase().contains(keyword)) return true;
-                if (device.getMacAddress() != null && device.getMacAddress().toLowerCase().contains(keyword)) return true;
+
+                // FIX: Updated the search functionality to check against the Serial Number
+                if (device.getSerialNumber() != null && device.getSerialNumber().toLowerCase().contains(keyword)) return true;
+
                 if (device.getToken() != null && device.getToken().toLowerCase().contains(keyword)) return true;
 
                 return false;
@@ -87,7 +96,6 @@ public class DevicesController extends BaseAdminController {
                 deleteBtn.setStyle("-fx-background-color: #C0392B; -fx-text-fill: white; -fx-cursor: hand; -fx-font-weight: bold; -fx-background-radius: 4; -fx-padding: 5 10;");
                 pane.setAlignment(Pos.CENTER);
 
-                // FIX: Now routes directly to your DeviceProfileModal
                 editBtn.setOnAction(event -> {
                     Device device = getTableView().getItems().get(getIndex());
                     openDeviceProfileModal(device);
@@ -126,7 +134,6 @@ public class DevicesController extends BaseAdminController {
 
                     if (!clickedOnButton) {
                         Device clickedDevice = row.getItem();
-                        // FIX: Uses the same method as the Edit button
                         openDeviceProfileModal(clickedDevice);
                     }
                 }
@@ -164,7 +171,6 @@ public class DevicesController extends BaseAdminController {
         }
     }
 
-    // FIX: Refactored to act as the single source of truth for opening the Profile Modal
     private void openDeviceProfileModal(Device targetDevice) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/example/byod/Admin/DeviceProfileModal.fxml"));
@@ -190,7 +196,6 @@ public class DevicesController extends BaseAdminController {
         }
     }
 
-    // Device Deletion Logic with Confirmation
     private void handleDeleteDevice(Device device) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Confirm Deletion");

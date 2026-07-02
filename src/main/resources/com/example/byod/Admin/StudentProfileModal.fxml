@@ -17,16 +17,20 @@
                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                     <children>
                         <Label fx:id="lblFullNameHeader" style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 18px;" text="Student Profile Matrix" />
-                        <Label fx:id="lblStudentNumberSub" style="-fx-text-fill: #777777; -fx-font-size: 12px;" text="Student Account Profile Management Node" />
+                        <Label fx:id="lblStudentNumberSub" style="-fx-text-fill: #777777; -fx-font-size: 12px;"
+                               text="Student Account Profile Management Node" />
                     </children>
                 </VBox>
                 <HBox spacing="10.0">
-                    <Button fx:id="btnClearSanctions" mnemonicParsing="false" onAction="#handleClearSanctions" style="-fx-background-color: #E67E22; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;" text="🔄 LIFT RESTRICTION" />
-                    <Button mnemonicParsing="false" onAction="#handleRemoveStudent" style="-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;" text="❌ REMOVE STUDENT" />
+                    <Button fx:id="btnClearSanctions" mnemonicParsing="false" onAction="#handleClearSanctions" style="-fx-background-color: #E67E22; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;"
+                            text="🔄 LIFT RESTRICTION" />
+                    <Button mnemonicParsing="false" onAction="#handleRemoveStudent" style="-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 8 15;"
+                            text="❌ REMOVE STUDENT" />
                 </HBox>
             </children>
         </HBox>
-        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;" VBox.vgrow="ALWAYS">
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;"
+                    VBox.vgrow="ALWAYS">
             <content>
                 <VBox spacing="15.0">
                     <children>
@@ -34,11 +38,15 @@
                             <children>
                                 <HBox alignment="CENTER_LEFT" spacing="8.0">
                                     <children>
-                                        <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 14px;" text="Account Dossier Details" HBox.hgrow="ALWAYS" />
+                                        <Label style="-fx-text-fill: #500A0E; -fx-font-weight: bold; -fx-font-size: 14px;"
+                                               text="Account Dossier Details" HBox.hgrow="ALWAYS" />
                                         <Region HBox.hgrow="ALWAYS" />
-                                        <Button fx:id="btnEditToggle" mnemonicParsing="false" onAction="#handleEditToggle" style="-fx-background-color: #E2DDD9; -fx-text-fill: #333333; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14;" text="✏ EDIT" />
-                                        <Button fx:id="btnSaveEdit" mnemonicParsing="false" onAction="#handleSaveEdit" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14;" text="✔ SAVE" visible="false" managed="false" />
-                                        <Button fx:id="btnCancelEdit" mnemonicParsing="false" onAction="#handleCancelEdit" style="-fx-background-color: #888888; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14;" text="✖ CANCEL" visible="false" managed="false" />
+                                        <Button fx:id="btnEditToggle" mnemonicParsing="false" onAction="#handleEditToggle" style="-fx-background-color: #E2DDD9; -fx-text-fill: #333333; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4;
+-fx-cursor: hand; -fx-padding: 6 14;" text="✏ EDIT" />
+                                        <Button fx:id="btnSaveEdit" mnemonicParsing="false" onAction="#handleSaveEdit" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14;"
+                                                text="✔ SAVE" visible="false" managed="false" />
+                                        <Button fx:id="btnCancelEdit" mnemonicParsing="false" onAction="#handleCancelEdit" style="-fx-background-color: #888888; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-background-radius: 4; -fx-cursor: hand; -fx-padding: 6 14;"
+                                                text="✖ CANCEL" visible="false" managed="false" />
                                     </children>
                                 </HBox>
 
@@ -55,7 +63,8 @@
                                                         </clip>
                                                     </ImageView>
                                                 </StackPane>
-                                                <Label style="-fx-font-size: 10px; -fx-text-fill: #777777; -fx-font-weight: bold;" text="STUDENT PHOTO" />
+                                                <Label style="-fx-font-size: 10px; -fx-text-fill: #777777;
+-fx-font-weight: bold;" text="STUDENT PHOTO" />
                                             </children>
                                         </VBox>
 
@@ -73,13 +82,18 @@
                                                         <RowConstraints minHeight="25.0" />
                                                     </rowConstraints>
                                                     <children>
-                                                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="STUDENT NUMBER:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                                                        <Label fx:id="txtProfileId" style="-fx-font-weight: bold; -fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                                                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="COURSE MODULE:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                                                        <Label style="-fx-text-fill: #777777;
+-fx-font-weight: bold;" text="STUDENT NUMBER:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                                                        <Label fx:id="txtProfileId" style="-fx-font-weight: bold;
+-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                                                        <Label style="-fx-text-fill: #777777;
+-fx-font-weight: bold;" text="COURSE MODULE:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
                                                         <Label fx:id="txtProfileCourse" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                                                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="EMAIL ADDRESS:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                                                        <Label style="-fx-text-fill: #777777;
+-fx-font-weight: bold;" text="EMAIL ADDRESS:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
                                                         <Label fx:id="txtProfileEmail" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                                                        <Label style="-fx-text-fill: #777777; -fx-font-weight: bold;" text="MOBILE LINK:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                                                        <Label style="-fx-text-fill: #777777;
+-fx-font-weight: bold;" text="MOBILE LINK:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
                                                         <Label fx:id="txtProfileMobile" style="-fx-text-fill: #222222;" text="---" GridPane.columnIndex="1" GridPane.rowIndex="3" />
                                                     </children>
                                                 </GridPane>
@@ -149,7 +163,7 @@
                                     <columns>
                                         <TableColumn fx:id="colType" prefWidth="110.0" text="ASSET TYPE" />
                                         <TableColumn fx:id="colModel" prefWidth="160.0" text="BRAND &amp; MODEL" />
-                                        <TableColumn fx:id="colMac" prefWidth="160.0" text="PHYSICAL MAC" />
+                                        <TableColumn fx:id="colSerialNumber" prefWidth="160.0" text="SERIAL NUMBER" />
                                         <TableColumn fx:id="colToken" prefWidth="110.0" text="SECURITY TOKEN" />
                                     </columns>
                                     <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
@@ -167,7 +181,7 @@
                                     <children>
                                         <ComboBox fx:id="quickTypeBox" prefHeight="35.0" prefWidth="120.0" promptText="Type" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" />
                                         <TextField fx:id="quickModelField" prefHeight="35.0" promptText="Brand/Model" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" HBox.hgrow="ALWAYS" />
-                                        <TextField fx:id="quickMacField" prefHeight="35.0" prefWidth="130.0" promptText="MAC / NA" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" />
+                                        <TextField fx:id="quickSerialNumberField" prefHeight="35.0" prefWidth="130.0" promptText="Serial No. / NA" style="-fx-background-color: #F7F5F5; -fx-border-color: #E2DDD9; -fx-border-radius: 4;" />
                                         <Button mnemonicParsing="false" onAction="#handleQuickUploadPhoto" prefHeight="35.0" style="-fx-background-color: #DDDDDD; -fx-cursor: hand;" text="📷" />
                                         <Button mnemonicParsing="false" onAction="#handleQuickAddDevice" prefHeight="35.0" style="-fx-background-color: #2E7D32; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 4; -fx-cursor: hand;" text="+ Link Asset" />
                                     </children>

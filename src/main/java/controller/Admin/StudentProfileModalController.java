@@ -32,7 +32,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
-import java.util.regex.Pattern;
 
 public class StudentProfileModalController {
 
@@ -50,12 +49,17 @@ public class StudentProfileModalController {
     @FXML private TableView<Device> deviceMatrixTable;
     @FXML private TableColumn<Device, String> colType;
     @FXML private TableColumn<Device, String> colModel;
-    @FXML private TableColumn<Device, String> colMac;
+
+    // FIX: Updated ID to colSerialNumber
+    @FXML private TableColumn<Device, String> colSerialNumber;
+
     @FXML private TableColumn<Device, String> colToken;
 
     @FXML private ComboBox<String> quickTypeBox;
     @FXML private TextField quickModelField;
-    @FXML private TextField quickMacField;
+
+    // FIX: Updated ID to quickSerialNumberField
+    @FXML private TextField quickSerialNumberField;
 
     @FXML private Button btnClearSanctions;
     @FXML private Button btnEditToggle;
@@ -77,13 +81,14 @@ public class StudentProfileModalController {
     private Map<String, String> devicePhotoMap = new HashMap<>();
     private String quickDevicePhotoPath = "default_device.png";
 
-    private final Pattern MAC_PATTERN = Pattern.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
-
     @FXML
     public void initialize() {
         colType.setCellValueFactory(new PropertyValueFactory<>("deviceType"));
         colModel.setCellValueFactory(new PropertyValueFactory<>("brandModel"));
-        colMac.setCellValueFactory(new PropertyValueFactory<>("macAddress"));
+
+        // FIX: Binding to serialNumber property from Device model
+        colSerialNumber.setCellValueFactory(new PropertyValueFactory<>("serialNumber"));
+
         colToken.setCellValueFactory(new PropertyValueFactory<>("accessCode"));
 
         deviceMatrixTable.setItems(isolatedDevicesList);
@@ -197,6 +202,8 @@ public class StudentProfileModalController {
         devicePhotoMap.clear();
 
         String fetchUuidSql = "SELECT id FROM students WHERE school_id = ?";
+
+        // Note: I left mac_address in the query string as it references the DB column name
         String fetchDevicesSql = "SELECT device_type, device_brand, device_name, mac_address, unique_code, photo_path FROM devices WHERE student_id = ? AND (status IS NULL OR status != 'ARCHIVED')";
 
         try (Connection conn = DatabaseHelper.getConnection();
@@ -216,11 +223,14 @@ public class StudentProfileModalController {
                         while (rsDev.next()) {
                             String type = rsDev.getString("device_type");
                             String brandModel = rsDev.getString("device_brand") + " " + rsDev.getString("device_name");
-                            String mac = rsDev.getString("mac_address");
+
+                            // Database uses mac_address column, but we store it as Serial Number in our App
+                            String serial = rsDev.getString("mac_address");
+
                             String token = rsDev.getString("unique_code");
                             String photo = rsDev.getString("photo_path");
 
-                            isolatedDevicesList.add(new Device(focusedStudent.getFullName(), type, brandModel, mac, token));
+                            isolatedDevicesList.add(new Device(focusedStudent.getFullName(), type, brandModel, serial, token));
                             devicePhotoMap.put(token, photo);
                         }
                     }
@@ -259,22 +269,18 @@ public class StudentProfileModalController {
     private void handleQuickAddDevice(ActionEvent event) {
         String type = quickTypeBox.getValue();
         String rawModel = quickModelField.getText().trim();
-        String mac = quickMacField.getText().trim().toUpperCase();
+        String serialNumber = quickSerialNumberField.getText().trim().toUpperCase();
 
-        if (type == null || rawModel.isEmpty() || mac.isEmpty()) {
+        if (type == null || rawModel.isEmpty() || serialNumber.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Form Empty", "Please fill up all asset attachment parameters.");
             return;
         }
 
-        if (!mac.equalsIgnoreCase("N/A") && !MAC_PATTERN.matcher(mac).matches()) {
-            showAlert(Alert.AlertType.WARNING, "Invalid Parameter", "MAC registration layout fail. Standardized layout: 00:1B:44:11:3A:B7 or N/A");
-            return;
-        }
-
         try (Connection conn = DatabaseHelper.getConnection()) {
+            // Note: Still inserting into 'mac_address' column for database compatibility
             String insertSql = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
-            if (mac.equals("N/A")) mac = "N/A-" + (100 + new Random().nextInt(900));
+            if (serialNumber.equals("N/A")) serialNumber = "N/A-" + (100 + new Random().nextInt(900));
 
             String[] modelSplit = rawModel.split(" ", 2);
             String brand = modelSplit[0];
@@ -286,7 +292,7 @@ public class StudentProfileModalController {
                 ps.setString(2, type);
                 ps.setString(3, brand);
                 ps.setString(4, modelStr);
-                ps.setString(5, mac);
+                ps.setString(5, serialNumber);
                 ps.setString(6, generatedToken);
                 ps.setString(7, quickDevicePhotoPath);
                 ps.executeUpdate();
@@ -296,7 +302,7 @@ public class StudentProfileModalController {
             fetchInternalUuidAndDevices();
 
             quickModelField.clear();
-            quickMacField.clear();
+            quickSerialNumberField.clear();
             quickTypeBox.setValue(null);
             quickDevicePhotoPath = "default_device.png";
 

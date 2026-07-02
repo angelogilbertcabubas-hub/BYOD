@@ -27,7 +27,7 @@ public class DeviceProfileModalController {
 
     @FXML private ComboBox<String> cmbEditType;
     @FXML private TextField txtEditModel;
-    @FXML private TextField txtEditMac;
+    @FXML private TextField txtEditSerialNumber;
 
     @FXML private ImageView devicePhotoImageView;
     private String currentCloudPhotoPath = null;
@@ -46,17 +46,17 @@ public class DeviceProfileModalController {
 
         String[] split = device.getBrandModel().split(" ", 2);
         txtEditModel.setText(split.length > 1 ? split[1] : device.getBrandModel());
-        txtEditMac.setText(device.getMacAddress());
+        txtEditSerialNumber.setText(device.getSerialNumber());
 
         // LOGICAL FIX: Lock down physical hardware identity so it cannot be altered
         cmbEditType.setDisable(true);
         txtEditModel.setEditable(false);
-        txtEditMac.setEditable(false);
+        txtEditSerialNumber.setEditable(false);
 
         // Optional: Keep text visually readable instead of completely grayed out
         cmbEditType.setStyle("-fx-opacity: 1; -fx-background-color: #F0F0F0;");
         txtEditModel.setStyle("-fx-background-color: #F0F0F0;");
-        txtEditMac.setStyle("-fx-background-color: #F0F0F0;");
+        txtEditSerialNumber.setStyle("-fx-background-color: #F0F0F0;");
 
         fetchExtendedDetails();
     }
@@ -144,11 +144,12 @@ public class DeviceProfileModalController {
 
         if (result.isPresent() && result.get() == ButtonType.OK) {
             new Thread(() -> {
+                // Note: Reading the mac_address column for now so it matches your current database setup.
                 String updateQuery = "UPDATE devices SET status = 'ARCHIVED' WHERE mac_address = ?";
                 try (Connection conn = DatabaseHelper.getConnection();
                      PreparedStatement pstmt = conn.prepareStatement(updateQuery)) {
 
-                    pstmt.setString(1, txtEditMac.getText());
+                    pstmt.setString(1, txtEditSerialNumber.getText());
                     pstmt.executeUpdate();
 
                     Platform.runLater(() -> {
@@ -202,7 +203,6 @@ public class DeviceProfileModalController {
 
     @FXML
     private void handleSaveChanges(ActionEvent event) {
-        // BUG 7 FIX: Add confirmation dialog before saving device edits
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Confirm Update");
         confirm.setHeaderText("Save Device Photo?");

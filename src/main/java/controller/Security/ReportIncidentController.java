@@ -54,7 +54,9 @@ public class ReportIncidentController {
         } else {
             for (Device d : studentDevices) {
                 String flag = "COMPROMISED".equals(d.getStatus()) ? " [ALREADY LOCKED]" : "";
-                cmbTargetDevice.getItems().add(d.getBrandModel() + " (" + d.getMacAddress() + ")" + flag);
+
+                // FIX: Swapped getMacAddress() to getSerialNumber()
+                cmbTargetDevice.getItems().add(d.getBrandModel() + " (" + d.getSerialNumber() + ")" + flag);
             }
             cmbTargetDevice.getSelectionModel().selectFirst();
         }
@@ -89,15 +91,16 @@ public class ReportIncidentController {
         String logToken = isRecovery ? "RESTORED" : "LOCKED";
         String successMsg = isRecovery ? "Device recovered! Access has been restored to the student." : "Hardware Blacklisted! The perimeter gate will block this device.";
 
-        String macAddress = "";
+        // FIX: Update variable names to extract the Serial Number from the ComboBox string
+        String extractedSerialNumber = "";
         try {
-            macAddress = deviceStr.substring(deviceStr.lastIndexOf("(") + 1, deviceStr.lastIndexOf(")"));
+            extractedSerialNumber = deviceStr.substring(deviceStr.lastIndexOf("(") + 1, deviceStr.lastIndexOf(")"));
         } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Failed to parse device MAC address.");
+            showAlert(Alert.AlertType.ERROR, "Failed to parse device serial number.");
             return;
         }
 
-        final String targetMac = macAddress;
+        final String targetSerial = extractedSerialNumber;
 
         new Thread(() -> {
             try (Connection conn = DatabaseHelper.getConnection()) {
@@ -114,10 +117,11 @@ public class ReportIncidentController {
                     pstmt.executeUpdate();
                 }
 
+                // Note: The SQL string still points to 'mac_address' so it successfully targets your current database setup.
                 String updateQuery = "UPDATE devices SET status = ? WHERE mac_address = ?";
                 try (PreparedStatement pstmt2 = conn.prepareStatement(updateQuery)) {
                     pstmt2.setString(1, newDbStatus);
-                    pstmt2.setString(2, targetMac);
+                    pstmt2.setString(2, targetSerial);
                     pstmt2.executeUpdate();
                 }
 

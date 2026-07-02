@@ -24,14 +24,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Random;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 public class AddDeviceController {
 
     @FXML private ComboBox<String> cmbOwnerName;
     @FXML private ComboBox<String> cmbDeviceType;
     @FXML private TextField txtModel;
-    @FXML private TextField txtMacAddress;
+    @FXML private TextField txtSerialNumber;
 
     @FXML private Button btnUploadDevicePhoto;
     @FXML private Label lblDevicePhotoName;
@@ -44,7 +43,6 @@ public class AddDeviceController {
     private Device editingDevice = null;
 
     private ObservableList<String> studentRecords;
-    private final Pattern MAC_PATTERN = Pattern.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
 
     @FXML
     public void initialize() {
@@ -95,13 +93,13 @@ public class AddDeviceController {
 
                 if (device.getDeviceType() != null) cmbDeviceType.setValue(device.getDeviceType());
                 if (device.getModel() != null) txtModel.setText(device.getModel());
-                if (device.getMacAddress() != null) txtMacAddress.setText(device.getMacAddress());
+                if (device.getSerialNumber() != null) txtSerialNumber.setText(device.getSerialNumber());
 
                 // LOGICAL FIX: Lock down physical hardware details so they cannot be altered
                 cmbOwnerName.setDisable(true);
                 cmbDeviceType.setDisable(true);
                 txtModel.setDisable(true);
-                txtMacAddress.setDisable(true);
+                txtSerialNumber.setDisable(true);
 
                 if (lblDevicePhotoName != null) {
                     lblDevicePhotoName.setText("Loading Current Photo...");
@@ -264,6 +262,7 @@ public class AddDeviceController {
     private void processNewDeviceRegistration(ActionEvent event, String studentNumber, String ownerName, String brand, String modelStr) {
         String generatedToken = "TKN-" + (1000 + new Random().nextInt(9000));
         String getStudentIdQuery = "SELECT id FROM students WHERE school_id = ?";
+        // Note: Writing into the mac_address column for now so it matches your current database setup.
         String insertQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
         try (Connection conn = DatabaseHelper.getConnection();
@@ -280,13 +279,13 @@ public class AddDeviceController {
                     insertStmt.setString(2, cmbDeviceType.getValue());
                     insertStmt.setString(3, brand);
                     insertStmt.setString(4, modelStr);
-                    insertStmt.setString(5, txtMacAddress.getText().trim());
+                    insertStmt.setString(5, txtSerialNumber.getText().trim());
                     insertStmt.setString(6, generatedToken);
                     insertStmt.setString(7, devicePhotoPath);
                     insertStmt.executeUpdate();
                 }
 
-                newDevice = new Device(ownerName, cmbDeviceType.getValue(), txtModel.getText(), txtMacAddress.getText(), generatedToken);
+                newDevice = new Device(ownerName, cmbDeviceType.getValue(), txtModel.getText(), txtSerialNumber.getText(), generatedToken);
                 DataStore.getInstance().refreshDevices();
 
                 Platform.runLater(() -> {
@@ -320,9 +319,10 @@ public class AddDeviceController {
         }
         if (cmbDeviceType.getValue() == null) errorBuilder.append("- Device Type selection is required.\n");
         if (txtModel.getText() == null || txtModel.getText().trim().isEmpty()) errorBuilder.append("- Brand and Model description is required.\n");
-        String mac = txtMacAddress.getText();
-        if (mac == null || mac.trim().isEmpty() || (!mac.equalsIgnoreCase("N/A") && !MAC_PATTERN.matcher(mac).matches())) {
-            errorBuilder.append("- Valid MAC Address is required (e.g., 00:1B:44:11:3A:B7 or N/A).\n");
+
+        String serial = txtSerialNumber.getText();
+        if (serial == null || serial.trim().isEmpty()) {
+            errorBuilder.append("- Serial Number is required (Type N/A if not applicable).\n");
         }
 
         if (errorBuilder.length() == 0) return true;

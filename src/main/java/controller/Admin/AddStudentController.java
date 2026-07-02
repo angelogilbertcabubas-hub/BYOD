@@ -57,20 +57,24 @@ public class AddStudentController {
     private final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
     private final Pattern MOBILE_PATTERN = Pattern.compile("^(09|\\+639)\\d{9}$");
     private final Pattern SECTION_PATTERN = Pattern.compile("^[1-4]-[1-9]$");
-    private final Pattern MAC_PATTERN = Pattern.compile("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$");
+
+    // FIX: Removed MAC_PATTERN since Serial Numbers are alphanumeric
 
     private static class DeviceRowComponents {
         VBox cardContainer;
         ComboBox<String> typeBox;
         TextField modelField;
-        TextField macField;
+
+        // FIX: Changed macField to serialField
+        TextField serialField;
+
         String devicePhotoPath = "default_device.png";
 
-        DeviceRowComponents(VBox cardContainer, ComboBox<String> typeBox, TextField modelField, TextField macField) {
+        DeviceRowComponents(VBox cardContainer, ComboBox<String> typeBox, TextField modelField, TextField serialField) {
             this.cardContainer = cardContainer;
             this.typeBox = typeBox;
             this.modelField = modelField;
-            this.macField = macField;
+            this.serialField = serialField;
         }
     }
 
@@ -121,8 +125,8 @@ public class AddStudentController {
         rowTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #500A0E;");
 
         ImageView devicePreview = new ImageView();
-        devicePreview.setFitWidth(90);  // Larger image
-        devicePreview.setFitHeight(90); // Larger image
+        devicePreview.setFitWidth(90);
+        devicePreview.setFitHeight(90);
         devicePreview.setPreserveRatio(true);
         StackPane previewContainer = new StackPane(devicePreview);
         previewContainer.setStyle("-fx-border-color: #CCCCCC; -fx-border-radius: 4; -fx-background-color: #FFFFFF;");
@@ -171,25 +175,26 @@ public class AddStudentController {
         modelContainer.getChildren().addAll(modelLabel, modelField);
         layoutGrid.add(modelContainer, 0, 1);
 
-        VBox macContainer = new VBox(5);
-        Label macLabel = new Label("PHYSICAL MAC ADDRESS");
-        macLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;");
+        // FIX: Replaced MAC Address dynamic UI build with Serial Number
+        VBox serialContainer = new VBox(5);
+        Label serialLabel = new Label("SERIAL NUMBER");
+        serialLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;");
 
-        HBox macInputGroup = new HBox(8);
-        TextField macField = new TextField();
-        macField.setPromptText("e.g., 00:1B:44:11:3A:B7");
-        macField.setPrefHeight(38);
-        macField.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2DDD9; -fx-border-radius: 6;");
-        HBox.setHgrow(macField, Priority.ALWAYS);
+        HBox serialInputGroup = new HBox(8);
+        TextField serialField = new TextField();
+        serialField.setPromptText("e.g., SN123456789");
+        serialField.setPrefHeight(38);
+        serialField.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2DDD9; -fx-border-radius: 6;");
+        HBox.setHgrow(serialField, Priority.ALWAYS);
 
         Button btnNA = new Button("N/A");
         btnNA.setPrefHeight(38);
         btnNA.setStyle("-fx-background-color: #E5E1E2; -fx-text-fill: #555555; -fx-font-weight: bold; -fx-border-color: #CCCCCC; -fx-border-radius: 6; -fx-cursor: hand;");
-        btnNA.setOnAction(e -> macField.setText("N/A"));
+        btnNA.setOnAction(e -> serialField.setText("N/A"));
 
-        macInputGroup.getChildren().addAll(macField, btnNA);
-        macContainer.getChildren().addAll(macLabel, macInputGroup);
-        layoutGrid.add(macContainer, 1, 1);
+        serialInputGroup.getChildren().addAll(serialField, btnNA);
+        serialContainer.getChildren().addAll(serialLabel, serialInputGroup);
+        layoutGrid.add(serialContainer, 1, 1);
 
         ColumnConstraints col1 = new ColumnConstraints();
         col1.setPercentWidth(50);
@@ -201,7 +206,8 @@ public class AddStudentController {
         rowCard.getChildren().add(layoutGrid);
         deviceListContainer.getChildren().add(rowCard);
 
-        DeviceRowComponents newRow = new DeviceRowComponents(rowCard, typeBox, modelField, macField);
+        // FIX: Passed the serialField instead of macField to the device row constructor
+        DeviceRowComponents newRow = new DeviceRowComponents(rowCard, typeBox, modelField, serialField);
         deviceRowsList.add(newRow);
 
         btnUploadDevicePhoto.setOnAction(e -> {
@@ -223,11 +229,6 @@ public class AddStudentController {
     @FXML
     private void handleIncrementDeviceRow(ActionEvent event) {
         generateNewDeviceRowField();
-    }
-
-    private boolean isValidMac(String macStr) {
-        if (macStr.equalsIgnoreCase("N/A")) return true;
-        return MAC_PATTERN.matcher(macStr).matches();
     }
 
     private File chooseImageFile(ActionEvent event) {
@@ -293,6 +294,7 @@ public class AddStudentController {
                     }
 
                     if (dbStudentId != null) {
+                        // Note: Database insert query still points to the `mac_address` column so it works with your current schema
                         String deviceQuery = "INSERT INTO devices (student_id, device_type, device_brand, device_name, mac_address, unique_code, status, photo_path) " +
                                 "VALUES (?, ?, ?, ?, ?, ?, 'REGISTERED', ?)";
 
@@ -300,12 +302,14 @@ public class AddStudentController {
                             for (DeviceRowComponents row : deviceRowsList) {
                                 String type = row.typeBox.getValue();
                                 String rawModel = row.modelField.getText().trim();
-                                String mac = row.macField.getText().trim().toUpperCase();
 
-                                if (type != null && !rawModel.isEmpty() && !mac.isEmpty()) {
+                                // Pulling the Serial Number instead of MAC
+                                String serialNumber = row.serialField.getText().trim().toUpperCase();
 
-                                    if (mac.equals("N/A")) {
-                                        mac = "N/A-" + (100 + new Random().nextInt(900));
+                                if (type != null && !rawModel.isEmpty() && !serialNumber.isEmpty()) {
+
+                                    if (serialNumber.equals("N/A")) {
+                                        serialNumber = "N/A-" + (100 + new Random().nextInt(900));
                                     }
 
                                     String[] modelSplit = rawModel.split(" ", 2);
@@ -318,7 +322,7 @@ public class AddStudentController {
                                     insertStmt.setString(2, type);
                                     insertStmt.setString(3, brand);
                                     insertStmt.setString(4, modelStr);
-                                    insertStmt.setString(5, mac);
+                                    insertStmt.setString(5, serialNumber);
                                     insertStmt.setString(6, generatedToken);
                                     insertStmt.setString(7, row.devicePhotoPath);
                                     insertStmt.addBatch();
@@ -387,17 +391,17 @@ public class AddStudentController {
         for (DeviceRowComponents row : deviceRowsList) {
             String type = row.typeBox.getValue();
             String model = row.modelField.getText().trim();
-            String mac = row.macField.getText().trim();
 
-            boolean partlyFilled = (type != null) || !model.isEmpty() || !mac.isEmpty();
-            boolean completelyFilled = (type != null) && !model.isEmpty() && !mac.isEmpty();
+            // Checking the Serial Field instead of MAC
+            String serial = row.serialField.getText().trim();
+
+            boolean partlyFilled = (type != null) || !model.isEmpty() || !serial.isEmpty();
+            boolean completelyFilled = (type != null) && !model.isEmpty() && !serial.isEmpty();
 
             if (partlyFilled && !completelyFilled) {
                 if (type == null) errorBuilder.append("- Device Type selection missing on Device ").append(index).append(".\n");
                 if (model.isEmpty()) errorBuilder.append("- Brand/Model description missing on Device ").append(index).append(".\n");
-                if (mac.isEmpty() || !isValidMac(mac)) errorBuilder.append("- MAC validation failed on Device ").append(index).append(".\n");
-            } else if (completelyFilled && !isValidMac(mac)) {
-                errorBuilder.append("- MAC validation failed on Device ").append(index).append(".\n");
+                if (serial.isEmpty()) errorBuilder.append("- Serial Number missing on Device ").append(index).append(".\n");
             }
             index++;
         }
