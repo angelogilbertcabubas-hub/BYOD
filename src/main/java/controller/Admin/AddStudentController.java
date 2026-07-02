@@ -157,7 +157,7 @@ public class AddStudentController {
         Label typeLabel = new Label("DEVICE TYPE");
         typeLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 11px; -fx-text-fill: #555555;");
         ComboBox<String> typeBox = new ComboBox<>();
-        typeBox.getItems().addAll("Smartphone", "Laptop", "Tablet", "Speaker", "Projector", "Smart Watch", "Others");
+        typeBox.getItems().addAll( "Laptop", "Speaker", "Projector", "Rice Cooker", "Electric Fan", "Others");
         typeBox.setPromptText("Select Category");
         typeBox.setPrefHeight(38);
         typeBox.setMaxWidth(Double.MAX_VALUE);
